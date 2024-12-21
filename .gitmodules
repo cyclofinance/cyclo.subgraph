@@ -1,0 +1,3 @@
+[submodule "cyclo.sol"]
+	path = cyclo.sol
+	url = https://github.com/cyclofinance/cyclo.sol.git
