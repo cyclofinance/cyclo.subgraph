@@ -1,0 +1,127 @@
+enum Period {
+  JAN_2
+  FEB_1
+  MAR_3
+  APR_2
+  MAY_2
+}
+
+type TrackingPeriod @entity {
+  id: Bytes!
+  period: Period!
+  totalApprovedTransfersIn: BigInt!
+}
+
+type Account @entity {
+  id: Bytes!
+  address: Bytes!
+  transfersIn: [Transfer!]! @derivedFrom(field: "to")
+  transfersOut: [Transfer!]! @derivedFrom(field: "from")
+  trackingPeriods: [TrackingPeriodForAccount!]! @derivedFrom(field: "account")
+}
+
+type TrackingPeriodForAccount @entity {
+  id: Bytes!
+  account: Account!
+  period: Period!
+  culmulativeTransfersInFromApprovedSources: BigInt!
+  culmulativeTransfersOut: BigInt!
+  netApprovedTransfersIn: BigInt!
+}
+
+type Transfer @entity(immutable: true) {
+  id: Bytes!
+  from: Account!
+  fromIsApprovedSource: Boolean!
+  to: Account!
+  value: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  period: Period!
+}
+# type Approval @entity(immutable: true) {
+#   id: Bytes!
+#   owner: Bytes! # address
+#   spender: Bytes! # address
+#   value: BigInt! # uint256
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: Bytes!
+# }
+
+# type Deposit @entity(immutable: true) {
+#   id: Bytes!
+#   sender: Bytes! # address
+#   owner: Bytes! # address
+#   assets: BigInt! # uint256
+#   shares: BigInt! # uint256
+#   cysFLR_id: BigInt! # uint256
+#   receiptInformation: Bytes! # bytes
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: Bytes!
+# }
+
+# type ERC20PriceOracleReceiptVaultInitialized @entity(immutable: true) {
+#   id: Bytes!
+#   sender: Bytes! # address
+#   config_priceOracle: Bytes! # address
+#   config_receiptVaultConfig_receipt: Bytes! # address
+#   config_receiptVaultConfig_vaultConfig_asset: Bytes! # address
+#   config_receiptVaultConfig_vaultConfig_name: String! # string
+#   config_receiptVaultConfig_vaultConfig_symbol: String! # string
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: Bytes!
+# }
+
+# type Initialized @entity(immutable: true) {
+#   id: Bytes!
+#   version: Int! # uint8
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: Bytes!
+# }
+
+# type ReceiptVaultInformation @entity(immutable: true) {
+#   id: Bytes!
+#   sender: Bytes! # address
+#   vaultInformation: Bytes! # bytes
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: Bytes!
+# }
+
+# type Snapshot @entity(immutable: true) {
+#   id: Bytes!
+#   cysFLR_id: BigInt! # uint256
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: Bytes!
+# }
+
+# type Transfer @entity(immutable: true) {
+#   id: Bytes!
+#   from: Bytes! # address
+#   to: Bytes! # address
+#   value: BigInt! # uint256
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: Bytes!
+# }
+
+# type Withdraw @entity(immutable: true) {
+#   id: Bytes!
+#   sender: Bytes! # address
+#   receiver: Bytes! # address
+#   owner: Bytes! # address
+#   assets: BigInt! # uint256
+#   shares: BigInt! # uint256
+#   cysFLR_id: BigInt! # uint256
+#   receiptInformation: Bytes! # bytes
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: Bytes!
+# }
+
