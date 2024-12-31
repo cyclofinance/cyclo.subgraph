@@ -10,8 +10,19 @@ import {
 import {Address, BigInt, Bytes, ethereum} from "@graphprotocol/graph-ts";
 import { handleTransfer } from "../src/cys-flr";
 import { createTransferEvent } from "./cys-flr-utils";
-
+import { getOrInitTrackingPeriod } from "../src/cys-flr";
 let entityId: Bytes ;
+
+describe('Functions unit tests', () => {
+  test("getOrInitTrackingPeriod initializes new TrackingPeriod", () => {
+    let period = "JAN_2";
+    let trackingPeriod = getOrInitTrackingPeriod(period);
+    trackingPeriod.save();
+
+    assert.fieldEquals("TrackingPeriod", Bytes.fromUTF8(period).toHexString(), "period", period);
+    assert.fieldEquals("TrackingPeriod", Bytes.fromUTF8(period).toHexString(), "totalApprovedTransfersIn", "0");
+  });
+});
 
 describe("Handle Transfer event tests", () => {
   // Mock the factory function for the address we're interested in
@@ -44,19 +55,19 @@ describe("Handle Transfer event tests", () => {
     // Check if the transfer event data was correctly stored
     assert.fieldEquals(
         "Transfer",
-        entityId.toHex(), // Entity ID
+        entityId.toHex(),
         "from",
         "0x16b619b04c961e8f4f06c10b42fdabb328980a89"
     );
     assert.fieldEquals(
         "Transfer",
-        entityId.toHex(), // Entity ID
+        entityId.toHex(),
         "to",
         "0x0000000000000000000000000000000000000002"
     );
     assert.fieldEquals(
         "Transfer",
-        entityId.toHex(), // Entity ID
+        entityId.toHex(),
         "value",
         "1000"
     );
