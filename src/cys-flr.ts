@@ -50,7 +50,7 @@ export function getOrInitTrackingPeriod(period: string): TrackingPeriod {
   return trackingPeriod;
 }
 
-function isApprovedSource(address: Address): boolean {
+export function isApprovedSource(address: Address): boolean {
   // first check if the from is a pool from one of the approved factories
   const maybeHasFactory = factory.bind(address);
   const factoryAddress = maybeHasFactory.try_factory();

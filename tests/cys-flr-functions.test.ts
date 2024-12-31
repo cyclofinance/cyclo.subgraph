@@ -1,10 +1,11 @@
 import {
     assert,
+    createMockedFunction,
     describe,
     test,
 } from "matchstick-as";
-import { BigInt, Bytes } from "@graphprotocol/graph-ts";
-import { getOrInitTrackingPeriod } from "../src/cys-flr";
+import {BigInt, Bytes, Address, ethereum} from "@graphprotocol/graph-ts";
+import { getOrInitTrackingPeriod, isApprovedSource } from "../src/cys-flr";
 import {
     TrackingPeriod,
 } from "../generated/schema";
@@ -30,5 +31,13 @@ describe('Functions unit tests', () => {
 
         getOrInitTrackingPeriod(period);
         assert.fieldEquals("TrackingPeriod", id, "totalApprovedTransfersIn", "100");
+    });
+
+    test("isApprovedSource returns true for approved factory", () => {
+        createMockedFunction(Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"), 'factory', 'factory():(address)')
+            .withArgs([])
+            .returns([ethereum.Value.fromAddress(Address.fromString('0x16b619B04c961E8f4F06C10B42FDAbb328980A89'))])
+        let approvedFactory = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
+        assert.assertTrue(isApprovedSource(approvedFactory));
     });
 });
