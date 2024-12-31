@@ -40,7 +40,7 @@ const MAR_3_END = BigInt.fromI32(1740960000);
 const APR_2_END = BigInt.fromI32(1743552000);
 const MAY_2_END = BigInt.fromI32(1746144000);
 
-function getOrInitTrackingPeriod(period: string): TrackingPeriod {
+export function getOrInitTrackingPeriod(period: string): TrackingPeriod {
   let trackingPeriod = TrackingPeriod.load(Bytes.fromUTF8(period));
   if (!trackingPeriod) {
     trackingPeriod = new TrackingPeriod(Bytes.fromUTF8(period));
