@@ -5,9 +5,10 @@ import {
     test,
 } from "matchstick-as";
 import {BigInt, Bytes, Address, ethereum} from "@graphprotocol/graph-ts";
-import {getOrInitTrackingPeriod, isApprovedSource} from "../src/cys-flr";
+import {getOrInitTrackingPeriod, isApprovedSource, getOrInitAccount} from "../src/cys-flr";
 import {
     TrackingPeriod,
+    Account
 } from "../generated/schema";
 
 function mockFactory(address: string): void{
@@ -17,6 +18,8 @@ function mockFactory(address: string): void{
 }
 
 describe('Functions unit tests', () => {
+
+    // Test getOrInitTrackingPeriod function
     test("getOrInitTrackingPeriod initializes new TrackingPeriod", () => {
         let period = "JAN_2";
         let trackingPeriod = getOrInitTrackingPeriod(period);
@@ -39,6 +42,7 @@ describe('Functions unit tests', () => {
         assert.fieldEquals("TrackingPeriod", id, "totalApprovedTransfersIn", "100");
     });
 
+    // Test isApprovedSource function
     test("isApprovedSource returns true for approved factory", () => {
         mockFactory("0x16b619B04c961E8f4F06C10B42FDAbb328980A89")
         let approvedFactory = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
@@ -57,5 +61,24 @@ describe('Functions unit tests', () => {
 
         let unapprovedAddress = Address.fromString("0x0000000000000000000000000000000000000000");
         assert.assertTrue(!isApprovedSource(unapprovedAddress));
+    });
+
+    // Test getOrInitAccount function
+    test("getOrInitAccount initializes new Account", () => {
+        let address = Address.fromString("0x0000000000000000000000000000000000000001");
+        getOrInitAccount(address);
+
+        assert.fieldEquals("Account", address.toHexString(), "address", address.toHexString());
+    });
+
+    test("getOrInitAccount loads existing Account", () => {
+        let address = Address.fromString("0x0000000000000000000000000000000000000001");
+
+        let account = new Account(address);
+        account.address = address;
+        account.save();
+
+        getOrInitAccount(address);
+        assert.fieldEquals("Account", address.toHexString(), "address", address.toHexString());
     });
 });

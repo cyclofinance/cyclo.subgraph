@@ -68,7 +68,7 @@ export function isApprovedSource(address: Address): boolean {
   return false;
 }
 
-function getOrInitAccount(address: Address): Bytes {
+export function getOrInitAccount(address: Address): Bytes {
   let account = Account.load(address);
   if (!account) {
     account = new Account(address);
