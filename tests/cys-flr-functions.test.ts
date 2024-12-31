@@ -40,4 +40,13 @@ describe('Functions unit tests', () => {
         let approvedFactory = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
         assert.assertTrue(isApprovedSource(approvedFactory));
     });
+
+    test("isApprovedSource returns true for approved rewards source", () => {
+        createMockedFunction(Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), 'factory', 'factory():(address)')
+            .withArgs([])
+            .returns([ethereum.Value.fromAddress(Address.fromString('0xcee8cd002f151a536394e564b84076c41bbbcd4d'))])
+
+        let approvedSource = Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d");
+        assert.assertTrue(isApprovedSource(approvedSource));
+    });
 });
