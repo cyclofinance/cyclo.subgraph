@@ -5,10 +5,16 @@ import {
     test,
 } from "matchstick-as";
 import {BigInt, Bytes, Address, ethereum} from "@graphprotocol/graph-ts";
-import { getOrInitTrackingPeriod, isApprovedSource } from "../src/cys-flr";
+import {getOrInitTrackingPeriod, isApprovedSource} from "../src/cys-flr";
 import {
     TrackingPeriod,
 } from "../generated/schema";
+
+function mockFactory(address: string): void{
+    createMockedFunction(Address.fromString(address), 'factory', 'factory():(address)')
+        .withArgs([])
+        .returns([ethereum.Value.fromAddress(Address.fromString(address))])
+}
 
 describe('Functions unit tests', () => {
     test("getOrInitTrackingPeriod initializes new TrackingPeriod", () => {
@@ -34,26 +40,21 @@ describe('Functions unit tests', () => {
     });
 
     test("isApprovedSource returns true for approved factory", () => {
-        createMockedFunction(Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"), 'factory', 'factory():(address)')
-            .withArgs([])
-            .returns([ethereum.Value.fromAddress(Address.fromString('0x16b619B04c961E8f4F06C10B42FDAbb328980A89'))])
+        mockFactory("0x16b619B04c961E8f4F06C10B42FDAbb328980A89")
         let approvedFactory = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
         assert.assertTrue(isApprovedSource(approvedFactory));
     });
 
     test("isApprovedSource returns true for approved rewards source", () => {
-        createMockedFunction(Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), 'factory', 'factory():(address)')
-            .withArgs([])
-            .returns([ethereum.Value.fromAddress(Address.fromString('0xcee8cd002f151a536394e564b84076c41bbbcd4d'))])
+        mockFactory("0xcee8cd002f151a536394e564b84076c41bbbcd4d")
 
         let approvedSource = Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d");
         assert.assertTrue(isApprovedSource(approvedSource));
     });
 
     test("isApprovedSource returns false for unapproved address", () => {
-        createMockedFunction(Address.fromString("0x0000000000000000000000000000000000000000"), 'factory', 'factory():(address)')
-            .withArgs([])
-            .returns([ethereum.Value.fromAddress(Address.fromString('0x0000000000000000000000000000000000000000'))])
+        mockFactory("0x0000000000000000000000000000000000000000")
+
         let unapprovedAddress = Address.fromString("0x0000000000000000000000000000000000000000");
         assert.assertTrue(!isApprovedSource(unapprovedAddress));
     });
