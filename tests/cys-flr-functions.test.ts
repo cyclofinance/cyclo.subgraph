@@ -5,11 +5,18 @@ import {
     test,
 } from "matchstick-as";
 import {BigInt, Bytes, Address, ethereum} from "@graphprotocol/graph-ts";
-import {getOrInitTrackingPeriod, isApprovedSource, getOrInitAccount} from "../src/cys-flr";
+import {getOrInitTrackingPeriod, isApprovedSource, getOrInitAccount, getPeriodFromTimestamp} from "../src/cys-flr";
 import {
     TrackingPeriod,
     Account
 } from "../generated/schema";
+
+const JAN_1 = BigInt.fromI32(1735680000);
+const JAN_31 = BigInt.fromI32(1738262399);
+const MAR_2 = BigInt.fromI32(1740854399);
+const APR_1 = BigInt.fromI32(1743446399);
+const MAY_1 = BigInt.fromI32(1746038399);
+
 
 function mockFactory(address: string): void{
     createMockedFunction(Address.fromString(address), 'factory', 'factory():(address)')
@@ -80,5 +87,13 @@ describe('Functions unit tests', () => {
 
         getOrInitAccount(address);
         assert.fieldEquals("Account", address.toHexString(), "address", address.toHexString());
+    });
+
+    test("getPeriodFromTimestamp returns correct period for given timestamp", () => {
+        assert.stringEquals(getPeriodFromTimestamp(JAN_1), "JAN_2");
+        assert.stringEquals(getPeriodFromTimestamp(JAN_31), "FEB_1");
+        assert.stringEquals(getPeriodFromTimestamp(MAR_2), "MAR_3");
+        assert.stringEquals(getPeriodFromTimestamp(APR_1), "APR_2");
+        assert.stringEquals(getPeriodFromTimestamp(MAY_1), "MAY_2");
     });
 });

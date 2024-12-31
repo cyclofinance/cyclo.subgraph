@@ -82,7 +82,7 @@ function idFromTimestampAndAddress(period: string, address: Address): Bytes {
   return Bytes.fromUTF8(period).concat(address);
 }
 
-function getPeriodFromTimestamp(timestamp: BigInt): string {
+export function getPeriodFromTimestamp(timestamp: BigInt): string {
   if (timestamp.lt(JAN_2_END)) {
     return "JAN_2";
   } else if (timestamp.lt(FEB_1_END)) {
