@@ -10,6 +10,7 @@ import { factory } from "../generated/cysFLR/factory";
 
 const REWARDS_SOURCES = [
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
+  Address.fromString("0x0f3D8a38D4c74afBebc2c42695642f0e3acb15D3"), // Sparkdex Universal Router
 ];
 
 const FACTORIES = [
