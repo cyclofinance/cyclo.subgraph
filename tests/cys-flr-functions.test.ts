@@ -5,7 +5,7 @@ import {
     test,
 } from "matchstick-as";
 import {BigInt, Bytes, Address, ethereum} from "@graphprotocol/graph-ts";
-import {getOrInitTrackingPeriod, isApprovedSource, getOrInitAccount, getPeriodFromTimestamp} from "../src/cys-flr";
+import {getOrInitTrackingPeriod, isApprovedSource, getOrInitAccount, getPeriodFromTimestamp, idFromTimestampAndAddress} from "../src/cys-flr";
 import {
     TrackingPeriod,
     Account
@@ -89,11 +89,25 @@ describe('Functions unit tests', () => {
         assert.fieldEquals("Account", address.toHexString(), "address", address.toHexString());
     });
 
+    // Test getPeriodFromTimestamp function
     test("getPeriodFromTimestamp returns ALL_TIME for given timestamp", () => {
         assert.stringEquals(getPeriodFromTimestamp(JAN_1), "ALL_TIME");
         assert.stringEquals(getPeriodFromTimestamp(JAN_31), "ALL_TIME");
         assert.stringEquals(getPeriodFromTimestamp(MAR_2), "ALL_TIME");
         assert.stringEquals(getPeriodFromTimestamp(APR_1), "ALL_TIME");
         assert.stringEquals(getPeriodFromTimestamp(MAY_1), "ALL_TIME");
+    });
+
+    // Test idFromTimestampAndAddress function
+    test("should concatenate period and address into Bytes", () => {
+        const period = "JAN_2";
+        const address = Address.fromString("0x1234567890abcdef1234567890abcdef12345678");
+
+        const expectedBytes = Bytes.fromUTF8(period).concat(address);
+
+        const result = idFromTimestampAndAddress(period, address);
+
+        assert.bytesEquals(result, expectedBytes);
+        assert.stringEquals(result.toHexString(), expectedBytes.toHexString());
     });
 });

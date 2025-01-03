@@ -57,7 +57,7 @@ export function getOrInitAccount(address: Address): Bytes {
   return address;
 }
 
-function idFromTimestampAndAddress(period: string, address: Address): Bytes {
+export function idFromTimestampAndAddress(period: string, address: Address): Bytes {
   return Bytes.fromUTF8(period).concat(address);
 }
 
