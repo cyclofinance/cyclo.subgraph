@@ -60,4 +60,22 @@ describe("Handle Transfer event tests", () => {
         "1000"
     );
   });
+
+  // Transfer from an approved source
+  test("Transfer from an approved source", () => {
+    let from = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
+    let to = Address.fromString("0x0000000000000000000000000000000000000002");
+    let value = BigInt.fromI32(1000);
+
+    let transferEvent = createTransferEvent(from, to, value);
+
+    handleTransfer(transferEvent);
+
+    assert.fieldEquals(
+        "Transfer",
+        transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
+        "fromIsApprovedSource",
+        "true"
+    );
+  });
 });
