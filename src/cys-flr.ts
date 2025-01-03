@@ -1,24 +1,8 @@
 import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts";
-import {
-  // Approval as ApprovalEvent,
-  // Deposit as DepositEvent,
-  // ERC20PriceOracleReceiptVaultInitialized as ERC20PriceOracleReceiptVaultInitializedEvent,
-  // Initialized as InitializedEvent,
-  // ReceiptVaultInformation as ReceiptVaultInformationEvent,
-  // Snapshot as SnapshotEvent,
-  Transfer as TransferEvent,
-  // Withdraw as WithdrawEvent,
-} from "../generated/cysFLR/cysFLR";
+import { Transfer as TransferEvent } from "../generated/cysFLR/cysFLR";
 import {
   Account,
-  // Approval,
-  // Deposit,
-  // ERC20PriceOracleReceiptVaultInitialized,
-  // Initialized,
-  // ReceiptVaultInformation,
-  // Snapshot,
   Transfer,
-  // Withdraw,
   TrackingPeriod,
   TrackingPeriodForAccount,
 } from "../generated/schema";
@@ -26,6 +10,7 @@ import { factory } from "../generated/cysFLR/factory";
 
 const REWARDS_SOURCES = [
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
+  Address.fromString("0x0f3D8a38D4c74afBebc2c42695642f0e3acb15D3"), // Sparkdex Universal Router
 ];
 
 const FACTORIES = [
@@ -34,13 +19,7 @@ const FACTORIES = [
   Address.fromString("0x440602f459D7Dd500a74528003e6A20A46d6e2A6"), // Blazeswap
 ];
 
-const JAN_2_END = BigInt.fromI32(1735776000);
-const FEB_1_END = BigInt.fromI32(1738368000);
-const MAR_3_END = BigInt.fromI32(1740960000);
-const APR_2_END = BigInt.fromI32(1743552000);
-const MAY_2_END = BigInt.fromI32(1746144000);
-
-export function getOrInitTrackingPeriod(period: string): TrackingPeriod {
+function getOrInitTrackingPeriod(period: string): TrackingPeriod {
   let trackingPeriod = TrackingPeriod.load(Bytes.fromUTF8(period));
   if (!trackingPeriod) {
     trackingPeriod = new TrackingPeriod(Bytes.fromUTF8(period));
@@ -83,17 +62,7 @@ function idFromTimestampAndAddress(period: string, address: Address): Bytes {
 }
 
 export function getPeriodFromTimestamp(timestamp: BigInt): string {
-  if (timestamp.lt(JAN_2_END)) {
-    return "JAN_2";
-  } else if (timestamp.lt(FEB_1_END)) {
-    return "FEB_1";
-  } else if (timestamp.lt(MAR_3_END)) {
-    return "MAR_3";
-  } else if (timestamp.lt(APR_2_END)) {
-    return "APR_2";
-  } else {
-    return "MAY_2";
-  }
+  return "ALL_TIME";
 }
 
 function getOrInitTrackingPeriodForAccount(
@@ -212,121 +181,3 @@ export function handleTransfer(event: TransferEvent): void {
 
   entity.save();
 }
-
-// export function handleApproval(event: ApprovalEvent): void {
-//   let entity = new Approval(
-//     event.transaction.hash.concatI32(event.logIndex.toI32())
-//   );
-//   entity.owner = event.params.owner;
-//   entity.spender = event.params.spender;
-//   entity.value = event.params.value;
-
-//   entity.blockNumber = event.block.number;
-//   entity.blockTimestamp = event.block.timestamp;
-//   entity.transactionHash = event.transaction.hash;
-
-//   entity.save();
-// }
-
-// export function handleDeposit(event: DepositEvent): void {
-//   let entity = new Deposit(
-//     event.transaction.hash.concatI32(event.logIndex.toI32())
-//   );
-//   entity.sender = event.params.sender;
-//   entity.owner = event.params.owner;
-//   entity.assets = event.params.assets;
-//   entity.shares = event.params.shares;
-//   entity.cysFLR_id = event.params.id;
-//   entity.receiptInformation = event.params.receiptInformation;
-
-//   entity.blockNumber = event.block.number;
-//   entity.blockTimestamp = event.block.timestamp;
-//   entity.transactionHash = event.transaction.hash;
-
-//   entity.save();
-// }
-
-// export function handleERC20PriceOracleReceiptVaultInitialized(
-//   event: ERC20PriceOracleReceiptVaultInitializedEvent
-// ): void {
-//   let entity = new ERC20PriceOracleReceiptVaultInitialized(
-//     event.transaction.hash.concatI32(event.logIndex.toI32())
-//   );
-//   entity.sender = event.params.sender;
-//   entity.config_priceOracle = event.params.config.priceOracle;
-//   entity.config_receiptVaultConfig_receipt =
-//     event.params.config.receiptVaultConfig.receipt;
-//   entity.config_receiptVaultConfig_vaultConfig_asset =
-//     event.params.config.receiptVaultConfig.vaultConfig.asset;
-//   entity.config_receiptVaultConfig_vaultConfig_name =
-//     event.params.config.receiptVaultConfig.vaultConfig.name;
-//   entity.config_receiptVaultConfig_vaultConfig_symbol =
-//     event.params.config.receiptVaultConfig.vaultConfig.symbol;
-
-//   entity.blockNumber = event.block.number;
-//   entity.blockTimestamp = event.block.timestamp;
-//   entity.transactionHash = event.transaction.hash;
-
-//   entity.save();
-// }
-
-// export function handleInitialized(event: InitializedEvent): void {
-//   let entity = new Initialized(
-//     event.transaction.hash.concatI32(event.logIndex.toI32())
-//   );
-//   entity.version = event.params.version;
-
-//   entity.blockNumber = event.block.number;
-//   entity.blockTimestamp = event.block.timestamp;
-//   entity.transactionHash = event.transaction.hash;
-
-//   entity.save();
-// }
-
-// export function handleReceiptVaultInformation(
-//   event: ReceiptVaultInformationEvent
-// ): void {
-//   let entity = new ReceiptVaultInformation(
-//     event.transaction.hash.concatI32(event.logIndex.toI32())
-//   );
-//   entity.sender = event.params.sender;
-//   entity.vaultInformation = event.params.vaultInformation;
-
-//   entity.blockNumber = event.block.number;
-//   entity.blockTimestamp = event.block.timestamp;
-//   entity.transactionHash = event.transaction.hash;
-
-//   entity.save();
-// }
-
-// export function handleSnapshot(event: SnapshotEvent): void {
-//   let entity = new Snapshot(
-//     event.transaction.hash.concatI32(event.logIndex.toI32())
-//   );
-//   entity.cysFLR_id = event.params.id;
-
-//   entity.blockNumber = event.block.number;
-//   entity.blockTimestamp = event.block.timestamp;
-//   entity.transactionHash = event.transaction.hash;
-
-//   entity.save();
-// }
-
-// export function handleWithdraw(event: WithdrawEvent): void {
-//   let entity = new Withdraw(
-//     event.transaction.hash.concatI32(event.logIndex.toI32())
-//   );
-//   entity.sender = event.params.sender;
-//   entity.receiver = event.params.receiver;
-//   entity.owner = event.params.owner;
-//   entity.assets = event.params.assets;
-//   entity.shares = event.params.shares;
-//   entity.cysFLR_id = event.params.id;
-//   entity.receiptInformation = event.params.receiptInformation;
-
-//   entity.blockNumber = event.block.number;
-//   entity.blockTimestamp = event.block.timestamp;
-//   entity.transactionHash = event.transaction.hash;
-
-//   entity.save();
-// }
