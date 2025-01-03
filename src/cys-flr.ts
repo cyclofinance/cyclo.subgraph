@@ -19,7 +19,7 @@ const FACTORIES = [
   Address.fromString("0x440602f459D7Dd500a74528003e6A20A46d6e2A6"), // Blazeswap
 ];
 
-function getOrInitTrackingPeriod(period: string): TrackingPeriod {
+export function getOrInitTrackingPeriod(period: string): TrackingPeriod {
   let trackingPeriod = TrackingPeriod.load(Bytes.fromUTF8(period));
   if (!trackingPeriod) {
     trackingPeriod = new TrackingPeriod(Bytes.fromUTF8(period));

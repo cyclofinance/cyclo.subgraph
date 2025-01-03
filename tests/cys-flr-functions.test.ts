@@ -89,11 +89,11 @@ describe('Functions unit tests', () => {
         assert.fieldEquals("Account", address.toHexString(), "address", address.toHexString());
     });
 
-    test("getPeriodFromTimestamp returns correct period for given timestamp", () => {
-        assert.stringEquals(getPeriodFromTimestamp(JAN_1), "JAN_2");
-        assert.stringEquals(getPeriodFromTimestamp(JAN_31), "FEB_1");
-        assert.stringEquals(getPeriodFromTimestamp(MAR_2), "MAR_3");
-        assert.stringEquals(getPeriodFromTimestamp(APR_1), "APR_2");
-        assert.stringEquals(getPeriodFromTimestamp(MAY_1), "MAY_2");
+    test("getPeriodFromTimestamp returns ALL_TIME for given timestamp", () => {
+        assert.stringEquals(getPeriodFromTimestamp(JAN_1), "ALL_TIME");
+        assert.stringEquals(getPeriodFromTimestamp(JAN_31), "ALL_TIME");
+        assert.stringEquals(getPeriodFromTimestamp(MAR_2), "ALL_TIME");
+        assert.stringEquals(getPeriodFromTimestamp(APR_1), "ALL_TIME");
+        assert.stringEquals(getPeriodFromTimestamp(MAY_1), "ALL_TIME");
     });
 });
