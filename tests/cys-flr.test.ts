@@ -96,4 +96,22 @@ describe("Handle Transfer event tests", () => {
         "false"
     );
   });
+
+  // Zero value transfer
+  test("Zero value transfer", () => {
+    let from = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
+    let to = Address.fromString("0x0000000000000000000000000000000000000002");
+    let value = BigInt.fromI32(0);
+
+    let transferEvent = createTransferEvent(from, to, value);
+
+    handleTransfer(transferEvent);
+
+    assert.fieldEquals(
+        "Transfer",
+        transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
+        "value",
+        "0"
+    );
+  });
 });
