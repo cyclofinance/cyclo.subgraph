@@ -1,117 +1,158 @@
 import {
-  assert,
-  describe,
-  test,
-  clearStore,
-  beforeAll,
-  afterAll,
-  createMockedFunction
+    assert,
+    describe,
+    test,
+    clearStore,
+    beforeAll,
+    afterAll,
+    createMockedFunction
 } from "matchstick-as";
 import {Address, BigInt, Bytes, ethereum} from "@graphprotocol/graph-ts";
-import { handleTransfer } from "../src/cys-flr";
-import { createTransferEvent } from "./cys-flr-utils";
+import {handleTransfer} from "../src/cys-flr";
+import {createTransferEvent} from "./cys-flr-utils";
 
 describe("Handle Transfer event tests", () => {
-  afterAll(() => {
-    clearStore();
-  });
 
-  test("Transfer entity is created and stored", () => {
-    createMockedFunction(Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"), 'factory', 'factory():(address)')
-        .withArgs([])
-        .returns([ethereum.Value.fromAddress(Address.fromString('0x16b619B04c961E8f4F06C10B42FDAbb328980A89'))])
+    beforeAll(() => {
+        createMockedFunction(Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"), 'factory', 'factory():(address)')
+            .withArgs([])
+            .returns([ethereum.Value.fromAddress(Address.fromString('0x16b619B04c961E8f4F06C10B42FDAbb328980A89'))])
+    })
+    afterAll(() => {
+        clearStore();
+    });
 
-    // Now, simulate the transfer event
-    let from = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
-    let to = Address.fromString("0x0000000000000000000000000000000000000002");
-    let value = BigInt.fromI32(1000);
+    test("Transfer entity is created and stored", () => {
+        let from = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
+        let to = Address.fromString("0x0000000000000000000000000000000000000002");
+        let value = BigInt.fromI32(1000);
 
-    let transferEvent = createTransferEvent(from, to, value);
+        let transferEvent = createTransferEvent(from, to, value);
 
-    let entityId = transferEvent.transaction.hash.concatI32(
-        transferEvent.logIndex.toI32()
-    );
+        let entityId = transferEvent.transaction.hash.concatI32(
+            transferEvent.logIndex.toI32()
+        );
 
-    handleTransfer(transferEvent);
+        handleTransfer(transferEvent);
 
-    assert.entityCount("Transfer", 1);
+        assert.entityCount("Transfer", 1);
 
-    // Check if the transfer event data was correctly stored
-    assert.fieldEquals(
-        "Transfer",
-        entityId.toHex(),
-        "from",
-        "0x16b619b04c961e8f4f06c10b42fdabb328980a89"
-    );
-    assert.fieldEquals(
-        "Transfer",
-        entityId.toHex(),
-        "to",
-        "0x0000000000000000000000000000000000000002"
-    );
-    assert.fieldEquals(
-        "Transfer",
-        entityId.toHex(),
-        "value",
-        "1000"
-    );
-  });
+        // Check if the transfer event data was correctly stored
+        assert.fieldEquals(
+            "Transfer",
+            entityId.toHex(),
+            "from",
+            "0x16b619b04c961e8f4f06c10b42fdabb328980a89"
+        );
+        assert.fieldEquals(
+            "Transfer",
+            entityId.toHex(),
+            "to",
+            "0x0000000000000000000000000000000000000002"
+        );
+        assert.fieldEquals(
+            "Transfer",
+            entityId.toHex(),
+            "value",
+            "1000"
+        );
+    });
 
-  // Transfer from an approved source
-  test("Transfer from an approved source", () => {
-    let from = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
-    let to = Address.fromString("0x0000000000000000000000000000000000000002");
-    let value = BigInt.fromI32(1000);
+    // Transfer from an approved source
+    test("Transfer from an approved source", () => {
+        let from = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
+        let to = Address.fromString("0x0000000000000000000000000000000000000002");
+        let value = BigInt.fromI32(1000);
 
-    let transferEvent = createTransferEvent(from, to, value);
+        let transferEvent = createTransferEvent(from, to, value);
 
-    handleTransfer(transferEvent);
+        handleTransfer(transferEvent);
 
-    assert.fieldEquals(
-        "Transfer",
-        transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
-        "fromIsApprovedSource",
-        "true"
-    );
-  });
+        assert.fieldEquals(
+            "Transfer",
+            transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
+            "fromIsApprovedSource",
+            "true"
+        );
+    });
 
-  // Transfer from an unapproved source
-  test("Transfer from an unapproved source", () => {
-    createMockedFunction(Address.fromString("0x0000000000000000000000000000000000000003"), 'factory', 'factory():(address)')
-        .withArgs([])
-        .returns([ethereum.Value.fromAddress(Address.fromString('0x0000000000000000000000000000000000000003'))])
+    // Transfer from an unapproved source
+    test("Transfer from an unapproved source", () => {
+        createMockedFunction(Address.fromString("0x0000000000000000000000000000000000000003"), 'factory', 'factory():(address)')
+            .withArgs([])
+            .returns([ethereum.Value.fromAddress(Address.fromString('0x0000000000000000000000000000000000000003'))])
 
-    let from = Address.fromString("0x0000000000000000000000000000000000000003");
-    let to = Address.fromString("0x0000000000000000000000000000000000000002");
-    let value = BigInt.fromI32(1000);
+        let from = Address.fromString("0x0000000000000000000000000000000000000003");
+        let to = Address.fromString("0x0000000000000000000000000000000000000002");
+        let value = BigInt.fromI32(1000);
 
-    let transferEvent = createTransferEvent(from, to, value);
+        let transferEvent = createTransferEvent(from, to, value);
 
-    handleTransfer(transferEvent);
+        handleTransfer(transferEvent);
 
-    assert.fieldEquals(
-        "Transfer",
-        transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
-        "fromIsApprovedSource",
-        "false"
-    );
-  });
+        assert.fieldEquals(
+            "Transfer",
+            transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
+            "fromIsApprovedSource",
+            "false"
+        );
+    });
 
-  // Zero value transfer
-  test("Zero value transfer", () => {
-    let from = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
-    let to = Address.fromString("0x0000000000000000000000000000000000000002");
-    let value = BigInt.fromI32(0);
+    // Zero value transfer
+    test("Zero value transfer", () => {
+        let from = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
+        let to = Address.fromString("0x0000000000000000000000000000000000000002");
+        let value = BigInt.fromI32(0);
 
-    let transferEvent = createTransferEvent(from, to, value);
+        let transferEvent = createTransferEvent(from, to, value);
 
-    handleTransfer(transferEvent);
+        handleTransfer(transferEvent);
 
-    assert.fieldEquals(
-        "Transfer",
-        transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
-        "value",
-        "0"
-    );
-  });
+        assert.fieldEquals(
+            "Transfer",
+            transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
+            "value",
+            "0"
+        );
+    });
+
+    // Transfer where from == to
+    test("Transfer from and to the same address", () => {
+        let from = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
+        let to = from; // Same address
+        let value = BigInt.fromI32(1000);
+
+        let transferEvent = createTransferEvent(from, to, value);
+
+        handleTransfer(transferEvent);
+
+        assert.fieldEquals(
+            "Transfer",
+            transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
+            "value",
+            "1000"
+        );
+    });
+
+    // Ensure tracking period entities are initialized correctly
+    test("Ensure tracking period entities are initialized", () => {
+        createMockedFunction(Address.fromString("0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652"), 'factory', 'factory():(address)')
+            .withArgs([])
+            .returns([ethereum.Value.fromAddress(Address.fromString('0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652'))])
+
+        let from = Address.fromString("0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652");
+        let to = Address.fromString("0x0000000000000000000000000000000000000005");
+        let value = BigInt.fromI32(1000);
+
+        let transferEvent = createTransferEvent(from, to, value);
+
+        handleTransfer(transferEvent);
+        let fromTrackingPeriod = Bytes.fromUTF8("ALL_TIME").concat(from).toHexString();
+        let toTrackingPeriod = Bytes.fromUTF8("ALL_TIME").concat(to).toHexString();
+
+        assert.fieldEquals("TrackingPeriodForAccount", fromTrackingPeriod, "culmulativeTransfersInFromApprovedSources", "0");
+        assert.fieldEquals("TrackingPeriodForAccount", fromTrackingPeriod, "netApprovedTransfersIn", "-1000");
+        assert.fieldEquals("TrackingPeriodForAccount", toTrackingPeriod, "culmulativeTransfersInFromApprovedSources", "1000");
+        assert.fieldEquals("TrackingPeriodForAccount", toTrackingPeriod, "netApprovedTransfersIn", "1000");
+    });
 });
