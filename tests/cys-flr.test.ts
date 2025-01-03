@@ -10,11 +10,13 @@ import {
 import {Address, BigInt, Bytes, ethereum} from "@graphprotocol/graph-ts";
 import { handleTransfer } from "../src/cys-flr";
 import { createTransferEvent } from "./cys-flr-utils";
-let entityId: Bytes ;
 
 describe("Handle Transfer event tests", () => {
-  // Mock the factory function for the address we're interested in
-  beforeAll(() => {
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("Transfer entity is created and stored", () => {
     createMockedFunction(Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"), 'factory', 'factory():(address)')
         .withArgs([])
         .returns([ethereum.Value.fromAddress(Address.fromString('0x16b619B04c961E8f4F06C10B42FDAbb328980A89'))])
@@ -26,18 +28,12 @@ describe("Handle Transfer event tests", () => {
 
     let transferEvent = createTransferEvent(from, to, value);
 
-    entityId = transferEvent.transaction.hash.concatI32(
+    let entityId = transferEvent.transaction.hash.concatI32(
         transferEvent.logIndex.toI32()
     );
 
     handleTransfer(transferEvent);
-  });
 
-  afterAll(() => {
-    clearStore();
-  });
-
-  test("Transfer entity is created and stored", () => {
     assert.entityCount("Transfer", 1);
 
     // Check if the transfer event data was correctly stored
