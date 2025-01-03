@@ -8,7 +8,8 @@ import {BigInt, Bytes, Address, ethereum} from "@graphprotocol/graph-ts";
 import {getOrInitTrackingPeriod, isApprovedSource, getOrInitAccount, getPeriodFromTimestamp, idFromTimestampAndAddress, getOrInitTrackingPeriodForAccount} from "../src/cys-flr";
 import {
     TrackingPeriod,
-    Account
+    Account,
+    TrackingPeriodForAccount
 } from "../generated/schema";
 
 const JAN_1 = BigInt.fromI32(1735680000);
@@ -124,5 +125,28 @@ describe('Functions unit tests', () => {
         assert.fieldEquals("TrackingPeriodForAccount", id, "culmulativeTransfersInFromApprovedSources", "0");
         assert.fieldEquals("TrackingPeriodForAccount", id, "culmulativeTransfersOut", "0");
         assert.fieldEquals("TrackingPeriodForAccount", id, "netApprovedTransfersIn", "0");
+    });
+
+    test("should retrieve an existing TrackingPeriodForAccount", () => {
+        // Input values
+        const address = Address.fromString("0x1234567890abcdef1234567890abcdef12345678");
+
+        // Create and save an entity
+        const id = Bytes.fromUTF8("ALL_TIME").concat(address);
+        const idString = id.toHexString()
+        const existingTrackingPeriod = new TrackingPeriodForAccount(id);
+        existingTrackingPeriod.account = address;
+        existingTrackingPeriod.period = "ALL_TIME";
+        existingTrackingPeriod.culmulativeTransfersInFromApprovedSources = BigInt.fromI32(10);
+        existingTrackingPeriod.culmulativeTransfersOut = BigInt.fromI32(5);
+        existingTrackingPeriod.netApprovedTransfersIn = BigInt.fromI32(5);
+        existingTrackingPeriod.save();
+
+        getOrInitTrackingPeriodForAccount(address, APR_1);
+
+        assert.fieldEquals("TrackingPeriodForAccount", idString, "id", idString);
+        assert.fieldEquals("TrackingPeriodForAccount", idString, "culmulativeTransfersInFromApprovedSources", "10");
+        assert.fieldEquals("TrackingPeriodForAccount", idString, "culmulativeTransfersOut", "5");
+        assert.fieldEquals("TrackingPeriodForAccount", idString, "netApprovedTransfersIn", "5");
     });
 });
