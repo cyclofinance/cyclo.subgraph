@@ -5,7 +5,7 @@ import {
     test,
 } from "matchstick-as";
 import {BigInt, Bytes, Address, ethereum} from "@graphprotocol/graph-ts";
-import {getOrInitTrackingPeriod, isApprovedSource, getOrInitAccount, getPeriodFromTimestamp, idFromTimestampAndAddress} from "../src/cys-flr";
+import {getOrInitTrackingPeriod, isApprovedSource, getOrInitAccount, getPeriodFromTimestamp, idFromTimestampAndAddress, getOrInitTrackingPeriodForAccount} from "../src/cys-flr";
 import {
     TrackingPeriod,
     Account
@@ -109,5 +109,20 @@ describe('Functions unit tests', () => {
 
         assert.bytesEquals(result, expectedBytes);
         assert.stringEquals(result.toHexString(), expectedBytes.toHexString());
+    });
+
+    // Test getOrInitTrackingPeriodForAccount function
+    test("should initialize a new TrackingPeriodForAccount when none exists", () => {
+        const address = Address.fromString("0x1234567890abcdef1234567890abcdef12345678");
+        const trackingPeriod = getOrInitTrackingPeriodForAccount(address, JAN_1);
+        trackingPeriod.save();
+        const id = Bytes.fromUTF8("ALL_TIME").concat(address).toHexString();
+
+        assert.fieldEquals("TrackingPeriodForAccount", id, "id", id);
+        assert.fieldEquals("TrackingPeriodForAccount", id, "account", address.toHexString());
+        assert.fieldEquals("TrackingPeriodForAccount", id, "period", "ALL_TIME");
+        assert.fieldEquals("TrackingPeriodForAccount", id, "culmulativeTransfersInFromApprovedSources", "0");
+        assert.fieldEquals("TrackingPeriodForAccount", id, "culmulativeTransfersOut", "0");
+        assert.fieldEquals("TrackingPeriodForAccount", id, "netApprovedTransfersIn", "0");
     });
 });

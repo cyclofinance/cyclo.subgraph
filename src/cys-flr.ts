@@ -65,7 +65,7 @@ export function getPeriodFromTimestamp(timestamp: BigInt): string {
   return "ALL_TIME";
 }
 
-function getOrInitTrackingPeriodForAccount(
+export function getOrInitTrackingPeriodForAccount(
   address: Address,
   timestamp: BigInt
 ): TrackingPeriodForAccount {
