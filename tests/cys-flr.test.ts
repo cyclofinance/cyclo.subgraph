@@ -78,4 +78,26 @@ describe("Handle Transfer event tests", () => {
         "true"
     );
   });
+
+  // Transfer from an unapproved source
+  test("Transfer from an unapproved source", () => {
+    createMockedFunction(Address.fromString("0x0000000000000000000000000000000000000003"), 'factory', 'factory():(address)')
+        .withArgs([])
+        .returns([ethereum.Value.fromAddress(Address.fromString('0x0000000000000000000000000000000000000003'))])
+
+    let from = Address.fromString("0x0000000000000000000000000000000000000003");
+    let to = Address.fromString("0x0000000000000000000000000000000000000002");
+    let value = BigInt.fromI32(1000);
+
+    let transferEvent = createTransferEvent(from, to, value);
+
+    handleTransfer(transferEvent);
+
+    assert.fieldEquals(
+        "Transfer",
+        transferEvent.transaction.hash.concatI32(transferEvent.logIndex.toI32()).toHex(),
+        "fromIsApprovedSource",
+        "false"
+    );
+  });
 });
