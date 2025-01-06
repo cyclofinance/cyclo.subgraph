@@ -82,7 +82,7 @@
 
       in {
         devShells.default = pkgs.mkShell {
-          buildInputs = subgraph-tasks ++ [ the-graph ];
+          buildInputs = subgraph-tasks ++ [ the-graph, foundry.packages.${system}.foundry ];
           shellHook = ''
             echo "Development shell loaded. Available tasks:"
             echo "  - subgraph-run-build"
