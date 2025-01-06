@@ -38,7 +38,7 @@
           '';
         };
 
-        mkTask = { name, body, additionalBuildInputs ? [] }: pkgs.symlinkJoin {
+     mkTask = { name, body, additionalBuildInputs ? [] }: pkgs.symlinkJoin {
           name = name;
           paths = [
             ((pkgs.writeScriptBin name body).overrideAttrs(old: {
@@ -47,7 +47,7 @@
           ] ++ additionalBuildInputs;
           buildInputs = [ pkgs.makeWrapper ] ++ additionalBuildInputs;
           postBuild = "wrapProgram $out/bin/${name} --prefix PATH : $out/bin";
-        };
+     };
 
         # Define tasks
         subgraph-run-build = mkTask {
@@ -73,15 +73,11 @@
           subgraph-run-build
           subgraph-run-test
         ];
-
-      in {
+    in rec {
         devShells.default = pkgs.mkShell {
-          buildInputs = subgraph-tasks ++ [ the-graph ];
-          shellHook = ''
-            echo "Development shell loaded. Available tasks:"
-            echo "  - subgraph-run-build"
-            echo "  - subgraph-run-test"
-          '';
+          shellHook = rainix.devShells.${system}.default.shellHook;
+          buildInputs = rainix.devShells.${system}.default.buildInputs;
+          nativeBuildInputs = rainix.devShells.${system}.default.nativeBuildInputs;
         };
       }
     );
