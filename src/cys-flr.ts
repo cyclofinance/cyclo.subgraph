@@ -19,7 +19,7 @@ const FACTORIES = [
   Address.fromString("0x440602f459D7Dd500a74528003e6A20A46d6e2A6"), // Blazeswap
 ];
 
-function getOrInitTrackingPeriod(period: string): TrackingPeriod {
+export function getOrInitTrackingPeriod(period: string): TrackingPeriod {
   let trackingPeriod = TrackingPeriod.load(Bytes.fromUTF8(period));
   if (!trackingPeriod) {
     trackingPeriod = new TrackingPeriod(Bytes.fromUTF8(period));
@@ -29,7 +29,7 @@ function getOrInitTrackingPeriod(period: string): TrackingPeriod {
   return trackingPeriod;
 }
 
-function isApprovedSource(address: Address): boolean {
+export function isApprovedSource(address: Address): boolean {
   // first check if the from is a pool from one of the approved factories
   const maybeHasFactory = factory.bind(address);
   const factoryAddress = maybeHasFactory.try_factory();
@@ -47,7 +47,7 @@ function isApprovedSource(address: Address): boolean {
   return false;
 }
 
-function getOrInitAccount(address: Address): Bytes {
+export function getOrInitAccount(address: Address): Bytes {
   let account = Account.load(address);
   if (!account) {
     account = new Account(address);
@@ -57,15 +57,15 @@ function getOrInitAccount(address: Address): Bytes {
   return address;
 }
 
-function idFromTimestampAndAddress(period: string, address: Address): Bytes {
+export function idFromTimestampAndAddress(period: string, address: Address): Bytes {
   return Bytes.fromUTF8(period).concat(address);
 }
 
-function getPeriodFromTimestamp(timestamp: BigInt): string {
+export function getPeriodFromTimestamp(timestamp: BigInt): string {
   return "ALL_TIME";
 }
 
-function getOrInitTrackingPeriodForAccount(
+export function getOrInitTrackingPeriodForAccount(
   address: Address,
   timestamp: BigInt
 ): TrackingPeriodForAccount {
