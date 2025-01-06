@@ -50,33 +50,34 @@
      };
 
         # Define tasks
-        subgraph-run-build = mkTask {
+         subgraph-run-build = mkTask {
           name = "subgraph-run-build";
           body = ''
             set -euxo pipefail
             forge build
+            npm install;
             ${the-graph}/bin/graph codegen;
             ${the-graph}/bin/graph build;
           '';
         };
 
         subgraph-run-test = mkTask {
-        name = "subgraph-run-test";
-        body = ''
+          name = "subgraph-run-test";
+          body = ''
             set -euxo pipefail
-            docker compose up --abort-on-container-exit
-        '';
+            (docker compose up --abort-on-container-exit)
+          '';
         };
 
-        # Package list for devShell
         subgraph-tasks = [
           subgraph-run-build
           subgraph-run-test
         ];
+
     in rec {
         devShells.default = pkgs.mkShell {
           shellHook = rainix.devShells.${system}.default.shellHook;
-          buildInputs = rainix.devShells.${system}.default.buildInputs;
+          buildInputs = rainix.devShells.${system}.default.buildInputs ++ subgraph-tasks;
           nativeBuildInputs = rainix.devShells.${system}.default.nativeBuildInputs;
         };
       }
