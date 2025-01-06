@@ -2,13 +2,11 @@
   description = "Rainix flake with only subgraph tasks";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs";
-    flake-utils.url = "github:numtide/flake-utils";
-    foundry.url = "github:shazow/foundry.nix";
     rainix.url = "github:rainprotocol/rainix";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, rainix, nixpkgs, flake-utils, foundry, ... }:
+  outputs = { self, flake-utils, rainix }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = rainix.pkgs.${system};
@@ -59,7 +57,6 @@
             forge build
             ${the-graph}/bin/graph codegen;
             ${the-graph}/bin/graph build;
-            cd -;
           '';
         };
 
