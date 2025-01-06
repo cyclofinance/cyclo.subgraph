@@ -8,12 +8,10 @@
     rainix.url = "github:rainprotocol/rainix";
   };
 
-  outputs = { self, rainix, nixpkgs, flake-utils, foundry }:
+  outputs = { self, rainix, nixpkgs, flake-utils, foundry, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs {
-          inherit system;
-        };
+        pkgs = rainix.pkgs.${system};
 
         the-graph = pkgs.stdenv.mkDerivation rec {
           pname = "the-graph";
@@ -59,7 +57,6 @@
           body = ''
             set -euxo pipefail
             forge build
-            npm install;
             ${the-graph}/bin/graph codegen;
             ${the-graph}/bin/graph build;
             cd -;
