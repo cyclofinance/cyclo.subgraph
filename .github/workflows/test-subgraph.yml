@@ -20,11 +20,8 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - name: Codegen
-        run: nix develop -c graph codegen
-
       - name: Build subgraph
-        run: nix develop -c graph build
+        run: nix develop -c subgraph-run-build
 
       - name: Matchstick tests
-        run: nix develop -c graph test
+        run: nix develop -c subgraph-run-test
