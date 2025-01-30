@@ -16,14 +16,10 @@ dataSources:
       apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
-        - Approval
-        - Deposit
-        - ERC20PriceOracleReceiptVaultInitialized
-        - Initialized
-        - ReceiptVaultInformation
-        - Snapshot
+        - Account
+        - Token
+        - TokenBalance
         - Transfer
-        - Withdraw
       abis:
         - name: cysFLR
           file: ./abis/cysFLR.json
@@ -46,4 +42,30 @@ dataSources:
           handler: handleTransfer
         # - event: Withdraw(address,address,address,uint256,uint256,uint256,bytes)
         #   handler: handleWithdraw
+      file: ./src/cys-flr.ts
+
+  - kind: ethereum
+    name: cyWETH
+    network: flare
+    source:
+      address: "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4"
+      abi: cysFLR # We can reuse the same ABI since they're the same interface
+      startBlock: 34244389
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - Token
+        - TokenBalance
+        - Transfer
+      abis:
+        - name: cysFLR
+          file: ./abis/cysFLR.json
+        - name: factory
+          file: ./abis/factory.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
       file: ./src/cys-flr.ts

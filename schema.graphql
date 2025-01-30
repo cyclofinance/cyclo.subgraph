@@ -1,32 +1,17 @@
-enum Period {
-  ALL_TIME
-}
-
-type TrackingPeriod @entity {
-  id: Bytes!
-  period: Period!
-  totalApprovedTransfersIn: BigInt!
-}
-
 type Account @entity {
   id: Bytes!
   address: Bytes!
   transfersIn: [Transfer!]! @derivedFrom(field: "to")
   transfersOut: [Transfer!]! @derivedFrom(field: "from")
-  trackingPeriods: [TrackingPeriodForAccount!]! @derivedFrom(field: "account")
-}
-
-type TrackingPeriodForAccount @entity {
-  id: Bytes!
-  account: Account!
-  period: Period!
-  culmulativeTransfersInFromApprovedSources: BigInt!
-  culmulativeTransfersOut: BigInt!
-  netApprovedTransfersIn: BigInt!
+  cysFLRBalance: BigInt!
+  cyWETHBalance: BigInt!
+  totalCyBalance: BigInt! # Sum of both token balances
+  eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
 }
 
 type Transfer @entity(immutable: true) {
   id: Bytes!
+  tokenAddress: Bytes!
   from: Account!
   fromIsApprovedSource: Boolean!
   to: Account!
@@ -34,5 +19,11 @@ type Transfer @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
-  period: Period!
+}
+
+type EligibleTotals @entity {
+  id: String!
+  totalEligibleCysFLR: BigInt!
+  totalEligibleCyWETH: BigInt!
+  totalEligibleSum: BigInt!
 }
