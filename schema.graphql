@@ -5,8 +5,7 @@ type Account @entity {
   transfersOut: [Transfer!]! @derivedFrom(field: "from")
   cysFLRBalance: BigInt!
   cyWETHBalance: BigInt!
-  totalCyBalance: BigInt! # Sum of both token balances
-  eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
+  totalCyBalance: BigInt!
 }
 
 type Transfer @entity(immutable: true) {
