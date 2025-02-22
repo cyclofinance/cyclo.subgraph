@@ -1,11 +1,6 @@
-import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, BigDecimal } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/cysFLR/cysFLR";
-import {
-  Account,
-  Transfer,
-  TrackingPeriod,
-  TrackingPeriodForAccount,
-} from "../generated/schema";
+import { Account, Transfer, EligibleTotals } from "../generated/schema";
 import { factory } from "../generated/cysFLR/factory";
 
 const REWARDS_SOURCES = [
@@ -19,18 +14,14 @@ const FACTORIES = [
   Address.fromString("0x440602f459D7Dd500a74528003e6A20A46d6e2A6"), // Blazeswap
 ];
 
-function getOrInitTrackingPeriod(period: string): TrackingPeriod {
-  let trackingPeriod = TrackingPeriod.load(Bytes.fromUTF8(period));
-  if (!trackingPeriod) {
-    trackingPeriod = new TrackingPeriod(Bytes.fromUTF8(period));
-    trackingPeriod.period = period;
-    trackingPeriod.totalApprovedTransfersIn = BigInt.fromI32(0);
-  }
-  return trackingPeriod;
-}
+const CYSFLR_ADDRESS =
+  "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567".toLowerCase();
+const CYWETH_ADDRESS =
+  "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4".toLowerCase();
+const TOTALS_ID = "SINGLETON";
 
 function isApprovedSource(address: Address): boolean {
-  // first check if the from is a pool from one of the approved factories
+  // Check if the address is a pool from approved factories
   const maybeHasFactory = factory.bind(address);
   const factoryAddress = maybeHasFactory.try_factory();
   if (!factoryAddress.reverted) {
@@ -39,7 +30,7 @@ function isApprovedSource(address: Address): boolean {
     }
   }
 
-  // or else if the from is directly an approved rewards source
+  // Check if address is directly an approved source
   if (REWARDS_SOURCES.includes(address)) {
     return true;
   }
@@ -47,137 +38,157 @@ function isApprovedSource(address: Address): boolean {
   return false;
 }
 
-function getOrInitAccount(address: Address): Bytes {
+function calculateEligibleShare(
+  account: Account,
+  totals: EligibleTotals
+): BigDecimal {
+  // Sum only positive balances
+  let positiveTotal = BigInt.fromI32(0);
+  if (account.cysFLRBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cysFLRBalance);
+  }
+  if (account.cyWETHBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyWETHBalance);
+  }
+
+  account.totalCyBalance = positiveTotal;
+
+  // If account has no positive balance, their share is 0
+  if (account.totalCyBalance.equals(BigInt.fromI32(0))) {
+    return BigDecimal.fromString("0");
+  }
+
+  // If there's no eligible total, but account has positive balance, they have 100%
+  if (totals.totalEligibleSum.equals(BigInt.fromI32(0))) {
+    return BigDecimal.fromString("1");
+  }
+
+  // Calculate share as decimal percentage
+  return account.totalCyBalance
+    .toBigDecimal()
+    .div(totals.totalEligibleSum.toBigDecimal());
+}
+
+function getOrCreateAccount(address: Address): Account {
   let account = Account.load(address);
   if (!account) {
     account = new Account(address);
     account.address = address;
+    account.cysFLRBalance = BigInt.fromI32(0);
+    account.cyWETHBalance = BigInt.fromI32(0);
+    account.totalCyBalance = BigInt.fromI32(0);
+    account.eligibleShare = BigDecimal.fromString("0");
     account.save();
   }
-  return address;
+  return account;
 }
 
-function idFromTimestampAndAddress(period: string, address: Address): Bytes {
-  return Bytes.fromUTF8(period).concat(address);
-}
-
-function getPeriodFromTimestamp(timestamp: BigInt): string {
-  return "ALL_TIME";
-}
-
-function getOrInitTrackingPeriodForAccount(
-  address: Address,
-  timestamp: BigInt
-): TrackingPeriodForAccount {
-  let period = getPeriodFromTimestamp(timestamp);
-
-  const id = idFromTimestampAndAddress(period, address);
-  let trackingPeriod = TrackingPeriodForAccount.load(id);
-
-  if (!trackingPeriod) {
-    trackingPeriod = new TrackingPeriodForAccount(id);
-    trackingPeriod.account = getOrInitAccount(address);
-    trackingPeriod.period = period;
-    trackingPeriod.culmulativeTransfersInFromApprovedSources =
-      BigInt.fromI32(0);
-    trackingPeriod.culmulativeTransfersOut = BigInt.fromI32(0);
-    trackingPeriod.netApprovedTransfersIn = BigInt.fromI32(0);
+function getOrCreateTotals(): EligibleTotals {
+  let totals = EligibleTotals.load(TOTALS_ID);
+  if (!totals) {
+    totals = new EligibleTotals(TOTALS_ID);
+    totals.totalEligibleCysFLR = BigInt.fromI32(0);
+    totals.totalEligibleCyWETH = BigInt.fromI32(0);
+    totals.totalEligibleSum = BigInt.fromI32(0);
+    totals.save();
   }
-  log.info("trackingPeriod: {}", [trackingPeriod.account.toHexString()]);
-
-  return trackingPeriod;
+  return totals;
 }
 
-export function handleTransfer(event: TransferEvent): void {
-  // get to TrackingPeriod
-  let toTrackingPeriod = getOrInitTrackingPeriodForAccount(
-    event.params.to,
-    event.block.timestamp
-  );
-  // get from TrackingPeriod
-  let fromTrackingPeriod = getOrInitTrackingPeriodForAccount(
-    event.params.from,
-    event.block.timestamp
-  );
+function updateTotalsForAccount(
+  account: Account,
+  oldCysFLRBalance: BigInt,
+  oldCyWETHBalance: BigInt
+): void {
+  const totals = getOrCreateTotals();
 
-  const period = getOrInitTrackingPeriod(
-    getPeriodFromTimestamp(event.block.timestamp)
-  );
-
-  // Track the previous net amounts before updating
-  const previousToNet = toTrackingPeriod.netApprovedTransfersIn;
-  const previousFromNet = fromTrackingPeriod.netApprovedTransfersIn;
-
-  // is this transfer from an approved source?
-  const fromIsApprovedSource = isApprovedSource(event.params.from);
-
-  if (fromIsApprovedSource) {
-    toTrackingPeriod.culmulativeTransfersInFromApprovedSources =
-      toTrackingPeriod.culmulativeTransfersInFromApprovedSources.plus(
-        event.params.value
-      );
-    toTrackingPeriod.netApprovedTransfersIn =
-      toTrackingPeriod.netApprovedTransfersIn.plus(event.params.value);
-
-    let receivingNetAmountChange = BigInt.fromI32(0);
-
-    // Update period total for receiving account
-    if (
-      previousToNet.le(BigInt.fromI32(0)) &&
-      toTrackingPeriod.netApprovedTransfersIn.gt(BigInt.fromI32(0))
-    ) {
-      // Went from negative/zero to positive - add the new positive amount
-      receivingNetAmountChange = toTrackingPeriod.netApprovedTransfersIn;
-    } else if (previousToNet.gt(BigInt.fromI32(0))) {
-      // Was already positive - add the increase
-      receivingNetAmountChange = event.params.value;
-    }
-
-    period.totalApprovedTransfersIn = period.totalApprovedTransfersIn.plus(
-      receivingNetAmountChange
+  // Handle cysFLR changes
+  if (oldCysFLRBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCysFLR =
+      totals.totalEligibleCysFLR.minus(oldCysFLRBalance);
+  }
+  if (account.cysFLRBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCysFLR = totals.totalEligibleCysFLR.plus(
+      account.cysFLRBalance
     );
   }
 
-  // Update sending account
-  fromTrackingPeriod.culmulativeTransfersOut =
-    fromTrackingPeriod.culmulativeTransfersOut.plus(event.params.value);
-  fromTrackingPeriod.netApprovedTransfersIn =
-    fromTrackingPeriod.netApprovedTransfersIn.minus(event.params.value);
-
-  let sendingNetAmountChange = BigInt.fromI32(0);
-
-  // Update period total for sending account
-  if (previousFromNet.gt(BigInt.fromI32(0))) {
-    if (fromTrackingPeriod.netApprovedTransfersIn.le(BigInt.fromI32(0))) {
-      // Went from positive to negative/zero - subtract the previous positive amount
-      sendingNetAmountChange = previousFromNet;
-    } else {
-      // Decreased but still positive - subtract the difference
-      sendingNetAmountChange = event.params.value;
-    }
+  // Handle cyWETH changes
+  if (oldCyWETHBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyWETH =
+      totals.totalEligibleCyWETH.minus(oldCyWETHBalance);
+  }
+  if (account.cyWETHBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyWETH = totals.totalEligibleCyWETH.plus(
+      account.cyWETHBalance
+    );
   }
 
-  period.totalApprovedTransfersIn = period.totalApprovedTransfersIn.minus(
-    sendingNetAmountChange
+  // Update total sum
+  totals.totalEligibleSum = totals.totalEligibleCysFLR.plus(
+    totals.totalEligibleCyWETH
   );
+  totals.save();
 
-  // Save all entities
-  period.save();
-  toTrackingPeriod.save();
-  fromTrackingPeriod.save();
+  // Update account's share
+  account.eligibleShare = calculateEligibleShare(account, totals);
+  account.save();
+}
+
+export function handleTransfer(event: TransferEvent): void {
+  const fromAccount = getOrCreateAccount(event.params.from);
+  const toAccount = getOrCreateAccount(event.params.to);
+
+  // Store old balances for totals calculation
+  const oldFromCysFLR = fromAccount.cysFLRBalance;
+  const oldFromCyWETH = fromAccount.cyWETHBalance;
+  const oldToCysFLR = toAccount.cysFLRBalance;
+  const oldToCyWETH = toAccount.cyWETHBalance;
+
+  // Check if transfer is from approved source
+  const fromIsApprovedSource = isApprovedSource(event.params.from);
+
+  // Update balances based on which token this is
+  const tokenAddress = event.address.toHexString().toLowerCase();
+  if (tokenAddress == CYSFLR_ADDRESS) {
+    if (fromIsApprovedSource) {
+      toAccount.cysFLRBalance = toAccount.cysFLRBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cysFLRBalance = fromAccount.cysFLRBalance.minus(
+      event.params.value
+    );
+  } else if (tokenAddress == CYWETH_ADDRESS) {
+    if (fromIsApprovedSource) {
+      toAccount.cyWETHBalance = toAccount.cyWETHBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyWETHBalance = fromAccount.cyWETHBalance.minus(
+      event.params.value
+    );
+  }
+
+  // Save accounts
+  fromAccount.save();
+  toAccount.save();
 
   // Create transfer entity
-  let entity = new Transfer(
+  const transfer = new Transfer(
     event.transaction.hash.concatI32(event.logIndex.toI32())
   );
-  entity.fromIsApprovedSource = fromIsApprovedSource;
-  entity.from = fromTrackingPeriod.account;
-  entity.to = toTrackingPeriod.account;
-  entity.value = event.params.value;
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash;
-  entity.period = getPeriodFromTimestamp(event.block.timestamp);
+  transfer.tokenAddress = event.address;
+  transfer.fromIsApprovedSource = fromIsApprovedSource;
+  transfer.from = fromAccount.id;
+  transfer.to = toAccount.id;
+  transfer.value = event.params.value;
+  transfer.blockNumber = event.block.number;
+  transfer.blockTimestamp = event.block.timestamp;
+  transfer.transactionHash = event.transaction.hash;
+  transfer.save();
 
-  entity.save();
+  // Update totals for both accounts
+  updateTotalsForAccount(fromAccount, oldFromCysFLR, oldFromCyWETH);
+  updateTotalsForAccount(toAccount, oldToCysFLR, oldToCyWETH);
 }
