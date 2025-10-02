@@ -10,6 +10,7 @@ const REWARDS_SOURCES = [
   Address.fromString("0xeD85325119cCFc6aCB16FA931bAC6378B76e4615"), // OpenOcean Exchange Impl
   Address.fromString("0x8c7ba8f245aef3216698087461e05b85483f791f"), // OpenOcean Exchange Router
   Address.fromString("0x9D70B0b90915Bb8b9bdAC7e6a7e6435bBF1feC4D"), // Sparkdex TWAP
+  Address.fromString("0xA05405b6340A7F43dC5835351BFC4f5b1F028359"), // Sparkdex TWAP Filler
 ];
 
 const FACTORIES = [
