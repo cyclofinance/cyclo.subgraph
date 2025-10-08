@@ -7,6 +7,8 @@ type Account @entity {
   cyWETHBalance: BigInt!
   totalCyBalance: BigInt! # Sum of both token balances
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
+  receiptTransfersIn: [ReceiptTransfer!]! @derivedFrom(field: "to")
+  receiptTransfersOut: [ReceiptTransfer!]! @derivedFrom(field: "from")
 }
 
 type Transfer @entity(immutable: true) {
@@ -26,4 +28,17 @@ type EligibleTotals @entity {
   totalEligibleCysFLR: BigInt!
   totalEligibleCyWETH: BigInt!
   totalEligibleSum: BigInt!
+}
+
+type ReceiptTransfer @entity(immutable: true) {
+  id: Bytes!
+  receiptAddress: Bytes!
+  from: Account!
+  to: Account!
+  value: BigInt!
+  tokenId: BigInt!
+  operator: Account!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
 }

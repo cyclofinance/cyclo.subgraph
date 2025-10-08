@@ -9,7 +9,7 @@ import {
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { Transfer } from "../generated/schema";
 import { handleTransfer } from "../src/cys-flr";
-import { createTransferEvent } from "./cys-flr-utils";
+import { createTransferEvent } from "./utils";
 
 // Test addresses
 const APPROVED_DEX_ROUTER = Address.fromString(

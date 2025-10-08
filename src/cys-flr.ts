@@ -2,6 +2,7 @@ import { Address, BigInt, BigDecimal } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/cysFLR/cysFLR";
 import { Account, Transfer, EligibleTotals } from "../generated/schema";
 import { factory } from "../generated/cysFLR/factory";
+import { getOrCreateAccount } from "./common";
 
 const REWARDS_SOURCES = [
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
@@ -72,20 +73,6 @@ function calculateEligibleShare(
   return account.totalCyBalance
     .toBigDecimal()
     .div(totals.totalEligibleSum.toBigDecimal());
-}
-
-function getOrCreateAccount(address: Address): Account {
-  let account = Account.load(address);
-  if (!account) {
-    account = new Account(address);
-    account.address = address;
-    account.cysFLRBalance = BigInt.fromI32(0);
-    account.cyWETHBalance = BigInt.fromI32(0);
-    account.totalCyBalance = BigInt.fromI32(0);
-    account.eligibleShare = BigDecimal.fromString("0");
-    account.save();
-  }
-  return account;
 }
 
 function getOrCreateTotals(): EligibleTotals {

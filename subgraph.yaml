@@ -69,3 +69,51 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
+
+  - kind: ethereum
+    name: cyFLRReceipt
+    network: flare
+    source:
+      address: "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09"
+      abi: receipt
+      startBlock: 34244389
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - ReceiptTransfer
+      abis:
+        - name: receipt
+          file: ./abis/IReceiptV2.json
+      eventHandlers:
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleReceiptTransferSingle
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+          handler: handleReceiptTransferBatch
+      file: ./src/receipt.ts
+    
+  - kind: ethereum
+    name: cyWETHReceipt
+    network: flare
+    source:
+      address: "0xBE2615A0fcB54A49A1eB472be30d992599FE0968"
+      abi: receipt
+      startBlock: 36028901
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - ReceiptTransfer
+      abis:
+        - name: receipt
+          file: ./abis/IReceiptV2.json
+      eventHandlers:
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleReceiptTransferSingle
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+          handler: handleReceiptTransferBatch
+      file: ./src/receipt.ts
