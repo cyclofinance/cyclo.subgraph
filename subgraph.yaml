@@ -71,7 +71,7 @@ dataSources:
       file: ./src/cys-flr.ts
 
   - kind: ethereum
-    name: cyFLRReceipt
+    name: cysFLRReceipt
     network: flare
     source:
       address: "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09"
@@ -83,7 +83,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Account
-        - ReceiptTransfer
+        - CysFlrReceiptOwnerBalance
       abis:
         - name: receipt
           file: ./abis/IReceiptV2.json
@@ -107,7 +107,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Account
-        - ReceiptTransfer
+        - CyWethReceiptOwnerBalance
       abis:
         - name: receipt
           file: ./abis/IReceiptV2.json
