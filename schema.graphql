@@ -7,6 +7,8 @@ type Account @entity {
   cyWETHBalance: BigInt!
   totalCyBalance: BigInt! # Sum of both token balances
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
+  cysFLRReceiptBalance: [CysFlrReceiptOwnerBalance!]! @derivedFrom(field: "owner")
+  cyWETHReceiptBalance: [CyWethReceiptOwnerBalance!]! @derivedFrom(field: "owner")
 }
 
 type Transfer @entity(immutable: true) {
@@ -26,4 +28,30 @@ type EligibleTotals @entity {
   totalEligibleCysFLR: BigInt!
   totalEligibleCyWETH: BigInt!
   totalEligibleSum: BigInt!
+}
+
+# interface for receipt owner balance entities that each cy receipts will implement
+# this allows us to do `derivedFrom` on the Account entity for all receipt types
+interface ReceiptOwnerBalance {
+  id: Bytes! # composite of receiptAddress + tokenId + owner
+  receiptAddress: Bytes!
+  tokenId: BigInt!
+  owner: Account!
+  balance: BigInt!
+}
+
+type CysFlrReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
+  id: Bytes!
+  receiptAddress: Bytes!
+  tokenId: BigInt!
+  owner: Account!
+  balance: BigInt!
+}
+
+type CyWethReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
+  id: Bytes!
+  receiptAddress: Bytes!
+  tokenId: BigInt!
+  owner: Account!
+  balance: BigInt!
 }
