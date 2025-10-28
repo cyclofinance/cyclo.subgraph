@@ -1,8 +1,20 @@
 {
-  "mainnet": {
+  "flare": {
     "cysFLR": {
       "address": "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567",
       "startBlock": 34244389
+    },
+    "cyWETH": {
+      "address": "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4",
+      "startBlock": 36028901
+    },
+    "cysFLRReceipt": {
+      "address": "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09",
+      "startBlock": 34244389
+    },
+    "cyWETHReceipt": {
+      "address": "0xBE2615A0fcB54A49A1eB472be30d992599FE0968",
+      "startBlock": 36028901
     }
   }
 }

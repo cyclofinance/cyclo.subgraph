@@ -1,6 +1,6 @@
 import { getOrCreateAccount } from "./common";
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
-import { TransferSingle, TransferBatch } from "../generated/cyFLRReceipt/receipt";
+import { TransferSingle, TransferBatch } from "../generated/cysFLRReceipt/receipt";
 import { CysFlrReceiptOwnerBalance, CyWethReceiptOwnerBalance } from "../generated/schema";
 
 const CYSFLR_RECEIPT_ADDRESS = Address.fromString("0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09");

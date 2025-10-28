@@ -1,7 +1,7 @@
 import { newMockEvent } from "matchstick-as";
 import { ethereum, Address, BigInt } from "@graphprotocol/graph-ts";
 import { Transfer } from "../generated/cysFLR/cysFLR";
-import { TransferBatch, TransferSingle } from "../generated/cyFLRReceipt/receipt";
+import { TransferBatch, TransferSingle } from "../generated/cysFLRReceipt/receipt";
 
 export function createTransferEvent(
   from: Address,
