@@ -68,7 +68,7 @@ jobs:
         run: nix develop -c goldsky login --token ${{ secrets.CI_GOLDSKY_TOKEN }}
 
       # Check if the repo is clean before deploying.
-      - run: git diff --exit-code -- . ':(exclude)subgraph/subgraph.yaml'
+      - run: git diff --exit-code -- . ':!subgraph.yaml'
       - run: >
           nix develop -c goldsky subgraph deploy "cyclo-${{ inputs.network }}/$(date -Idate)-$(openssl rand -hex 2)"
-        working-directory: subgraph
+        working-directory: .
