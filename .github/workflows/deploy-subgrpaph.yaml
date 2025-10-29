@@ -65,7 +65,7 @@ jobs:
         working-directory: .
 
       - name: Login to Goldsky
-        run: nix develop -c goldsky login --token ${{ secrets.CI_GOLDSKY_TOKEN }}
+        run: nix develop -c goldsky login --token ${{ secrets.GOLDSKY_CI }}
 
       # Check if the repo is clean before deploying.
       - run: git diff --exit-code -- . ':!subgraph.yaml'
