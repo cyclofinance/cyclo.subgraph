@@ -5,10 +5,12 @@ type Account @entity {
   transfersOut: [Transfer!]! @derivedFrom(field: "from")
   cysFLRBalance: BigInt!
   cyWETHBalance: BigInt!
-  totalCyBalance: BigInt! # Sum of both token balances
+  cyFXRPBalance: BigInt!
+  totalCyBalance: BigInt! # Sum of all token balances
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
   cysFLRReceiptBalance: [CysFlrReceiptOwnerBalance!]! @derivedFrom(field: "owner")
   cyWETHReceiptBalance: [CyWethReceiptOwnerBalance!]! @derivedFrom(field: "owner")
+  cyFXRPReceiptBalance: [CyFxrpReceiptOwnerBalance!]! @derivedFrom(field: "owner")
 }
 
 type Transfer @entity(immutable: true) {
@@ -27,6 +29,7 @@ type EligibleTotals @entity {
   id: String!
   totalEligibleCysFLR: BigInt!
   totalEligibleCyWETH: BigInt!
+  totalEligibleCyFXRP: BigInt!
   totalEligibleSum: BigInt!
 }
 

@@ -8,6 +8,7 @@ export function getOrCreateAccount(address: Address): Account {
     account.address = address;
     account.cysFLRBalance = BigInt.fromI32(0);
     account.cyWETHBalance = BigInt.fromI32(0);
+    account.cyFXRPBalance = BigInt.fromI32(0);
     account.totalCyBalance = BigInt.fromI32(0);
     account.eligibleShare = BigDecimal.fromString("0");
     account.save();

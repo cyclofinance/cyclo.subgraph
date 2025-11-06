@@ -24,6 +24,8 @@ const CYSFLR_ADDRESS =
   "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567".toLowerCase();
 const CYWETH_ADDRESS =
   "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4".toLowerCase();
+const CYFXRP_ADDRESS =
+  "0x0Eb1dFC9f47f48b75dEb8DE45549BA017D6663c5".toLowerCase();
 const TOTALS_ID = "SINGLETON";
 
 function isApprovedSource(address: Address): boolean {
@@ -56,6 +58,9 @@ function calculateEligibleShare(
   if (account.cyWETHBalance.gt(BigInt.fromI32(0))) {
     positiveTotal = positiveTotal.plus(account.cyWETHBalance);
   }
+  if (account.cyFXRPBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyFXRPBalance);
+  }
 
   account.totalCyBalance = positiveTotal;
 
@@ -81,6 +86,7 @@ function getOrCreateTotals(): EligibleTotals {
     totals = new EligibleTotals(TOTALS_ID);
     totals.totalEligibleCysFLR = BigInt.fromI32(0);
     totals.totalEligibleCyWETH = BigInt.fromI32(0);
+    totals.totalEligibleCyFXRP = BigInt.fromI32(0);
     totals.totalEligibleSum = BigInt.fromI32(0);
     totals.save();
   }
@@ -90,7 +96,8 @@ function getOrCreateTotals(): EligibleTotals {
 function updateTotalsForAccount(
   account: Account,
   oldCysFLRBalance: BigInt,
-  oldCyWETHBalance: BigInt
+  oldCyWETHBalance: BigInt,
+  oldCyFXRPBalance: BigInt
 ): void {
   const totals = getOrCreateTotals();
 
@@ -116,10 +123,21 @@ function updateTotalsForAccount(
     );
   }
 
+  // Handle cyFXRP changes
+  if (oldCyFXRPBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyFXRP =
+      totals.totalEligibleCyFXRP.minus(oldCyFXRPBalance);
+  }
+  if (account.cyFXRPBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyFXRP = totals.totalEligibleCyFXRP.plus(
+      account.cyFXRPBalance
+    );
+  }
+
   // Update total sum
-  totals.totalEligibleSum = totals.totalEligibleCysFLR.plus(
-    totals.totalEligibleCyWETH
-  );
+  totals.totalEligibleSum = totals.totalEligibleCysFLR
+    .plus(totals.totalEligibleCyWETH)
+    .plus(totals.totalEligibleCyFXRP);
   totals.save();
 
   // Update account's share
@@ -134,8 +152,10 @@ export function handleTransfer(event: TransferEvent): void {
   // Store old balances for totals calculation
   const oldFromCysFLR = fromAccount.cysFLRBalance;
   const oldFromCyWETH = fromAccount.cyWETHBalance;
+  const oldFromCyFXRP = fromAccount.cyFXRPBalance;
   const oldToCysFLR = toAccount.cysFLRBalance;
   const oldToCyWETH = toAccount.cyWETHBalance;
+  const oldToCyFXRP = toAccount.cyFXRPBalance;
 
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
@@ -160,6 +180,15 @@ export function handleTransfer(event: TransferEvent): void {
     fromAccount.cyWETHBalance = fromAccount.cyWETHBalance.minus(
       event.params.value
     );
+  } else if (tokenAddress == CYFXRP_ADDRESS) {
+    if (fromIsApprovedSource) {
+      toAccount.cyFXRPBalance = toAccount.cyFXRPBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyFXRPBalance = fromAccount.cyFXRPBalance.minus(
+      event.params.value
+    );
   }
 
   // Save accounts
@@ -181,6 +210,6 @@ export function handleTransfer(event: TransferEvent): void {
   transfer.save();
 
   // Update totals for both accounts
-  updateTotalsForAccount(fromAccount, oldFromCysFLR, oldFromCyWETH);
-  updateTotalsForAccount(toAccount, oldToCysFLR, oldToCyWETH);
+  updateTotalsForAccount(fromAccount, oldFromCysFLR, oldFromCyWETH, oldFromCyFXRP);
+  updateTotalsForAccount(toAccount, oldToCysFLR, oldToCyWETH, oldToCyFXRP);
 }
