@@ -8,8 +8,8 @@ dataSources:
     name: cysFLR
     network: flare
     source:
-      address: "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567"
       abi: cysFLR
+      address: "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567"
       startBlock: 34244389
     mapping:
       kind: ethereum/events
@@ -26,31 +26,16 @@ dataSources:
         - name: factory
           file: ./abis/factory.json
       eventHandlers:
-        # - event: Approval(indexed address,indexed address,uint256)
-        #   handler: handleApproval
-        # - event: Deposit(address,address,uint256,uint256,uint256,bytes)
-        #   handler: handleDeposit
-        # - event: ERC20PriceOracleReceiptVaultInitialized(address,(address,(address,(address,string,string))))
-        #   handler: handleERC20PriceOracleReceiptVaultInitialized
-        # - event: Initialized(uint8)
-        #   handler: handleInitialized
-        # - event: ReceiptVaultInformation(address,bytes)
-        #   handler: handleReceiptVaultInformation
-        # - event: Snapshot(uint256)
-        #   handler: handleSnapshot
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-        # - event: Withdraw(address,address,address,uint256,uint256,uint256,bytes)
-        #   handler: handleWithdraw
       file: ./src/cys-flr.ts
-
   - kind: ethereum
     name: cyWETH
     network: flare
     source:
+      abi: cysFLR
       address: "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4"
-      abi: cysFLR # We can reuse the same ABI since they're the same interface
-      startBlock: 34244389
+      startBlock: 36028901
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -69,13 +54,38 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
-
+  - kind: ethereum
+    name: cyFXRP
+    network: flare
+    source:
+      abi: cyFXRP
+      address: "0x0Eb1dFC9f47f48b75dEb8DE45549BA017D6663c5"
+      startBlock: 50143709
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - Token
+        - TokenBalance
+        - Transfer
+      abis:
+        - name: cysFLR
+          file: ./abis/cysFLR.json
+        - name: factory
+          file: ./abis/factory.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/cys-flr.ts
+  
   - kind: ethereum
     name: cysFLRReceipt
     network: flare
     source:
-      address: "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09"
       abi: receipt
+      address: "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09"
       startBlock: 34244389
     mapping:
       kind: ethereum/events
@@ -88,18 +98,19 @@ dataSources:
         - name: receipt
           file: ./abis/IReceiptV2.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+        - event: TransferSingle(indexed address,indexed address,indexed
+            address,uint256,uint256)
           handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+        - event: TransferBatch(indexed address,indexed address,indexed
+            address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
-    
   - kind: ethereum
     name: cyWETHReceipt
     network: flare
     source:
-      address: "0xBE2615A0fcB54A49A1eB472be30d992599FE0968"
       abi: receipt
+      address: "0xBE2615A0fcB54A49A1eB472be30d992599FE0968"
       startBlock: 36028901
     mapping:
       kind: ethereum/events
@@ -112,8 +123,36 @@ dataSources:
         - name: receipt
           file: ./abis/IReceiptV2.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+        - event: TransferSingle(indexed address,indexed address,indexed
+            address,uint256,uint256)
           handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+        - event: TransferBatch(indexed address,indexed address,indexed
+            address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
+  - kind: ethereum
+    name: cyFXRPReceipt
+    network: flare
+    source:
+      abi: receipt
+      address: "0xEf307A3EE59A6a140227EE98a95367D1F7cc8DE7"
+      startBlock: 50143709
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - CyFxrpReceiptOwnerBalance
+      abis:
+        - name: receipt
+          file: ./abis/IReceiptV2.json
+      eventHandlers:
+        - event: TransferSingle(indexed address,indexed address,indexed
+            address,uint256,uint256)
+          handler: handleReceiptTransferSingle
+        - event: TransferBatch(indexed address,indexed address,indexed
+            address,uint256[],uint256[])
+          handler: handleReceiptTransferBatch
+      file: ./src/receipt.ts
+  

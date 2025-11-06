@@ -55,3 +55,11 @@ type CyWethReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
   owner: Account!
   balance: BigInt!
 }
+
+type CyFxrpReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
+  id: Bytes!
+  receiptAddress: Bytes!
+  tokenId: BigInt!
+  owner: Account!
+  balance: BigInt!
+}
