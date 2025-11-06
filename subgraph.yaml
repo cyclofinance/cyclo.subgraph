@@ -58,7 +58,7 @@ dataSources:
     name: cyFXRP
     network: flare
     source:
-      abi: cyFXRP
+      abi: cysFLR
       address: "0x0Eb1dFC9f47f48b75dEb8DE45549BA017D6663c5"
       startBlock: 50143709
     mapping:
