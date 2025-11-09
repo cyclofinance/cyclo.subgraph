@@ -9,8 +9,8 @@
       "startBlock": 36028901
     },
     "cyFXRP": {
-      "address": "0x0Eb1dFC9f47f48b75dEb8DE45549BA017D6663c5",
-      "startBlock": 50143709
+      "address": "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5",
+      "startBlock": 50345677
     },
     "cysFLRReceipt": {
       "address": "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09",
@@ -21,8 +21,8 @@
       "startBlock": 36028901
     },
     "cyFXRPReceipt": {
-      "address": "0xEf307A3EE59A6a140227EE98a95367D1F7cc8DE7",
-      "startBlock": 50143709
+      "address": "0xC46600cEbD84Ed2FE60Ec525dF13E341D24642f2",
+      "startBlock": 50345677
     }
   }
 }
