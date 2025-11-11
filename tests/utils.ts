@@ -33,7 +33,7 @@ export function createTransferEvent(
   );
 
   if (log) {
-    transferEvent.receipt.logs = [log]
+    transferEvent.receipt!.logs = [log]
   }
 
   return transferEvent;
@@ -124,7 +124,7 @@ export function createERC721TransferEvent(
   transferEvent.parameters.push(
     new ethereum.EventParam("tokenId", ethereum.Value.fromUnsignedBigInt(tokenId))
   );
-  transferEvent.receipt.logs = [log]
+  transferEvent.receipt!.logs = [log]
 
   return transferEvent;
 }
