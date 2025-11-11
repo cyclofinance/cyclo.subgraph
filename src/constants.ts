@@ -49,24 +49,24 @@ export class EventABI {
 
 export const ERC20TransferEventABI = new EventABI(
     "Transfer(indexed address from,indexed address to,uint256 value)",
-    Bytes.fromHexString("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef") as Bytes,
+    Bytes.fromHexString("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
     "(uint256)",
 )
 
 export const ERC721TransferEventABI = new EventABI(
     "Transfer(indexed address from,indexed address to,indexed uint256 tokenId)",
-    Bytes.fromHexString("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef") as Bytes,
+    Bytes.fromHexString("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
     "",
 )
 
 export const DecreaseLiquidityV3ABI = new EventABI(
     "DecreaseLiquidity(indexed uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)",
-    Bytes.fromHexString("0x26f6a048ee9138f2c0ce266f322cb99228e8d619ae2bff30c67f8dcf9d2377b4") as Bytes,
+    Bytes.fromHexString("0x26f6a048ee9138f2c0ce266f322cb99228e8d619ae2bff30c67f8dcf9d2377b4"),
     "(uint128,uint256,uint256)",
 )
 
 export const IncreaseLiquidityV3ABI = new EventABI(
     "IncreaseLiquidity(indexed uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)",
-    Bytes.fromHexString("0x3067048beee31b25b2f1681f88dac838c8bba36af25bfb2b7cf7473a5847e35f") as Bytes,
+    Bytes.fromHexString("0x3067048beee31b25b2f1681f88dac838c8bba36af25bfb2b7cf7473a5847e35f"),
     "(uint128,uint256,uint256)",
 )
