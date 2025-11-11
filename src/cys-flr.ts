@@ -150,7 +150,7 @@ export function handleTransfer(event: TransferEvent): void {
     event.transaction.hash.concatI32(event.logIndex.toI32())
   );
   transfer.tokenAddress = event.address;
-  transfer.fromIsApprovedSource = fromIsApprovedSource as boolean;
+  transfer.fromIsApprovedSource = fromIsApprovedSource;
   transfer.from = fromAccount.id;
   transfer.to = toAccount.id;
   transfer.value = event.params.value;

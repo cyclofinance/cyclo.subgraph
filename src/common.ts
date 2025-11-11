@@ -18,23 +18,23 @@ export function getOrCreateAccount(address: Address): Account {
 }
 
 // Check if the address is a pool from approved factories
-export function isV2Pool(address: Address): bool {
-  return V2_POOL_FACTORIES.includes(address);
+export function isV2Pool(address: Address): boolean {
+  return V2_POOL_FACTORIES.includes(address) as boolean;
 }
 
 // Check if the address is a pool from approved factories
-export function isV3Pool(address: Address): bool {
-  return V3_POOL_FACTORIES.includes(address);
+export function isV3Pool(address: Address): boolean {
+  return V3_POOL_FACTORIES.includes(address) as boolean;
 }
 
 // Check if the address is a pool from approved factories
-export function isPool(address: Address): bool {
+export function isPool(address: Address): boolean {
   const maybeHasFactory = factory.bind(address);
   const factoryAddress = maybeHasFactory.try_factory();
   return !factoryAddress.reverted && (isV2Pool(factoryAddress.value) || isV3Pool(factoryAddress.value));
 }
 
 // Check if the address is from approved source (pool or known reward source)
-export function isApprovedSource(address: Address): bool {
-  return REWARDS_SOURCES.includes(address) || isPool(address);
+export function isApprovedSource(address: Address): boolean {
+  return REWARDS_SOURCES.includes(address) as boolean || isPool(address) as boolean;
 }
