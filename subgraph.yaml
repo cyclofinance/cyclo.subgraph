@@ -20,6 +20,8 @@ dataSources:
         - Token
         - TokenBalance
         - Transfer
+        - LiquidityV2OwnerBalance
+        - LiquidityV3OwnerBalance
       abis:
         - name: cysFLR
           file: ./abis/cysFLR.json
@@ -40,6 +42,7 @@ dataSources:
         #   handler: handleSnapshot
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+          receipt: true
         # - event: Withdraw(address,address,address,uint256,uint256,uint256,bytes)
         #   handler: handleWithdraw
       file: ./src/cys-flr.ts
@@ -60,6 +63,8 @@ dataSources:
         - Token
         - TokenBalance
         - Transfer
+        - LiquidityV2OwnerBalance
+        - LiquidityV3OwnerBalance
       abis:
         - name: cysFLR
           file: ./abis/cysFLR.json
@@ -68,6 +73,7 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+          receipt: true
       file: ./src/cys-flr.ts
 
   - kind: ethereum
@@ -117,3 +123,46 @@ dataSources:
         - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
+
+  - kind: ethereum
+    name: LiquidityV3
+    network: flare
+    source:
+      address: "0xEE5FF5Bc5F852764b5584d92A4d592A53DC527da"
+      abi: LiquidityV3
+      startBlock: 30718579
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/liquidity.ts
+      entities:
+        - Account
+        - LiquidityV3OwnerBalance
+      abis:
+        - name: LiquidityV3
+          file: ./abis/LiquidityV3Manager.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleLiquidityV3Transfer
+
+templates:
+  - name: LiquidityV2
+    kind: ethereum/contract
+    network: flare
+    source:
+      abi: LiquidityV2
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/liquidity.ts
+      entities:
+        - Account
+        - LiquidityV2OwnerBalance
+      abis:
+        - name: LiquidityV2
+          file: ./abis/cysFLR.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleLiquidityV2Transfer
