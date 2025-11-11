@@ -9,6 +9,8 @@ type Account @entity {
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
   cysFLRReceiptBalance: [CysFlrReceiptOwnerBalance!]! @derivedFrom(field: "owner")
   cyWETHReceiptBalance: [CyWethReceiptOwnerBalance!]! @derivedFrom(field: "owner")
+  cysFLRLiquidityBalance: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
+  cyWETHLiquidityBalance: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
 }
 
 type Transfer @entity(immutable: true) {
@@ -54,4 +56,32 @@ type CyWethReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
   tokenId: BigInt!
   owner: Account!
   balance: BigInt!
+}
+
+interface LiquidityOwnerBalance {
+  id: Bytes! # composite of lp address + cytoken + owner + tokenId(in case of v3)
+  lpAddress: Bytes!
+  owner: Account!
+  depositBalance: BigInt!
+  liquidity: BigInt!
+  cyToken: Bytes!
+}
+
+type LiquidityV2OwnerBalance implements LiquidityOwnerBalance @entity {
+  id: Bytes! # composite of lp address + cytoken + owner
+  lpAddress: Bytes!
+  owner: Account!
+  depositBalance: BigInt!
+  liquidity: BigInt!
+  cyToken: Bytes!
+}
+
+type LiquidityV3OwnerBalance implements LiquidityOwnerBalance @entity {
+  id: Bytes! # composite of lp address + cytoken + owner + tokenId
+  lpAddress: Bytes!
+  owner: Account!
+  depositBalance: BigInt!
+  liquidity: BigInt!
+  cyToken: Bytes!
+  tokenId: BigInt!
 }
