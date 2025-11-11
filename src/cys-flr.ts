@@ -25,7 +25,7 @@ const CYSFLR_ADDRESS =
 const CYWETH_ADDRESS =
   "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4".toLowerCase();
 const CYFXRP_ADDRESS =
-  "0x0Eb1dFC9f47f48b75dEb8DE45549BA017D6663c5".toLowerCase();
+  "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5".toLowerCase();
 const TOTALS_ID = "SINGLETON";
 
 function isApprovedSource(address: Address): boolean {
