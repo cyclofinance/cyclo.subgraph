@@ -26,7 +26,7 @@ export const V2_POOL_FACTORIES = [
 ];
 
 export const V3_POOL_FACTORIES = [
-  Address.fromString("0xb3fB4f96175f6f9D716c17744e5A6d4BA9da8176"), // Sparkdex V3
+  Address.fromString("0xb3fB4f96175f6f9D716c17744e5A6d4BA9da8176"), // Sparkdex V3 (deprecated and out of reach in sparkdex GUI)
   Address.fromString("0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652"), // Sparkdex V3.1
 ];
 
