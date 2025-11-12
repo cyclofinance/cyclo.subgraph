@@ -23,6 +23,8 @@ const FACTORIES = [
 const CYSFLR_ADDRESS = "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567".toLowerCase();
 const CYWETH_ADDRESS = "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4".toLowerCase();
 const CYFXRP_ADDRESS = "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5".toLowerCase();
+const CYWBTC_ADDRESS = "0x229917ac2842Eaab42060a1A9213CA78e01b572a".toLowerCase();
+const CYCBBTC_ADDRESS = "0x9fC9dA918552df0DAd6C00051351e335656da100".toLowerCase();
 const TOTALS_ID = "SINGLETON";
 
 function isApprovedSource(address: Address): boolean {
@@ -58,6 +60,12 @@ function calculateEligibleShare(
   if (account.cyFXRPBalance.gt(BigInt.fromI32(0))) {
     positiveTotal = positiveTotal.plus(account.cyFXRPBalance);
   }
+  if (account.cyWBTCBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyWBTCBalance);
+  }
+  if (account.cycbBTCBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cycbBTCBalance);
+  }
 
   account.totalCyBalance = positiveTotal;
 
@@ -84,6 +92,8 @@ function getOrCreateTotals(): EligibleTotals {
     totals.totalEligibleCysFLR = BigInt.fromI32(0);
     totals.totalEligibleCyWETH = BigInt.fromI32(0);
     totals.totalEligibleCyFXRP = BigInt.fromI32(0);
+    totals.totalEligibleCyWBTC = BigInt.fromI32(0);
+    totals.totalEligibleCycbBTC = BigInt.fromI32(0);
     totals.totalEligibleSum = BigInt.fromI32(0);
     totals.save();
   }
@@ -94,7 +104,9 @@ function updateTotalsForAccount(
   account: Account,
   oldCysFLRBalance: BigInt,
   oldCyWETHBalance: BigInt,
-  oldCyFXRPBalance: BigInt
+  oldCyFXRPBalance: BigInt,
+  oldCyWBTCBalance: BigInt,
+  oldCycbBTCBalance: BigInt
 ): void {
   const totals = getOrCreateTotals();
 
@@ -131,10 +143,34 @@ function updateTotalsForAccount(
     );
   }
 
+  // Handle cyWBTC changes
+  if (oldCyWBTCBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyWBTC =
+      totals.totalEligibleCyWBTC.minus(oldCyWBTCBalance);
+  }
+  if (account.cyWBTCBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyWBTC = totals.totalEligibleCyWBTC.plus(
+      account.cyWBTCBalance
+    );
+  }
+
+  // Handle cycbBTC changes
+  if (oldCycbBTCBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCycbBTC =
+      totals.totalEligibleCycbBTC.minus(oldCycbBTCBalance);
+  }
+  if (account.cycbBTCBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCycbBTC = totals.totalEligibleCycbBTC.plus(
+      account.cycbBTCBalance
+    );
+  }
+
   // Update total sum
   totals.totalEligibleSum = totals.totalEligibleCysFLR
     .plus(totals.totalEligibleCyWETH)
-    .plus(totals.totalEligibleCyFXRP);
+    .plus(totals.totalEligibleCyFXRP)
+    .plus(totals.totalEligibleCyWBTC)
+    .plus(totals.totalEligibleCycbBTC);
   totals.save();
 
   // Update account's share
@@ -150,9 +186,13 @@ export function handleTransfer(event: TransferEvent): void {
   const oldFromCysFLR = fromAccount.cysFLRBalance;
   const oldFromCyWETH = fromAccount.cyWETHBalance;
   const oldFromCyFXRP = fromAccount.cyFXRPBalance;
+  const oldFromCyWBTC = fromAccount.cyWBTCBalance;
+  const oldFromCycbBTC = fromAccount.cycbBTCBalance;
   const oldToCysFLR = toAccount.cysFLRBalance;
   const oldToCyWETH = toAccount.cyWETHBalance;
   const oldToCyFXRP = toAccount.cyFXRPBalance;
+  const oldToCyWBTC = toAccount.cyWBTCBalance;
+  const oldToCycbBTC = toAccount.cycbBTCBalance;
 
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
@@ -186,6 +226,24 @@ export function handleTransfer(event: TransferEvent): void {
     fromAccount.cyFXRPBalance = fromAccount.cyFXRPBalance.minus(
       event.params.value
     );
+  } else if (tokenAddress == CYWBTC_ADDRESS) {
+    if (fromIsApprovedSource) {
+      toAccount.cyWBTCBalance = toAccount.cyWBTCBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyWBTCBalance = fromAccount.cyWBTCBalance.minus(
+      event.params.value
+    );
+  } else if (tokenAddress == CYCBBTC_ADDRESS) {
+    if (fromIsApprovedSource) {
+      toAccount.cycbBTCBalance = toAccount.cycbBTCBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cycbBTCBalance = fromAccount.cycbBTCBalance.minus(
+      event.params.value
+    );
   }
 
   // Save accounts
@@ -207,6 +265,6 @@ export function handleTransfer(event: TransferEvent): void {
   transfer.save();
 
   // Update totals for both accounts
-  updateTotalsForAccount(fromAccount, oldFromCysFLR, oldFromCyWETH, oldFromCyFXRP);
-  updateTotalsForAccount(toAccount, oldToCysFLR, oldToCyWETH, oldToCyFXRP);
+  updateTotalsForAccount(fromAccount, oldFromCysFLR, oldFromCyWETH, oldFromCyFXRP, oldFromCyWBTC, oldFromCycbBTC);
+  updateTotalsForAccount(toAccount, oldToCysFLR, oldToCyWETH, oldToCyFXRP, oldToCyWBTC, oldToCycbBTC);
 }

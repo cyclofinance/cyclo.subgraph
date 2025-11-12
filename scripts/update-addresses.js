@@ -29,9 +29,13 @@ const requiredAddresses = [
   'cysFLR',
   'cyWETH',
   'cyFXRP',
+  'cyWBTC',
+  'cycbBTC',
   'cysFLRReceipt',
   'cyWETHReceipt',
-  'cyFXRPReceipt'
+  'cyFXRPReceipt',
+  'cyWBTCReceipt',
+  'cycbBTCReceipt'
 ];
 
 for (const key of requiredAddresses) {
@@ -61,6 +65,16 @@ cysFlrContent = cysFlrContent.replace(
   `const CYFXRP_ADDRESS = "${networkConfig.cyFXRP.address}".toLowerCase();`
 );
 
+cysFlrContent = cysFlrContent.replace(
+  /const CYWBTC_ADDRESS\s*=\s*"[^"]*"\.toLowerCase\(\);/,
+  `const CYWBTC_ADDRESS = "${networkConfig.cyWBTC.address}".toLowerCase();`
+);
+
+cysFlrContent = cysFlrContent.replace(
+  /const CYCBBTC_ADDRESS\s*=\s*"[^"]*"\.toLowerCase\(\);/,
+  `const CYCBBTC_ADDRESS = "${networkConfig.cycbBTC.address}".toLowerCase();`
+);
+
 fs.writeFileSync(cysFlrPath, cysFlrContent, 'utf8');
 console.log(`✓ Updated addresses in src/cys-flr.ts for network: ${network}`);
 
@@ -82,6 +96,16 @@ receiptContent = receiptContent.replace(
 receiptContent = receiptContent.replace(
   /const CYFXRP_RECEIPT_ADDRESS\s*=\s*Address\.fromString\("[^"]*"\);/,
   `const CYFXRP_RECEIPT_ADDRESS = Address.fromString("${networkConfig.cyFXRPReceipt.address}");`
+);
+
+receiptContent = receiptContent.replace(
+  /const CYWBTC_RECEIPT_ADDRESS\s*=\s*Address\.fromString\("[^"]*"\);/,
+  `const CYWBTC_RECEIPT_ADDRESS = Address.fromString("${networkConfig.cyWBTCReceipt.address}");`
+);
+
+receiptContent = receiptContent.replace(
+  /const CYCBBTC_RECEIPT_ADDRESS\s*=\s*Address\.fromString\("[^"]*"\);/,
+  `const CYCBBTC_RECEIPT_ADDRESS = Address.fromString("${networkConfig.cycbBTCReceipt.address}");`
 );
 
 fs.writeFileSync(receiptPath, receiptContent, 'utf8');
