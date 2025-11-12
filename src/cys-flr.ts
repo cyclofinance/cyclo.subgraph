@@ -20,12 +20,9 @@ const FACTORIES = [
   Address.fromString("0x440602f459D7Dd500a74528003e6A20A46d6e2A6"), // Blazeswap
 ];
 
-const CYSFLR_ADDRESS =
-  "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567".toLowerCase();
-const CYWETH_ADDRESS =
-  "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4".toLowerCase();
-const CYFXRP_ADDRESS =
-  "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5".toLowerCase();
+const CYSFLR_ADDRESS = "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567".toLowerCase();
+const CYWETH_ADDRESS = "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4".toLowerCase();
+const CYFXRP_ADDRESS = "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5".toLowerCase();
 const TOTALS_ID = "SINGLETON";
 
 function isApprovedSource(address: Address): boolean {
