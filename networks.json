@@ -12,6 +12,14 @@
       "address": "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5",
       "startBlock": 50345677
     },
+    "cyWBTC": {
+      "address": "0x229917ac2842Eaab42060a1A9213CA78e01b572a",
+      "startBlock": 50345677
+    },
+    "cycbBTC": {
+      "address": "0x9fC9dA918552df0DAd6C00051351e335656da100",
+      "startBlock": 50345677
+    },
     "cysFLRReceipt": {
       "address": "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09",
       "startBlock": 34244389
@@ -23,6 +31,56 @@
     "cyFXRPReceipt": {
       "address": "0xC46600cEbD84Ed2FE60Ec525dF13E341D24642f2",
       "startBlock": 50345677
+    },
+    "cyWBTCReceipt": {
+      "address": "0x922A293D4d0af30D67A51e5510a487916a2bb494",
+      "startBlock": 50345677
+    },
+    "cycbBTCReceipt": {
+      "address": "0x3a5eDe5AE4EC55F61c4aFf2CDfC920b5029Abf05",
+      "startBlock": 50345677
+    }
+  },
+  "arbitrum-one": {
+    "cysFLR": {
+      "address": "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567",
+      "startBlock": 399205329
+    },
+    "cyWETH": {
+      "address": "0x28C7747D7eA25ED3dDCd075c6CCC3634313a0F59",
+      "startBlock": 399205329
+    },
+    "cyFXRP": {
+      "address": "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5",
+      "startBlock": 399205329
+    },
+    "cyWBTC": {
+      "address": "0x229917ac2842Eaab42060a1A9213CA78e01b572a",
+      "startBlock": 399207768
+    },
+    "cycbBTC": {
+      "address": "0x9fC9dA918552df0DAd6C00051351e335656da100",
+      "startBlock": 399250230
+    },
+    "cysFLRReceipt": {
+      "address": "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09",
+      "startBlock": 399205329
+    },
+    "cyWETHReceipt": {
+      "address": "0x0E67a81B967c189Cf50353B0fE6fef572dC55319",
+      "startBlock": 399205329
+    },
+    "cyFXRPReceipt": {
+      "address": "0xC46600cEbD84Ed2FE60Ec525dF13E341D24642f2",
+      "startBlock": 399205329
+    },
+    "cyWBTCReceipt": {
+      "address": "0x922A293D4d0af30D67A51e5510a487916a2bb494",
+      "startBlock": 399207768
+    },
+    "cycbBTCReceipt": {
+      "address": "0x3a5eDe5AE4EC55F61c4aFf2CDfC920b5029Abf05",
+      "startBlock": 399250230
     }
   }
 }
