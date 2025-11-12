@@ -5,7 +5,7 @@ import { CysFlrReceiptOwnerBalance, CyWethReceiptOwnerBalance, CyFxrpReceiptOwne
 
 const CYSFLR_RECEIPT_ADDRESS = Address.fromString("0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09");
 const CYWETH_RECEIPT_ADDRESS = Address.fromString("0xBE2615A0fcB54A49A1eB472be30d992599FE0968");
-const CYFXRP_RECEIPT_ADDRESS = Address.fromString("0xEf307A3EE59A6a140227EE98a95367D1F7cc8DE7");
+const CYFXRP_RECEIPT_ADDRESS = Address.fromString("0xC46600cEbD84Ed2FE60Ec525dF13E341D24642f2");
 
 // create a unique ID for the receipt owner balance entity
 export function createReceiptOwnerBalanceId(receiptAddress: Address, tokenId: BigInt, owner: Bytes): Bytes {

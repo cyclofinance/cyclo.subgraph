@@ -59,8 +59,8 @@ dataSources:
     network: flare
     source:
       abi: cysFLR
-      address: "0x0Eb1dFC9f47f48b75dEb8DE45549BA017D6663c5"
-      startBlock: 50143709
+      address: "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5"
+      startBlock: 50345677
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -79,7 +79,6 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
-  
   - kind: ethereum
     name: cysFLRReceipt
     network: flare
@@ -135,8 +134,8 @@ dataSources:
     network: flare
     source:
       abi: receipt
-      address: "0xEf307A3EE59A6a140227EE98a95367D1F7cc8DE7"
-      startBlock: 50143709
+      address: "0xC46600cEbD84Ed2FE60Ec525dF13E341D24642f2"
+      startBlock: 50345677
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -155,4 +154,3 @@ dataSources:
             address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
-  
