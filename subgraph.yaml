@@ -242,7 +242,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Account
-        - CyCbbtcReceiptOwnerBalance
+        - CycbBTCReceiptOwnerBalance
       abis:
         - name: receipt
           file: ./abis/IReceiptV2.json

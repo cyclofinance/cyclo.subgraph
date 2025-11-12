@@ -81,7 +81,7 @@ type CyWbtcReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
   balance: BigInt!
 }
 
-type CyCbbtcReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
+type CycbBTCReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
   id: Bytes!
   receiptAddress: Bytes!
   tokenId: BigInt!
