@@ -1,8 +1,9 @@
-import { Address, BigInt, BigDecimal } from "@graphprotocol/graph-ts";
+import { Address, BigInt, BigDecimal, dataSource } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/cysFLR/cysFLR";
 import { Account, Transfer, EligibleTotals } from "../generated/schema";
 import { factory } from "../generated/cysFLR/factory";
 import { getOrCreateAccount } from "./common";
+import { NetworkImplementation } from "./networkImplementation";
 
 const REWARDS_SOURCES = [
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
@@ -20,11 +21,6 @@ const FACTORIES = [
   Address.fromString("0x440602f459D7Dd500a74528003e6A20A46d6e2A6"), // Blazeswap
 ];
 
-const CYSFLR_ADDRESS = "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567".toLowerCase();
-const CYWETH_ADDRESS = "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4".toLowerCase();
-const CYFXRP_ADDRESS = "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5".toLowerCase();
-const CYWBTC_ADDRESS = "0x229917ac2842Eaab42060a1A9213CA78e01b572a".toLowerCase();
-const CYCBBTC_ADDRESS = "0x9fC9dA918552df0DAd6C00051351e335656da100".toLowerCase();
 const TOTALS_ID = "SINGLETON";
 
 function isApprovedSource(address: Address): boolean {
@@ -197,9 +193,12 @@ export function handleTransfer(event: TransferEvent): void {
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
 
+  // Get network implementation to access addresses
+  const networkImplementation = new NetworkImplementation(dataSource.network());
+
   // Update balances based on which token this is
   const tokenAddress = event.address.toHexString().toLowerCase();
-  if (tokenAddress == CYSFLR_ADDRESS) {
+  if (tokenAddress == networkImplementation.getCysFLRAddress()) {
     if (fromIsApprovedSource) {
       toAccount.cysFLRBalance = toAccount.cysFLRBalance.plus(
         event.params.value
@@ -208,7 +207,7 @@ export function handleTransfer(event: TransferEvent): void {
     fromAccount.cysFLRBalance = fromAccount.cysFLRBalance.minus(
       event.params.value
     );
-  } else if (tokenAddress == CYWETH_ADDRESS) {
+  } else if (tokenAddress == networkImplementation.getCyWETHAddress()) {
     if (fromIsApprovedSource) {
       toAccount.cyWETHBalance = toAccount.cyWETHBalance.plus(
         event.params.value
@@ -217,7 +216,7 @@ export function handleTransfer(event: TransferEvent): void {
     fromAccount.cyWETHBalance = fromAccount.cyWETHBalance.minus(
       event.params.value
     );
-  } else if (tokenAddress == CYFXRP_ADDRESS) {
+  } else if (tokenAddress == networkImplementation.getCyFXRPAddress()) {
     if (fromIsApprovedSource) {
       toAccount.cyFXRPBalance = toAccount.cyFXRPBalance.plus(
         event.params.value
@@ -226,7 +225,7 @@ export function handleTransfer(event: TransferEvent): void {
     fromAccount.cyFXRPBalance = fromAccount.cyFXRPBalance.minus(
       event.params.value
     );
-  } else if (tokenAddress == CYWBTC_ADDRESS) {
+  } else if (tokenAddress == networkImplementation.getCyWBTCAddress()) {
     if (fromIsApprovedSource) {
       toAccount.cyWBTCBalance = toAccount.cyWBTCBalance.plus(
         event.params.value
@@ -235,7 +234,7 @@ export function handleTransfer(event: TransferEvent): void {
     fromAccount.cyWBTCBalance = fromAccount.cyWBTCBalance.minus(
       event.params.value
     );
-  } else if (tokenAddress == CYCBBTC_ADDRESS) {
+  } else if (tokenAddress == networkImplementation.getCycbBTCAddress()) {
     if (fromIsApprovedSource) {
       toAccount.cycbBTCBalance = toAccount.cycbBTCBalance.plus(
         event.params.value

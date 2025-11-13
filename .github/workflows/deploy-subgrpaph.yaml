@@ -56,10 +56,6 @@ jobs:
             git submodule update
           fi
       
-      - name: Update addresses for network
-        run: node scripts/update-addresses.js ${{ inputs.network }}
-        working-directory: .
-      
       - name: Generate subgraph code
         run: nix develop -c graph codegen
         working-directory: .
@@ -73,7 +69,7 @@ jobs:
 
       # Check if the repo is clean before deploying.
       # Exclude subgraph.yaml (updated by build) and address files (updated by script)
-      - run: git diff --exit-code -- . ':!subgraph.yaml' ':!src/cys-flr.ts' ':!src/receipt.ts'
+      - run: git diff --exit-code -- . ':!subgraph.yaml'
       - run: >
           nix develop -c goldsky subgraph deploy "cyclo-${{ inputs.network }}/$(date -Idate)-$(openssl rand -hex 2)"
         working-directory: .

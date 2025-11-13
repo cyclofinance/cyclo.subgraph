@@ -9,8 +9,8 @@ dataSources:
     network: flare
     source:
       abi: cysFLR
-      address: "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567"
-      startBlock: 34244389
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -29,13 +29,14 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
+  
   - kind: ethereum
     name: cyWETH
     network: flare
     source:
       abi: cysFLR
-      address: "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4"
-      startBlock: 36028901
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -54,13 +55,14 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
+  
   - kind: ethereum
     name: cyFXRP
     network: flare
     source:
       abi: cysFLR
-      address: "0xF23595Ede14b54817397B1dAb899bA061BdCe7b5"
-      startBlock: 50345677
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -79,13 +81,14 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
+  
   - kind: ethereum
     name: cysFLRReceipt
     network: flare
     source:
       abi: receipt
-      address: "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09"
-      startBlock: 34244389
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -100,17 +103,17 @@ dataSources:
         - event: TransferSingle(indexed address,indexed address,indexed
             address,uint256,uint256)
           handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed
-            address,uint256[],uint256[])
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
+  
   - kind: ethereum
     name: cyWETHReceipt
     network: flare
     source:
       abi: receipt
-      address: "0xBE2615A0fcB54A49A1eB472be30d992599FE0968"
-      startBlock: 36028901
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -125,17 +128,17 @@ dataSources:
         - event: TransferSingle(indexed address,indexed address,indexed
             address,uint256,uint256)
           handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed
-            address,uint256[],uint256[])
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
+  
   - kind: ethereum
     name: cyFXRPReceipt
     network: flare
     source:
       abi: receipt
-      address: "0xC46600cEbD84Ed2FE60Ec525dF13E341D24642f2"
-      startBlock: 50345677
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -150,17 +153,17 @@ dataSources:
         - event: TransferSingle(indexed address,indexed address,indexed
             address,uint256,uint256)
           handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed
-            address,uint256[],uint256[])
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
+  
   - kind: ethereum
     name: cyWBTC
     network: flare
     source:
       abi: cysFLR
-      address: "0x229917ac2842Eaab42060a1A9213CA78e01b572a"
-      startBlock: 50345677
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -179,13 +182,14 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
+  
   - kind: ethereum
     name: cycbBTC
     network: flare
     source:
       abi: cysFLR
-      address: "0x9fC9dA918552df0DAd6C00051351e335656da100"
-      startBlock: 50345677
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -204,13 +208,14 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
+  
   - kind: ethereum
     name: cyWBTCReceipt
     network: flare
     source:
       abi: receipt
-      address: "0x922A293D4d0af30D67A51e5510a487916a2bb494"
-      startBlock: 50345677
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -225,17 +230,17 @@ dataSources:
         - event: TransferSingle(indexed address,indexed address,indexed
             address,uint256,uint256)
           handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed
-            address,uint256[],uint256[])
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
+  
   - kind: ethereum
     name: cycbBTCReceipt
     network: flare
     source:
       abi: receipt
-      address: "0x3a5eDe5AE4EC55F61c4aFf2CDfC920b5029Abf05"
-      startBlock: 50345677
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -250,7 +255,6 @@ dataSources:
         - event: TransferSingle(indexed address,indexed address,indexed
             address,uint256,uint256)
           handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed
-            address,uint256[],uint256[])
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
