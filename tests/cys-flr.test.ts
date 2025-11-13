@@ -10,6 +10,7 @@ import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { Transfer } from "../generated/schema";
 import { handleTransfer } from "../src/cys-flr";
 import { createTransferEvent } from "./utils";
+import { dataSourceMock } from "matchstick-as";
 
 // Test addresses
 const APPROVED_DEX_ROUTER = Address.fromString(
@@ -40,6 +41,8 @@ const TOTALS_ID = "SINGLETON";
 describe("Transfer handling", () => {
   beforeAll(() => {
     clearStore();
+    // Mock dataSource.network() to return "flare" for tests
+    dataSourceMock.setNetwork("flare");
   });
 
   afterAll(() => {

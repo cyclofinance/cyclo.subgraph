@@ -1,13 +1,8 @@
 import { getOrCreateAccount } from "./common";
-import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, dataSource } from "@graphprotocol/graph-ts";
 import { TransferSingle, TransferBatch } from "../generated/cysFLRReceipt/receipt";
 import { CysFlrReceiptOwnerBalance, CyWethReceiptOwnerBalance, CyFxrpReceiptOwnerBalance, CyWbtcReceiptOwnerBalance, CycbBTCReceiptOwnerBalance } from "../generated/schema";
-
-const CYSFLR_RECEIPT_ADDRESS = Address.fromString("0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09");
-const CYWETH_RECEIPT_ADDRESS = Address.fromString("0xBE2615A0fcB54A49A1eB472be30d992599FE0968");
-const CYFXRP_RECEIPT_ADDRESS = Address.fromString("0xC46600cEbD84Ed2FE60Ec525dF13E341D24642f2");
-const CYWBTC_RECEIPT_ADDRESS = Address.fromString("0x922A293D4d0af30D67A51e5510a487916a2bb494");
-const CYCBBTC_RECEIPT_ADDRESS = Address.fromString("0x3a5eDe5AE4EC55F61c4aFf2CDfC920b5029Abf05");
+import { NetworkImplementation } from "./networkImplementation";
 
 // create a unique ID for the receipt owner balance entity
 export function createReceiptOwnerBalanceId(receiptAddress: Address, tokenId: BigInt, owner: Bytes): Bytes {
@@ -116,7 +111,10 @@ export function handleBalanceChange(
   owner: Bytes,
   amountChange: BigInt
 ): void {
-  if (receiptAddress == CYSFLR_RECEIPT_ADDRESS) {
+  // Get network implementation to access addresses
+  const networkImplementation = new NetworkImplementation(dataSource.network());
+  
+  if (receiptAddress.equals(networkImplementation.getCysFLRReceiptAddress())) {
     const item = getOrCreateReceiptOwnerBalanceForCysFlr(
       receiptAddress,
       tokenId,
@@ -124,7 +122,7 @@ export function handleBalanceChange(
     );
     item.balance = item.balance.plus(amountChange);
     item.save();
-  } else if (receiptAddress == CYWETH_RECEIPT_ADDRESS) {
+  } else if (receiptAddress.equals(networkImplementation.getCyWETHReceiptAddress())) {
     const item = getOrCreateReceiptOwnerBalanceForCyWeth(
       receiptAddress,
       tokenId,
@@ -132,7 +130,7 @@ export function handleBalanceChange(
     );
     item.balance = item.balance.plus(amountChange);
     item.save();
-  } else if (receiptAddress == CYFXRP_RECEIPT_ADDRESS) {
+  } else if (receiptAddress.equals(networkImplementation.getCyFXRPReceiptAddress())) {
     const item = getOrCreateReceiptOwnerBalanceForCyFxrp(
       receiptAddress,
       tokenId,
@@ -140,7 +138,7 @@ export function handleBalanceChange(
     );
     item.balance = item.balance.plus(amountChange);
     item.save();
-  } else if (receiptAddress == CYWBTC_RECEIPT_ADDRESS) {
+  } else if (receiptAddress.equals(networkImplementation.getCyWBTCReceiptAddress())) {
     const item = getOrCreateReceiptOwnerBalanceForCyWbtc(
       receiptAddress,
       tokenId,
@@ -148,7 +146,7 @@ export function handleBalanceChange(
     );
     item.balance = item.balance.plus(amountChange);
     item.save();
-  } else if (receiptAddress == CYCBBTC_RECEIPT_ADDRESS) {
+  } else if (receiptAddress.equals(networkImplementation.getCycbBTCReceiptAddress())) {
     const item = getOrCreateReceiptOwnerBalanceForCycbBTC(
       receiptAddress,
       tokenId,
