@@ -100,8 +100,7 @@ dataSources:
         - name: receipt
           file: ./abis/IReceiptV2.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed
-            address,uint256,uint256)
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleReceiptTransferSingle
         - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
@@ -125,8 +124,7 @@ dataSources:
         - name: receipt
           file: ./abis/IReceiptV2.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed
-            address,uint256,uint256)
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleReceiptTransferSingle
         - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
@@ -150,8 +148,7 @@ dataSources:
         - name: receipt
           file: ./abis/IReceiptV2.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed
-            address,uint256,uint256)
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleReceiptTransferSingle
         - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
@@ -227,8 +224,7 @@ dataSources:
         - name: receipt
           file: ./abis/IReceiptV2.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed
-            address,uint256,uint256)
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleReceiptTransferSingle
         - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
@@ -252,8 +248,7 @@ dataSources:
         - name: receipt
           file: ./abis/IReceiptV2.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed
-            address,uint256,uint256)
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleReceiptTransferSingle
         - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
