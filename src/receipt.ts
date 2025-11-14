@@ -1,7 +1,7 @@
 import { getOrCreateAccount } from "./common";
 import { Address, BigInt, Bytes, dataSource } from "@graphprotocol/graph-ts";
 import { TransferSingle, TransferBatch } from "../generated/cysFLRReceipt/receipt";
-import { CysFlrReceiptOwnerBalance, CyWethReceiptOwnerBalance, CyFxrpReceiptOwnerBalance, CyWbtcReceiptOwnerBalance, CycbBTCReceiptOwnerBalance, CyLinkReceiptOwnerBalance, CyDotReceiptOwnerBalance, CyUniReceiptOwnerBalance, CyPepeReceiptOwnerBalance, CyEnaReceiptOwnerBalance, CyArbReceiptOwnerBalance } from "../generated/schema";
+import { CysFlrReceiptOwnerBalance, CyWethReceiptOwnerBalance, CyFxrpReceiptOwnerBalance, CyWbtcReceiptOwnerBalance, CycbBTCReceiptOwnerBalance, CyLinkReceiptOwnerBalance, CyDotReceiptOwnerBalance, CyUniReceiptOwnerBalance, CyPepeReceiptOwnerBalance, CyEnaReceiptOwnerBalance, CyArbReceiptOwnerBalance, CyWstethReceiptOwnerBalance } from "../generated/schema";
 import { NetworkImplementation } from "./networkImplementation";
 
 // create a unique ID for the receipt owner balance entity
@@ -218,6 +218,25 @@ export function getOrCreateReceiptOwnerBalanceForCyARB(
   return item;
 }
 
+// Get or create a CyWstethReceiptOwnerBalance entity
+export function getOrCreateReceiptOwnerBalanceForCywstETH(
+  receiptAddress: Address,
+  tokenId: BigInt,
+  owner: Bytes
+): CyWstethReceiptOwnerBalance {
+  const id = createReceiptOwnerBalanceId(receiptAddress, tokenId, owner);
+  let item = CyWstethReceiptOwnerBalance.load(id);
+  if (!item) {
+    item = new CyWstethReceiptOwnerBalance(id);
+    item.receiptAddress = receiptAddress;
+    item.tokenId = tokenId;
+    item.owner = owner;
+    item.balance = BigInt.zero();
+    item.save();
+  }
+  return item;
+}
+
 // Handle balance changes for receipt tokens based on receipt address
 export function handleBalanceChange(
   receiptAddress: Address,
@@ -310,6 +329,14 @@ export function handleBalanceChange(
     item.save();
   } else if (receiptAddress.equals(networkImplementation.getCyARBReceiptAddress())) {
     const item = getOrCreateReceiptOwnerBalanceForCyARB(
+      receiptAddress,
+      tokenId,
+      owner
+    );
+    item.balance = item.balance.plus(amountChange);
+    item.save();
+  } else if (receiptAddress.equals(networkImplementation.getCywstETHReceiptAddress())) {
+    const item = getOrCreateReceiptOwnerBalanceForCywstETH(
       receiptAddress,
       tokenId,
       owner

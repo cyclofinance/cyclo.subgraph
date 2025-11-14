@@ -14,6 +14,7 @@ type Account @entity {
   cyPEPEBalance: BigInt!
   cyENABalance: BigInt!
   cyARBBalance: BigInt!
+  cywstETHBalance: BigInt!
   totalCyBalance: BigInt! # Sum of all token balances
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
   cysFLRReceiptBalance: [CysFlrReceiptOwnerBalance!]! @derivedFrom(field: "owner")
@@ -27,6 +28,7 @@ type Account @entity {
   cyPEPEReceiptBalance: [CyPepeReceiptOwnerBalance!]! @derivedFrom(field: "owner")
   cyENAReceiptBalance: [CyEnaReceiptOwnerBalance!]! @derivedFrom(field: "owner")
   cyARBReceiptBalance: [CyArbReceiptOwnerBalance!]! @derivedFrom(field: "owner")
+  cywstETHReceiptBalance: [CyWstethReceiptOwnerBalance!]! @derivedFrom(field: "owner")
 }
 
 type Transfer @entity(immutable: true) {
@@ -54,6 +56,7 @@ type EligibleTotals @entity {
   totalEligibleCyPEPE: BigInt!
   totalEligibleCyENA: BigInt!
   totalEligibleCyARB: BigInt!
+  totalEligibleCywstETH: BigInt!
   totalEligibleSum: BigInt!
 }
 
@@ -148,6 +151,14 @@ type CyEnaReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
 }
 
 type CyArbReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
+  id: Bytes!
+  receiptAddress: Bytes!
+  tokenId: BigInt!
+  owner: Account!
+  balance: BigInt!
+}
+
+type CyWstethReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
   id: Bytes!
   receiptAddress: Bytes!
   tokenId: BigInt!

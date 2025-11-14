@@ -13,6 +13,7 @@ export class NetworkImplementation {
     public cyPEPEAddress: string = "";
     public cyENAAddress: string = "";
     public cyARBAddress: string = "";
+    public cywstETHAddress: string = "";
     
     // Receipt addresses by network
     public cysFLRReceiptAddress: Address = Address.zero();
@@ -26,6 +27,7 @@ export class NetworkImplementation {
     public cyPEPEReceiptAddress: Address = Address.zero();
     public cyENAReceiptAddress: Address = Address.zero();
     public cyARBReceiptAddress: Address = Address.zero();
+    public cywstETHReceiptAddress: Address = Address.zero();
     
     constructor(network: string) {
       if (network == 'flare') {
@@ -49,6 +51,7 @@ export class NetworkImplementation {
       this.cyPEPEAddress = "0x4DD4230F3B4d6118D905eD0B6f5f20A3b2472166".toLowerCase();
       this.cyENAAddress = "0x5D938CAf878BD56ACcF2B27Fad9F697aA206dF40".toLowerCase();
       this.cyARBAddress = "0xc83563177290bdd391DB56553Ed828413b7689bc".toLowerCase();
+      this.cywstETHAddress = "0xC43ee790dc819dB728e2c5bB6285359BBdE7E016".toLowerCase();
       
       this.cysFLRReceiptAddress = Address.fromString("0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09");
       this.cyWETHReceiptAddress = Address.fromString("0xBE2615A0fcB54A49A1eB472be30d992599FE0968");
@@ -61,6 +64,7 @@ export class NetworkImplementation {
       this.cyPEPEReceiptAddress = Address.fromString("0xdb2C91313aAAaE40aedf6E91a1E78443241a64c0");
       this.cyENAReceiptAddress = Address.fromString("0x7426ddC75b522e40552ea24D647898fAcE0E2360");
       this.cyARBReceiptAddress = Address.fromString("0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e");
+      this.cywstETHReceiptAddress = Address.fromString("0x8C1843A9f3278C94f6d79cebA9828596F524E898");
     }
     
     private setAddressesForArbitrum(): void {
@@ -75,6 +79,7 @@ export class NetworkImplementation {
       this.cyPEPEAddress = "0x4DD4230F3B4d6118D905eD0B6f5f20A3b2472166".toLowerCase();
       this.cyENAAddress = "0x5D938CAf878BD56ACcF2B27Fad9F697aA206dF40".toLowerCase();
       this.cyARBAddress = "0xc83563177290bdd391DB56553Ed828413b7689bc".toLowerCase();
+      this.cywstETHAddress = "0xC43ee790dc819dB728e2c5bB6285359BBdE7E016".toLowerCase();
       
       this.cysFLRReceiptAddress = Address.fromString("0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09");
       this.cyWETHReceiptAddress = Address.fromString("0x0E67a81B967c189Cf50353B0fE6fef572dC55319");
@@ -87,6 +92,7 @@ export class NetworkImplementation {
       this.cyPEPEReceiptAddress = Address.fromString("0xdb2C91313aAAaE40aedf6E91a1E78443241a64c0");
       this.cyENAReceiptAddress = Address.fromString("0x7426ddC75b522e40552ea24D647898fAcE0E2360");
       this.cyARBReceiptAddress = Address.fromString("0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e");
+      this.cywstETHReceiptAddress = Address.fromString("0x8C1843A9f3278C94f6d79cebA9828596F524E898");
     }
     
     // Getter methods for cy token addresses
@@ -134,6 +140,10 @@ export class NetworkImplementation {
       return this.cyARBAddress;
     }
     
+    public getCywstETHAddress(): string {
+      return this.cywstETHAddress;
+    }
+    
     // Getter methods for receipt addresses
     public getCysFLRReceiptAddress(): Address {
       return this.cysFLRReceiptAddress;
@@ -177,5 +187,9 @@ export class NetworkImplementation {
     
     public getCyARBReceiptAddress(): Address {
       return this.cyARBReceiptAddress;
+    }
+    
+    public getCywstETHReceiptAddress(): Address {
+      return this.cywstETHReceiptAddress;
     }
   }

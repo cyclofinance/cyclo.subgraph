@@ -87,6 +87,14 @@
     "cyARBReceipt": {
       "address": "0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e",
       "startBlock": 50345677
+    },
+    "cywstETH": {
+      "address": "0xC43ee790dc819dB728e2c5bB6285359BBdE7E016",
+      "startBlock": 50345677
+    },
+    "cywstETHReceipt": {
+      "address": "0x8C1843A9f3278C94f6d79cebA9828596F524E898",
+      "startBlock": 50345677
     }
   },
   "arbitrum-one": {
@@ -177,6 +185,14 @@
     "cyARBReceipt": {
       "address": "0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e",
       "startBlock": 399923376
+    },
+    "cywstETH": {
+      "address": "0xC43ee790dc819dB728e2c5bB6285359BBdE7E016",
+      "startBlock": 400251851
+    },
+    "cywstETHReceipt": {
+      "address": "0x8C1843A9f3278C94f6d79cebA9828596F524E898",
+      "startBlock": 400251851
     }
   }
 }

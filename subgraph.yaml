@@ -361,6 +361,32 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
+
+  - kind: ethereum
+    name: cywstETH
+    network: flare
+    source:
+      abi: cysFLR
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - Token
+        - TokenBalance
+        - Transfer
+      abis:
+        - name: cysFLR
+          file: ./abis/cysFLR.json
+        - name: factory
+          file: ./abis/factory.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/cys-flr.ts
   
   - kind: ethereum
     name: cyWBTCReceipt
@@ -544,6 +570,30 @@ dataSources:
       entities:
         - Account
         - CyArbReceiptOwnerBalance
+      abis:
+        - name: receipt
+          file: ./abis/IReceiptV2.json
+      eventHandlers:
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleReceiptTransferSingle
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+          handler: handleReceiptTransferBatch
+      file: ./src/receipt.ts
+
+  - kind: ethereum
+    name: cywstETHReceipt
+    network: flare
+    source:
+      abi: receipt
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - CyWstethReceiptOwnerBalance
       abis:
         - name: receipt
           file: ./abis/IReceiptV2.json

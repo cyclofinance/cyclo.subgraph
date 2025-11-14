@@ -85,6 +85,9 @@ function calculateEligibleShare(
   if (account.cyARBBalance.gt(BigInt.fromI32(0))) {
     positiveTotal = positiveTotal.plus(account.cyARBBalance);
   }
+  if (account.cywstETHBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cywstETHBalance);
+  }
 
   account.totalCyBalance = positiveTotal;
 
@@ -119,6 +122,7 @@ function getOrCreateTotals(): EligibleTotals {
     totals.totalEligibleCyPEPE = BigInt.fromI32(0);
     totals.totalEligibleCyENA = BigInt.fromI32(0);
     totals.totalEligibleCyARB = BigInt.fromI32(0);
+    totals.totalEligibleCywstETH = BigInt.fromI32(0);
     totals.totalEligibleSum = BigInt.fromI32(0);
     totals.save();
   }
@@ -137,7 +141,8 @@ function updateTotalsForAccount(
   oldCyUNIBalance: BigInt,
   oldCyPEPEBalance: BigInt,
   oldCyENABalance: BigInt,
-  oldCyARBBalance: BigInt
+  oldCyARBBalance: BigInt,
+  oldCywstETHBalance: BigInt
 ): void {
   const totals = getOrCreateTotals();
 
@@ -267,6 +272,17 @@ function updateTotalsForAccount(
     );
   }
 
+  // Handle cywstETH changes
+  if (oldCywstETHBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCywstETH =
+      totals.totalEligibleCywstETH.minus(oldCywstETHBalance);
+  }
+  if (account.cywstETHBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCywstETH = totals.totalEligibleCywstETH.plus(
+      account.cywstETHBalance
+    );
+  }
+
   // Update total sum
   totals.totalEligibleSum = totals.totalEligibleCysFLR
     .plus(totals.totalEligibleCyWETH)
@@ -278,7 +294,8 @@ function updateTotalsForAccount(
     .plus(totals.totalEligibleCyUNI)
     .plus(totals.totalEligibleCyPEPE)
     .plus(totals.totalEligibleCyENA)
-    .plus(totals.totalEligibleCyARB);
+    .plus(totals.totalEligibleCyARB)
+    .plus(totals.totalEligibleCywstETH);
   totals.save();
 
   // Update account's share
@@ -302,6 +319,7 @@ export function handleTransfer(event: TransferEvent): void {
   const oldFromCyPEPE = fromAccount.cyPEPEBalance;
   const oldFromCyENA = fromAccount.cyENABalance;
   const oldFromCyARB = fromAccount.cyARBBalance;
+  const oldFromCywstETH = fromAccount.cywstETHBalance;
   const oldToCysFLR = toAccount.cysFLRBalance;
   const oldToCyWETH = toAccount.cyWETHBalance;
   const oldToCyFXRP = toAccount.cyFXRPBalance;
@@ -313,6 +331,7 @@ export function handleTransfer(event: TransferEvent): void {
   const oldToCyPEPE = toAccount.cyPEPEBalance;
   const oldToCyENA = toAccount.cyENABalance;
   const oldToCyARB = toAccount.cyARBBalance;
+  const oldToCywstETH = toAccount.cywstETHBalance;
 
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
@@ -421,6 +440,15 @@ export function handleTransfer(event: TransferEvent): void {
     fromAccount.cyARBBalance = fromAccount.cyARBBalance.minus(
       event.params.value
     );
+  } else if (tokenAddress == networkImplementation.getCywstETHAddress()) {
+    if (fromIsApprovedSource) {
+      toAccount.cywstETHBalance = toAccount.cywstETHBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cywstETHBalance = fromAccount.cywstETHBalance.minus(
+      event.params.value
+    );
   }
 
   // Save accounts
@@ -454,7 +482,8 @@ export function handleTransfer(event: TransferEvent): void {
     oldFromCyUNI,
     oldFromCyPEPE,
     oldFromCyENA,
-    oldFromCyARB
+    oldFromCyARB,
+    oldFromCywstETH
   );
   updateTotalsForAccount(
     toAccount,
@@ -468,6 +497,7 @@ export function handleTransfer(event: TransferEvent): void {
     oldToCyUNI,
     oldToCyPEPE,
     oldToCyENA,
-    oldToCyARB
+    oldToCyARB,
+    oldToCywstETH
   );
 }
