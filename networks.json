@@ -85,7 +85,7 @@
       "startBlock": 50345677
     },
     "cyARBReceipt": {
-      "address": "0xc83563177290bdd391DB56553Ed828413b7689bc",
+      "address": "0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e",
       "startBlock": 50345677
     }
   },
@@ -175,7 +175,7 @@
       "startBlock": 399923376
     },
     "cyARBReceipt": {
-      "address": "0xc83563177290bdd391DB56553Ed828413b7689bc",
+      "address": "0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e",
       "startBlock": 399923376
     }
   }
