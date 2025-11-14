@@ -2,6 +2,7 @@ import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { createReceiptTransferBatchEvent, createReceiptTransferSingleEvent } from "./utils";
 import { test, assert, describe, clearStore, beforeAll, afterAll } from "matchstick-as/assembly/index";
 import { createReceiptOwnerBalanceId, handleReceiptTransferBatch, handleReceiptTransferSingle } from "../src/receipt";
+import { dataSourceMock } from "matchstick-as";
 
 const FROM = Address.fromString("0x0000000000000000000000000000000000000001");
 const TO = Address.fromString("0x0000000000000000000000000000000000000002");
@@ -11,6 +12,8 @@ const RECEIPT_ADDRESS = Address.fromString("0xd387FC43E19a63036d8FCeD559E81f5dDe
 describe("ReceiptOwnerBalance handling", () => {
   beforeAll(() => {
     clearStore();
+    // Mock dataSource.network() to return "flare" for tests
+    dataSourceMock.setNetwork("flare");
   });
 
   afterAll(() => {
