@@ -60,7 +60,7 @@ export class NetworkImplementation {
       this.cyUNIReceiptAddress = Address.fromString("0xBF979c720c730738e25D766748F7063f223F1d27");
       this.cyPEPEReceiptAddress = Address.fromString("0xdb2C91313aAAaE40aedf6E91a1E78443241a64c0");
       this.cyENAReceiptAddress = Address.fromString("0x7426ddC75b522e40552ea24D647898fAcE0E2360");
-      this.cyARBReceiptAddress = Address.fromString("0xc83563177290bdd391DB56553Ed828413b7689bc");
+      this.cyARBReceiptAddress = Address.fromString("0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e");
     }
     
     private setAddressesForArbitrum(): void {
@@ -86,7 +86,7 @@ export class NetworkImplementation {
       this.cyUNIReceiptAddress = Address.fromString("0xBF979c720c730738e25D766748F7063f223F1d27");
       this.cyPEPEReceiptAddress = Address.fromString("0xdb2C91313aAAaE40aedf6E91a1E78443241a64c0");
       this.cyENAReceiptAddress = Address.fromString("0x7426ddC75b522e40552ea24D647898fAcE0E2360");
-      this.cyARBReceiptAddress = Address.fromString("0xc83563177290bdd391DB56553Ed828413b7689bc");
+      this.cyARBReceiptAddress = Address.fromString("0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e");
     }
     
     // Getter methods for cy token addresses
