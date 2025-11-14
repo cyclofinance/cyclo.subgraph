@@ -2,30 +2,30 @@ import { Address } from "@graphprotocol/graph-ts";
 
 export class NetworkImplementation {
     // Cy token addresses by network
-    public cysFLRAddress: string;
-    public cyWETHAddress: string;
-    public cyFXRPAddress: string;
-    public cyWBTCAddress: string;
-    public cycbBTCAddress: string;
-    public cyLINKAddress: string;
-    public cyDOTAddress: string;
-    public cyUNIAddress: string;
-    public cyPEPEAddress: string;
-    public cyENAAddress: string;
-    public cyARBAddress: string;
+    public cysFLRAddress: string = "";
+    public cyWETHAddress: string = "";
+    public cyFXRPAddress: string = "";
+    public cyWBTCAddress: string = "";
+    public cycbBTCAddress: string = "";
+    public cyLINKAddress: string = "";
+    public cyDOTAddress: string = "";
+    public cyUNIAddress: string = "";
+    public cyPEPEAddress: string = "";
+    public cyENAAddress: string = "";
+    public cyARBAddress: string = "";
     
     // Receipt addresses by network
-    public cysFLRReceiptAddress: Address;
-    public cyWETHReceiptAddress: Address;
-    public cyFXRPReceiptAddress: Address;
-    public cyWBTCReceiptAddress: Address;
-    public cycbBTCReceiptAddress: Address;
-    public cyLINKReceiptAddress: Address;
-    public cyDOTReceiptAddress: Address;
-    public cyUNIReceiptAddress: Address;
-    public cyPEPEReceiptAddress: Address;
-    public cyENAReceiptAddress: Address;
-    public cyARBReceiptAddress: Address;
+    public cysFLRReceiptAddress: Address = Address.zero();
+    public cyWETHReceiptAddress: Address = Address.zero();
+    public cyFXRPReceiptAddress: Address = Address.zero();
+    public cyWBTCReceiptAddress: Address = Address.zero();
+    public cycbBTCReceiptAddress: Address = Address.zero();
+    public cyLINKReceiptAddress: Address = Address.zero();
+    public cyDOTReceiptAddress: Address = Address.zero();
+    public cyUNIReceiptAddress: Address = Address.zero();
+    public cyPEPEReceiptAddress: Address = Address.zero();
+    public cyENAReceiptAddress: Address = Address.zero();
+    public cyARBReceiptAddress: Address = Address.zero();
     
     constructor(network: string) {
       if (network == 'flare') {
