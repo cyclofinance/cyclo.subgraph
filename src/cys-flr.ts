@@ -24,6 +24,11 @@ const FACTORIES = [
 const TOTALS_ID = "SINGLETON";
 
 function isApprovedSource(address: Address): boolean {
+  // Non-flare networks consider all sources approved.
+  if (dataSource.network() != "flare") {
+    return true;
+  }
+
   // Check if the address is a pool from approved factories
   const maybeHasFactory = factory.bind(address);
   const factoryAddress = maybeHasFactory.try_factory();
