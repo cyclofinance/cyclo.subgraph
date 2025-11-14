@@ -67,6 +67,24 @@ function calculateEligibleShare(
   if (account.cycbBTCBalance.gt(BigInt.fromI32(0))) {
     positiveTotal = positiveTotal.plus(account.cycbBTCBalance);
   }
+  if (account.cyLINKBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyLINKBalance);
+  }
+  if (account.cyDOTBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyDOTBalance);
+  }
+  if (account.cyUNIBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyUNIBalance);
+  }
+  if (account.cyPEPEBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyPEPEBalance);
+  }
+  if (account.cyENABalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyENABalance);
+  }
+  if (account.cyARBBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyARBBalance);
+  }
 
   account.totalCyBalance = positiveTotal;
 
@@ -95,6 +113,12 @@ function getOrCreateTotals(): EligibleTotals {
     totals.totalEligibleCyFXRP = BigInt.fromI32(0);
     totals.totalEligibleCyWBTC = BigInt.fromI32(0);
     totals.totalEligibleCycbBTC = BigInt.fromI32(0);
+    totals.totalEligibleCyLINK = BigInt.fromI32(0);
+    totals.totalEligibleCyDOT = BigInt.fromI32(0);
+    totals.totalEligibleCyUNI = BigInt.fromI32(0);
+    totals.totalEligibleCyPEPE = BigInt.fromI32(0);
+    totals.totalEligibleCyENA = BigInt.fromI32(0);
+    totals.totalEligibleCyARB = BigInt.fromI32(0);
     totals.totalEligibleSum = BigInt.fromI32(0);
     totals.save();
   }
@@ -107,7 +131,13 @@ function updateTotalsForAccount(
   oldCyWETHBalance: BigInt,
   oldCyFXRPBalance: BigInt,
   oldCyWBTCBalance: BigInt,
-  oldCycbBTCBalance: BigInt
+  oldCycbBTCBalance: BigInt,
+  oldCyLINKBalance: BigInt,
+  oldCyDOTBalance: BigInt,
+  oldCyUNIBalance: BigInt,
+  oldCyPEPEBalance: BigInt,
+  oldCyENABalance: BigInt,
+  oldCyARBBalance: BigInt
 ): void {
   const totals = getOrCreateTotals();
 
@@ -166,12 +196,89 @@ function updateTotalsForAccount(
     );
   }
 
+  // Handle cyLINK changes
+  if (oldCyLINKBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyLINK =
+      totals.totalEligibleCyLINK.minus(oldCyLINKBalance);
+  }
+  if (account.cyLINKBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyLINK = totals.totalEligibleCyLINK.plus(
+      account.cyLINKBalance
+    );
+  }
+
+  // Handle cyDOT changes
+  if (oldCyDOTBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyDOT = totals.totalEligibleCyDOT.minus(
+      oldCyDOTBalance
+    );
+  }
+  if (account.cyDOTBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyDOT = totals.totalEligibleCyDOT.plus(
+      account.cyDOTBalance
+    );
+  }
+
+  // Handle cyUNI changes
+  if (oldCyUNIBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyUNI = totals.totalEligibleCyUNI.minus(
+      oldCyUNIBalance
+    );
+  }
+  if (account.cyUNIBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyUNI = totals.totalEligibleCyUNI.plus(
+      account.cyUNIBalance
+    );
+  }
+
+  // Handle cyPEPE changes
+  if (oldCyPEPEBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyPEPE = totals.totalEligibleCyPEPE.minus(
+      oldCyPEPEBalance
+    );
+  }
+  if (account.cyPEPEBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyPEPE = totals.totalEligibleCyPEPE.plus(
+      account.cyPEPEBalance
+    );
+  }
+
+  // Handle cyENA changes
+  if (oldCyENABalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyENA = totals.totalEligibleCyENA.minus(
+      oldCyENABalance
+    );
+  }
+  if (account.cyENABalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyENA = totals.totalEligibleCyENA.plus(
+      account.cyENABalance
+    );
+  }
+
+  // Handle cyARB changes
+  if (oldCyARBBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyARB = totals.totalEligibleCyARB.minus(
+      oldCyARBBalance
+    );
+  }
+  if (account.cyARBBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyARB = totals.totalEligibleCyARB.plus(
+      account.cyARBBalance
+    );
+  }
+
   // Update total sum
   totals.totalEligibleSum = totals.totalEligibleCysFLR
     .plus(totals.totalEligibleCyWETH)
     .plus(totals.totalEligibleCyFXRP)
     .plus(totals.totalEligibleCyWBTC)
-    .plus(totals.totalEligibleCycbBTC);
+    .plus(totals.totalEligibleCycbBTC)
+    .plus(totals.totalEligibleCyLINK)
+    .plus(totals.totalEligibleCyDOT)
+    .plus(totals.totalEligibleCyUNI)
+    .plus(totals.totalEligibleCyPEPE)
+    .plus(totals.totalEligibleCyENA)
+    .plus(totals.totalEligibleCyARB);
   totals.save();
 
   // Update account's share
@@ -189,11 +296,23 @@ export function handleTransfer(event: TransferEvent): void {
   const oldFromCyFXRP = fromAccount.cyFXRPBalance;
   const oldFromCyWBTC = fromAccount.cyWBTCBalance;
   const oldFromCycbBTC = fromAccount.cycbBTCBalance;
+  const oldFromCyLINK = fromAccount.cyLINKBalance;
+  const oldFromCyDOT = fromAccount.cyDOTBalance;
+  const oldFromCyUNI = fromAccount.cyUNIBalance;
+  const oldFromCyPEPE = fromAccount.cyPEPEBalance;
+  const oldFromCyENA = fromAccount.cyENABalance;
+  const oldFromCyARB = fromAccount.cyARBBalance;
   const oldToCysFLR = toAccount.cysFLRBalance;
   const oldToCyWETH = toAccount.cyWETHBalance;
   const oldToCyFXRP = toAccount.cyFXRPBalance;
   const oldToCyWBTC = toAccount.cyWBTCBalance;
   const oldToCycbBTC = toAccount.cycbBTCBalance;
+  const oldToCyLINK = toAccount.cyLINKBalance;
+  const oldToCyDOT = toAccount.cyDOTBalance;
+  const oldToCyUNI = toAccount.cyUNIBalance;
+  const oldToCyPEPE = toAccount.cyPEPEBalance;
+  const oldToCyENA = toAccount.cyENABalance;
+  const oldToCyARB = toAccount.cyARBBalance;
 
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
@@ -248,6 +367,60 @@ export function handleTransfer(event: TransferEvent): void {
     fromAccount.cycbBTCBalance = fromAccount.cycbBTCBalance.minus(
       event.params.value
     );
+  } else if (tokenAddress == networkImplementation.getCyLINKAddress()) {
+    if (fromIsApprovedSource) {
+      toAccount.cyLINKBalance = toAccount.cyLINKBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyLINKBalance = fromAccount.cyLINKBalance.minus(
+      event.params.value
+    );
+  } else if (tokenAddress == networkImplementation.getCyDOTAddress()) {
+    if (fromIsApprovedSource) {
+      toAccount.cyDOTBalance = toAccount.cyDOTBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyDOTBalance = fromAccount.cyDOTBalance.minus(
+      event.params.value
+    );
+  } else if (tokenAddress == networkImplementation.getCyUNIAddress()) {
+    if (fromIsApprovedSource) {
+      toAccount.cyUNIBalance = toAccount.cyUNIBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyUNIBalance = fromAccount.cyUNIBalance.minus(
+      event.params.value
+    );
+  } else if (tokenAddress == networkImplementation.getCyPEPEAddress()) {
+    if (fromIsApprovedSource) {
+      toAccount.cyPEPEBalance = toAccount.cyPEPEBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyPEPEBalance = fromAccount.cyPEPEBalance.minus(
+      event.params.value
+    );
+  } else if (tokenAddress == networkImplementation.getCyENAAddress()) {
+    if (fromIsApprovedSource) {
+      toAccount.cyENABalance = toAccount.cyENABalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyENABalance = fromAccount.cyENABalance.minus(
+      event.params.value
+    );
+  } else if (tokenAddress == networkImplementation.getCyARBAddress()) {
+    if (fromIsApprovedSource) {
+      toAccount.cyARBBalance = toAccount.cyARBBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyARBBalance = fromAccount.cyARBBalance.minus(
+      event.params.value
+    );
   }
 
   // Save accounts
@@ -269,6 +442,32 @@ export function handleTransfer(event: TransferEvent): void {
   transfer.save();
 
   // Update totals for both accounts
-  updateTotalsForAccount(fromAccount, oldFromCysFLR, oldFromCyWETH, oldFromCyFXRP, oldFromCyWBTC, oldFromCycbBTC);
-  updateTotalsForAccount(toAccount, oldToCysFLR, oldToCyWETH, oldToCyFXRP, oldToCyWBTC, oldToCycbBTC);
+  updateTotalsForAccount(
+    fromAccount,
+    oldFromCysFLR,
+    oldFromCyWETH,
+    oldFromCyFXRP,
+    oldFromCyWBTC,
+    oldFromCycbBTC,
+    oldFromCyLINK,
+    oldFromCyDOT,
+    oldFromCyUNI,
+    oldFromCyPEPE,
+    oldFromCyENA,
+    oldFromCyARB
+  );
+  updateTotalsForAccount(
+    toAccount,
+    oldToCysFLR,
+    oldToCyWETH,
+    oldToCyFXRP,
+    oldToCyWBTC,
+    oldToCycbBTC,
+    oldToCyLINK,
+    oldToCyDOT,
+    oldToCyUNI,
+    oldToCyPEPE,
+    oldToCyENA,
+    oldToCyARB
+  );
 }

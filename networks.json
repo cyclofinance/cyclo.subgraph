@@ -39,6 +39,54 @@
     "cycbBTCReceipt": {
       "address": "0x3a5eDe5AE4EC55F61c4aFf2CDfC920b5029Abf05",
       "startBlock": 50345677
+    },
+    "cyLINK": {
+      "address": "0x715aa5f9A5b3C2b51c432C9028C8692029BCE609",
+      "startBlock": 50345677
+    },
+    "cyLINKReceipt": {
+      "address": "0xDF66e921C8C29e1b1CA729848790A4D0bd6cbde9",
+      "startBlock": 50345677
+    },
+    "cyDOT": {
+      "address": "0xEE6a7019679f96CED1Ea861Aae0c88D4481c7226",
+      "startBlock": 50345677
+    },
+    "cyDOTReceipt": {
+      "address": "0x3B22b5cE7F9901fe6a676E57E079873775aAA331",
+      "startBlock": 50345677
+    },
+    "cyUNI": {
+      "address": "0x7Cad3F864639738f9cC25952433cd844c07D16a4",
+      "startBlock": 50345677
+    },
+    "cyUNIReceipt": {
+      "address": "0xBF979c720c730738e25D766748F7063f223F1d27",
+      "startBlock": 50345677
+    },
+    "cyPEPE": {
+      "address": "0x4DD4230F3B4d6118D905eD0B6f5f20A3b2472166",
+      "startBlock": 50345677
+    },
+    "cyPEPEReceipt": {
+      "address": "0xdb2C91313aAAaE40aedf6E91a1E78443241a64c0",
+      "startBlock": 50345677
+    },
+    "cyENA": {
+      "address": "0x5D938CAf878BD56ACcF2B27Fad9F697aA206dF40",
+      "startBlock": 50345677
+    },
+    "cyENAReceipt": {
+      "address": "0x7426ddC75b522e40552ea24D647898fAcE0E2360",
+      "startBlock": 50345677
+    },
+    "cyARB": {
+      "address": "0xc83563177290bdd391DB56553Ed828413b7689bc",
+      "startBlock": 50345677
+    },
+    "cyARBReceipt": {
+      "address": "0xc83563177290bdd391DB56553Ed828413b7689bc",
+      "startBlock": 50345677
     }
   },
   "arbitrum-one": {
@@ -81,6 +129,54 @@
     "cycbBTCReceipt": {
       "address": "0x3a5eDe5AE4EC55F61c4aFf2CDfC920b5029Abf05",
       "startBlock": 399250230
+    },
+    "cyLINK": {
+      "address": "0x715aa5f9A5b3C2b51c432C9028C8692029BCE609",
+      "startBlock": 399561224
+    },
+    "cyLINKReceipt": {
+      "address": "0xDF66e921C8C29e1b1CA729848790A4D0bd6cbde9",
+      "startBlock": 399561224
+    },
+    "cyDOT": {
+      "address": "0xEE6a7019679f96CED1Ea861Aae0c88D4481c7226",
+      "startBlock": 399589291
+    },
+    "cyDOTReceipt": {
+      "address": "0x3B22b5cE7F9901fe6a676E57E079873775aAA331",
+      "startBlock": 399589291
+    },
+    "cyUNI": {
+      "address": "0x7Cad3F864639738f9cC25952433cd844c07D16a4",
+      "startBlock": 399772099
+    },
+    "cyUNIReceipt": {
+      "address": "0xBF979c720c730738e25D766748F7063f223F1d27",
+      "startBlock": 399772099
+    },
+    "cyPEPE": {
+      "address": "0x4DD4230F3B4d6118D905eD0B6f5f20A3b2472166",
+      "startBlock": 399822814
+    },
+    "cyPEPEReceipt": {
+      "address": "0xdb2C91313aAAaE40aedf6E91a1E78443241a64c0",
+      "startBlock": 399822814
+    },
+    "cyENA": {
+      "address": "0x5D938CAf878BD56ACcF2B27Fad9F697aA206dF40",
+      "startBlock": 399876114
+    },
+    "cyENAReceipt": {
+      "address": "0x7426ddC75b522e40552ea24D647898fAcE0E2360",
+      "startBlock": 399876114
+    },
+    "cyARB": {
+      "address": "0xc83563177290bdd391DB56553Ed828413b7689bc",
+      "startBlock": 399923376
+    },
+    "cyARBReceipt": {
+      "address": "0xc83563177290bdd391DB56553Ed828413b7689bc",
+      "startBlock": 399923376
     }
   }
 }

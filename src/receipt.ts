@@ -1,7 +1,7 @@
 import { getOrCreateAccount } from "./common";
 import { Address, BigInt, Bytes, dataSource } from "@graphprotocol/graph-ts";
 import { TransferSingle, TransferBatch } from "../generated/cysFLRReceipt/receipt";
-import { CysFlrReceiptOwnerBalance, CyWethReceiptOwnerBalance, CyFxrpReceiptOwnerBalance, CyWbtcReceiptOwnerBalance, CycbBTCReceiptOwnerBalance } from "../generated/schema";
+import { CysFlrReceiptOwnerBalance, CyWethReceiptOwnerBalance, CyFxrpReceiptOwnerBalance, CyWbtcReceiptOwnerBalance, CycbBTCReceiptOwnerBalance, CyLinkReceiptOwnerBalance, CyDotReceiptOwnerBalance, CyUniReceiptOwnerBalance, CyPepeReceiptOwnerBalance, CyEnaReceiptOwnerBalance, CyArbReceiptOwnerBalance } from "../generated/schema";
 import { NetworkImplementation } from "./networkImplementation";
 
 // create a unique ID for the receipt owner balance entity
@@ -104,6 +104,120 @@ export function getOrCreateReceiptOwnerBalanceForCycbBTC(
   return item;
 }
 
+// Get or create a CyLinkReceiptOwnerBalance entity
+export function getOrCreateReceiptOwnerBalanceForCyLINK(
+  receiptAddress: Address,
+  tokenId: BigInt,
+  owner: Bytes
+): CyLinkReceiptOwnerBalance {
+  const id = createReceiptOwnerBalanceId(receiptAddress, tokenId, owner);
+  let item = CyLinkReceiptOwnerBalance.load(id);
+  if (!item) {
+    item = new CyLinkReceiptOwnerBalance(id);
+    item.receiptAddress = receiptAddress;
+    item.tokenId = tokenId;
+    item.owner = owner;
+    item.balance = BigInt.zero();
+    item.save();
+  }
+  return item;
+}
+
+// Get or create a CyDotReceiptOwnerBalance entity
+export function getOrCreateReceiptOwnerBalanceForCyDOT(
+  receiptAddress: Address,
+  tokenId: BigInt,
+  owner: Bytes
+): CyDotReceiptOwnerBalance {
+  const id = createReceiptOwnerBalanceId(receiptAddress, tokenId, owner);
+  let item = CyDotReceiptOwnerBalance.load(id);
+  if (!item) {
+    item = new CyDotReceiptOwnerBalance(id);
+    item.receiptAddress = receiptAddress;
+    item.tokenId = tokenId;
+    item.owner = owner;
+    item.balance = BigInt.zero();
+    item.save();
+  }
+  return item;
+}
+
+// Get or create a CyUniReceiptOwnerBalance entity
+export function getOrCreateReceiptOwnerBalanceForCyUNI(
+  receiptAddress: Address,
+  tokenId: BigInt,
+  owner: Bytes
+): CyUniReceiptOwnerBalance {
+  const id = createReceiptOwnerBalanceId(receiptAddress, tokenId, owner);
+  let item = CyUniReceiptOwnerBalance.load(id);
+  if (!item) {
+    item = new CyUniReceiptOwnerBalance(id);
+    item.receiptAddress = receiptAddress;
+    item.tokenId = tokenId;
+    item.owner = owner;
+    item.balance = BigInt.zero();
+    item.save();
+  }
+  return item;
+}
+
+// Get or create a CyPepeReceiptOwnerBalance entity
+export function getOrCreateReceiptOwnerBalanceForCyPEPE(
+  receiptAddress: Address,
+  tokenId: BigInt,
+  owner: Bytes
+): CyPepeReceiptOwnerBalance {
+  const id = createReceiptOwnerBalanceId(receiptAddress, tokenId, owner);
+  let item = CyPepeReceiptOwnerBalance.load(id);
+  if (!item) {
+    item = new CyPepeReceiptOwnerBalance(id);
+    item.receiptAddress = receiptAddress;
+    item.tokenId = tokenId;
+    item.owner = owner;
+    item.balance = BigInt.zero();
+    item.save();
+  }
+  return item;
+}
+
+// Get or create a CyEnaReceiptOwnerBalance entity
+export function getOrCreateReceiptOwnerBalanceForCyENA(
+  receiptAddress: Address,
+  tokenId: BigInt,
+  owner: Bytes
+): CyEnaReceiptOwnerBalance {
+  const id = createReceiptOwnerBalanceId(receiptAddress, tokenId, owner);
+  let item = CyEnaReceiptOwnerBalance.load(id);
+  if (!item) {
+    item = new CyEnaReceiptOwnerBalance(id);
+    item.receiptAddress = receiptAddress;
+    item.tokenId = tokenId;
+    item.owner = owner;
+    item.balance = BigInt.zero();
+    item.save();
+  }
+  return item;
+}
+
+// Get or create a CyArbReceiptOwnerBalance entity
+export function getOrCreateReceiptOwnerBalanceForCyARB(
+  receiptAddress: Address,
+  tokenId: BigInt,
+  owner: Bytes
+): CyArbReceiptOwnerBalance {
+  const id = createReceiptOwnerBalanceId(receiptAddress, tokenId, owner);
+  let item = CyArbReceiptOwnerBalance.load(id);
+  if (!item) {
+    item = new CyArbReceiptOwnerBalance(id);
+    item.receiptAddress = receiptAddress;
+    item.tokenId = tokenId;
+    item.owner = owner;
+    item.balance = BigInt.zero();
+    item.save();
+  }
+  return item;
+}
+
 // Handle balance changes for receipt tokens based on receipt address
 export function handleBalanceChange(
   receiptAddress: Address,
@@ -148,6 +262,54 @@ export function handleBalanceChange(
     item.save();
   } else if (receiptAddress.equals(networkImplementation.getCycbBTCReceiptAddress())) {
     const item = getOrCreateReceiptOwnerBalanceForCycbBTC(
+      receiptAddress,
+      tokenId,
+      owner
+    );
+    item.balance = item.balance.plus(amountChange);
+    item.save();
+  } else if (receiptAddress.equals(networkImplementation.getCyLINKReceiptAddress())) {
+    const item = getOrCreateReceiptOwnerBalanceForCyLINK(
+      receiptAddress,
+      tokenId,
+      owner
+    );
+    item.balance = item.balance.plus(amountChange);
+    item.save();
+  } else if (receiptAddress.equals(networkImplementation.getCyDOTReceiptAddress())) {
+    const item = getOrCreateReceiptOwnerBalanceForCyDOT(
+      receiptAddress,
+      tokenId,
+      owner
+    );
+    item.balance = item.balance.plus(amountChange);
+    item.save();
+  } else if (receiptAddress.equals(networkImplementation.getCyUNIReceiptAddress())) {
+    const item = getOrCreateReceiptOwnerBalanceForCyUNI(
+      receiptAddress,
+      tokenId,
+      owner
+    );
+    item.balance = item.balance.plus(amountChange);
+    item.save();
+  } else if (receiptAddress.equals(networkImplementation.getCyPEPEReceiptAddress())) {
+    const item = getOrCreateReceiptOwnerBalanceForCyPEPE(
+      receiptAddress,
+      tokenId,
+      owner
+    );
+    item.balance = item.balance.plus(amountChange);
+    item.save();
+  } else if (receiptAddress.equals(networkImplementation.getCyENAReceiptAddress())) {
+    const item = getOrCreateReceiptOwnerBalanceForCyENA(
+      receiptAddress,
+      tokenId,
+      owner
+    );
+    item.balance = item.balance.plus(amountChange);
+    item.save();
+  } else if (receiptAddress.equals(networkImplementation.getCyARBReceiptAddress())) {
+    const item = getOrCreateReceiptOwnerBalanceForCyARB(
       receiptAddress,
       tokenId,
       owner
