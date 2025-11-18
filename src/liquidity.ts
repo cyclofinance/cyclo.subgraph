@@ -3,7 +3,7 @@ import { LiquidityV2 } from "../generated/templates";
 import { factory } from "../generated/cysFLR/factory";
 import { Transfer as ERC20TransferEvent } from "../generated/cysFLR/cysFLR";
 import { Address, BigInt, Bytes, ethereum, store } from "@graphprotocol/graph-ts";
-import { Transfer as ERC721TransferEvent } from "../generated/LiquidityV3/LiquidityV3";
+import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
 import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance } from "../generated/schema";
 import {
     ONE18,
@@ -359,17 +359,16 @@ export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
     if (owner.equals(event.params.to)) return; // skip no change event, ie same to/from
 
     // get pool tokens
-    const token0Result = factory.bind(event.address).try_token0();
-    const token1Result = factory.bind(event.address).try_token1();
-    if (token0Result.reverted || token1Result.reverted) return;
+    const result = LiquidityV3.bind(event.address).try_positions(tokenId);
+    if (result.reverted) return;
 
-    const token0 = token0Result.value.toHexString().toLowerCase();
-    const token1 = token1Result.value.toHexString().toLowerCase();
-    if (token0 === CYSFLR_ADDRESS || token0 === CYWETH_ADDRESS) {
-        handleLiquidityV3TransferInner(event, owner, token0Result.value, tokenId);
+    const token0Address = result.value.getToken0().toHexString().toLowerCase();
+    const token1Address = result.value.getToken1().toHexString().toLowerCase();
+    if (token0Address === CYSFLR_ADDRESS || token0Address === CYWETH_ADDRESS) {
+        handleLiquidityV3TransferInner(event, owner, result.value.getToken0(), tokenId);
     }
-    if (token1 === CYSFLR_ADDRESS || token1 === CYWETH_ADDRESS) {
-        handleLiquidityV3TransferInner(event, owner, token1Result.value, tokenId);
+    if (token1Address === CYSFLR_ADDRESS || token1Address === CYWETH_ADDRESS) {
+        handleLiquidityV3TransferInner(event, owner, result.value.getToken1(), tokenId);
     }
 }
 
