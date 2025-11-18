@@ -142,6 +142,8 @@ dataSources:
       abis:
         - name: LiquidityV3
           file: ./abis/LiquidityV3Manager.json
+        - name: factory
+          file: ./abis/factory.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleLiquidityV3Transfer
@@ -163,6 +165,8 @@ templates:
       abis:
         - name: LiquidityV2
           file: ./abis/cysFLR.json
+        - name: factory
+          file: ./abis/factory.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleLiquidityV2Transfer

@@ -49,7 +49,7 @@ export function handleLiquidityAdd(
 
     const maybeHasFactory = factory.bind(event.params.to);
     const factoryAddress = maybeHasFactory.try_factory();
-    if (!factoryAddress.reverted) return false;
+    if (factoryAddress.reverted) return false;
     const transferToFactoryAddress = factoryAddress.value;
 
     if (event.transaction.to!.equals(SparkdexV3LiquidityManager)) {
@@ -71,7 +71,7 @@ export function handleLiquidityWithdraw(
 
     const maybeHasFactory = factory.bind(event.params.from);
     const factoryAddress = maybeHasFactory.try_factory();
-    if (!factoryAddress.reverted) return BigInt.zero();
+    if (factoryAddress.reverted) return BigInt.zero();
     const transferToFactoryAddress = factoryAddress.value;
 
     if (event.transaction.to!.notEqual(SparkdexV3LiquidityManager)) {
