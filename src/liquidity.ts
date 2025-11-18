@@ -18,11 +18,9 @@ import {
     BlazeswapV2LiquidityManager,
 } from "./constants";
 
-export class LiquidityChangeType {
-  public static DEPOSIT: "DEPOSIT";
-  public static WITHDRAW: "WITHDRAW";
-  public static TRANSFER: "TRANSFER";
-}
+export const DEPOSIT = "DEPOSIT";
+export const WITHDRAW = "WITHDRAW";
+export const TRANSFER = "TRANSFER";
 
 export function getLiquidityV2OwnerBalanceId(
     address: Address,
@@ -140,7 +138,7 @@ export function handleLiquidityV2Add(
             event.block.timestamp,
             event.transaction.hash,
             log.logIndex,
-            LiquidityChangeType.DEPOSIT,
+            DEPOSIT,
         )
         return true;
     }
@@ -207,7 +205,7 @@ export function handleLiquidityV3Add(
             event.block.timestamp,
             event.transaction.hash,
             log.logIndex,
-            LiquidityChangeType.DEPOSIT,
+            DEPOSIT,
             tokenId,
         )
         return true;
@@ -264,7 +262,7 @@ export function handleLiquidityV3Withdraw(
                 event.block.timestamp,
                 event.transaction.hash,
                 log.logIndex,
-                LiquidityChangeType.WITHDRAW,
+                WITHDRAW,
                 tokenId,
             );
 
@@ -329,8 +327,8 @@ function handleLiquidityV2TransferInner(
         event.transaction.hash,
         event.logIndex,
         event.params.to.equals(ZERO_ADDRESS) // in v2 withdraw is transfer to zero address
-            ? LiquidityChangeType.WITHDRAW 
-            : LiquidityChangeType.TRANSFER,
+            ? WITHDRAW 
+            : TRANSFER,
     );
 
     liquidityV2OwnerBalance.depositBalance = liquidityV2OwnerBalance.depositBalance.minus(depositDeduction);
@@ -396,7 +394,7 @@ function handleLiquidityV3TransferInner(
         event.block.timestamp,
         event.transaction.hash,
         event.logIndex,
-        LiquidityChangeType.TRANSFER,
+        TRANSFER,
         tokenId,
     )
 
@@ -437,7 +435,7 @@ export function createLiquidityV2Change(
     item.cyToken = cyToken;
     item.lpAddress = lpAddress;
     item.owner = owner;
-    if (typ === LiquidityChangeType.DEPOSIT) {
+    if (typ === DEPOSIT) {
         item.depositedBalanceChange = value;
         item.liquidityChange = lquidity;
     } else {
@@ -470,7 +468,7 @@ export function createLiquidityV3Change(
     item.lpAddress = lpAddress;
     item.owner = owner;
     item.tokenId = tokenId;
-    if (typ === LiquidityChangeType.DEPOSIT) {
+    if (typ === DEPOSIT) {
         item.depositedBalanceChange = value;
         item.liquidityChange = lquidity;
     } else {
