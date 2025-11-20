@@ -22,6 +22,8 @@ dataSources:
         - Transfer
         - LiquidityV2OwnerBalance
         - LiquidityV3OwnerBalance
+        - LiquidityV2Change
+        - LiquidityV3Change
       abis:
         - name: cysFLR
           file: ./abis/cysFLR.json
@@ -65,6 +67,8 @@ dataSources:
         - Transfer
         - LiquidityV2OwnerBalance
         - LiquidityV3OwnerBalance
+        - LiquidityV2Change
+        - LiquidityV3Change
       abis:
         - name: cysFLR
           file: ./abis/cysFLR.json
@@ -128,7 +132,7 @@ dataSources:
     name: LiquidityV3
     network: flare
     source:
-      address: "0xEE5FF5Bc5F852764b5584d92A4d592A53DC527da"
+      address: "0xee5ff5bc5f852764b5584d92a4d592a53dc527da"
       abi: LiquidityV3
       startBlock: 30718579
     mapping:
@@ -139,6 +143,7 @@ dataSources:
       entities:
         - Account
         - LiquidityV3OwnerBalance
+        - LiquidityV3Change
       abis:
         - name: LiquidityV3
           file: ./abis/LiquidityV3Manager.json
@@ -162,6 +167,7 @@ templates:
       entities:
         - Account
         - LiquidityV2OwnerBalance
+        - LiquidityV2Change
       abis:
         - name: LiquidityV2
           file: ./abis/cysFLR.json

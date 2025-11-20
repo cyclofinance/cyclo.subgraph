@@ -5,11 +5,9 @@ export const ZERO_ADDRESS = Address.fromString("0x000000000000000000000000000000
 
 export const TOTALS_ID = "SINGLETON";
 
-export const CYSFLR_ADDRESS =
-  "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567".toLowerCase();
+export const CYSFLR_ADDRESS = Address.fromString("0x19831cfB53A0dbeAD9866C43557C1D48DfF76567");
 
-export const CYWETH_ADDRESS =
-  "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4".toLowerCase();
+export const CYWETH_ADDRESS = Address.fromString("0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4");
 
 export const REWARDS_SOURCES = [
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
@@ -37,7 +35,7 @@ export const FACTORIES = [
 
 export const BlazeswapV2LiquidityManager = Address.fromString("0xe3A1b355ca63abCBC9589334B5e609583C7BAa06"); // UniswapV2Router
 export const SparkdexV2LiquidityManager = Address.fromString("0x4a1E5A90e9943467FAd1acea1E7F0e5e88472a1e"); // UniswapV2Router
-export const SparkdexV3LiquidityManager = Address.fromString("0xEE5FF5Bc5F852764b5584d92A4d592A53DC527da"); // NonfungiblePositioonManager
+export const SparkdexV3LiquidityManager = Address.fromString("0xee5ff5bc5f852764b5584d92a4d592a53dc527da"); // NonfungiblePositioonManager
 
 export class EventABI {
   constructor(

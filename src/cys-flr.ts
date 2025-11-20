@@ -48,7 +48,7 @@ function getOrCreateTotals(): EligibleTotals {
   return totals;
 }
 
-function updateTotalsForAccount(
+export function updateTotalsForAccount(
   account: Account,
   oldCysFLRBalance: BigInt,
   oldCyWETHBalance: BigInt
@@ -102,8 +102,8 @@ export function handleTransfer(event: TransferEvent): void {
   const fromIsApprovedSource = isApprovedSource(event.params.from);
 
   // Update balances based on which token this is
-  const tokenAddress = event.address.toHexString().toLowerCase();
-  if (tokenAddress == CYSFLR_ADDRESS) {
+  const tokenAddress = event.address;
+  if (tokenAddress.equals(CYSFLR_ADDRESS)) {
     if (fromIsApprovedSource) {
       toAccount.cysFLRBalance = toAccount.cysFLRBalance.plus(
         event.params.value
@@ -120,7 +120,7 @@ export function handleTransfer(event: TransferEvent): void {
         event.params.value
       );
     }
-  } else if (tokenAddress == CYWETH_ADDRESS) {
+  } else if (tokenAddress.equals(CYWETH_ADDRESS)) {
     if (fromIsApprovedSource) {
       toAccount.cyWETHBalance = toAccount.cyWETHBalance.plus(
         event.params.value

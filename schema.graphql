@@ -9,8 +9,7 @@ type Account @entity {
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
   cysFLRReceiptBalance: [CysFlrReceiptOwnerBalance!]! @derivedFrom(field: "owner")
   cyWETHReceiptBalance: [CyWethReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cysFLRLiquidityBalance: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
-  cyWETHLiquidityBalance: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
+  liquidityBalances: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
   liquidityChanges: [LiquidityChange!]! @derivedFrom(field: "owner")
 }
 
