@@ -8,7 +8,6 @@ import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/Liqui
 import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance } from "../generated/schema";
 import {
     ONE18,
-    ZERO_ADDRESS,
     CYSFLR_ADDRESS,
     CYWETH_ADDRESS,
     ERC20TransferEventABI,
@@ -98,26 +97,26 @@ export function handleLiquidityV2Add(
     if (event.transaction.to!.notEqual(BlazeswapV2LiquidityManager) && event.transaction.to!.notEqual(SparkdexV2LiquidityManager)) return false;
 
     for (let i = 0; i < event.receipt!.logs.length; i++) {
-        const log = event.receipt!.logs[i];
+        const log_ = event.receipt!.logs[i];
 
-        if (log.address.notEqual(event.params.to)) continue;
-        if (log.topics[0].notEqual(ERC20TransferEventABI.topic0)) continue;
-        if (log.topics[1].notEqual(ZERO_ADDRESS)) continue;
-        if (log.topics[2].notEqual(owner)) continue;
+        if (log_.address.notEqual(event.params.to)) continue;
+        if (log_.topics[0].notEqual(ERC20TransferEventABI.topic0)) continue;
+        if (Address.fromBytes(changetype<Bytes>(log_.topics[1].subarray(12))).notEqual(Address.zero())) continue;
+        if (Address.fromBytes(changetype<Bytes>(log_.topics[2].subarray(12))).notEqual(owner)) continue;
 
         // try decoding the event's data
-        const decoded = ethereum.decode(ERC20TransferEventABI.dataAbi, log.data)
+        const decoded = ethereum.decode(ERC20TransferEventABI.dataAbi, log_.data)
         if (!decoded) continue;
         const value = decoded.toTuple()[0].toBigInt();
 
         // create lpv2 dynamic data source to track v2 pool lp token transfers
-        LiquidityV2.create(log.address);
+        LiquidityV2.create(log_.address);
 
-        const id = getLiquidityV2OwnerBalanceId(log.address, owner, cyToken);
+        const id = getLiquidityV2OwnerBalanceId(log_.address, owner, cyToken);
         let liquidityV2OwnerBalance = LiquidityV2OwnerBalance.load(id);
         if (!liquidityV2OwnerBalance) {
             liquidityV2OwnerBalance = new LiquidityV2OwnerBalance(id);
-            liquidityV2OwnerBalance.lpAddress = log.address;
+            liquidityV2OwnerBalance.lpAddress = log_.address;
             liquidityV2OwnerBalance.owner = owner;
             liquidityV2OwnerBalance.liquidity = value;
             liquidityV2OwnerBalance.depositBalance = event.params.value;
@@ -130,7 +129,7 @@ export function handleLiquidityV2Add(
 
         // create liquidity change entity for this deposit
         createLiquidityV2Change(
-            log.address,
+            log_.address,
             owner,
             cyToken,
             value,
@@ -138,7 +137,7 @@ export function handleLiquidityV2Add(
             event.block.number,
             event.block.timestamp,
             event.transaction.hash,
-            log.logIndex,
+            log_.logIndex,
             DEPOSIT,
         )
         return true;
@@ -285,7 +284,7 @@ export function handleLiquidityV3Withdraw(
 // handles LP erc20 token transfers (v2) and updates account cy token balances accordingly
 export function handleLiquidityV2Transfer(event: ERC20TransferEvent): void {
     const owner = event.params.from;
-    if (owner.equals(ZERO_ADDRESS)) return; // skip if this is a mint, as mint are already handled in liquidity add
+    if (owner.equals(Address.zero())) return; // skip if this is a mint, as mint are already handled in liquidity add
     if (owner.equals(event.params.to)) return; // skip no change event, ie same to/from
 
     // get pool tokens
@@ -326,7 +325,8 @@ function handleLiquidityV2TransferInner(
         event.block.timestamp,
         event.transaction.hash,
         event.logIndex,
-        event.params.to.equals(ZERO_ADDRESS) // in v2 withdraw is transfer to zero address
+        // in v2, withdraw is transfer to zero address or the pool address
+        event.params.to.equals(Address.zero()) || event.params.to.equals(event.address)
             ? WITHDRAW 
             : TRANSFER,
     );
@@ -359,7 +359,7 @@ function handleLiquidityV2TransferInner(
 export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
     const owner = event.params.from;
     const tokenId = event.params.tokenId;
-    if (owner.equals(ZERO_ADDRESS)) return; // skip if this is a mint, as mint are already handled in liquidity add
+    if (owner.equals(Address.zero())) return; // skip if this is a mint, as mint are already handled in liquidity add
     if (owner.equals(event.params.to)) return; // skip no change event, ie same to/from
 
     // get pool tokens

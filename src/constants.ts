@@ -1,7 +1,6 @@
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 
 export const ONE18 = BigInt.fromString(`1${"0".repeat(18)}`);
-export const ZERO_ADDRESS = Address.fromString("0x0000000000000000000000000000000000000000");
 
 export const TOTALS_ID = "SINGLETON";
 
