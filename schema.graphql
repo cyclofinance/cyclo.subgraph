@@ -59,30 +59,30 @@ type CyWethReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
 }
 
 interface LiquidityOwnerBalance {
-  id: Bytes! # composite of lp address + cytoken + owner + tokenId(in case of v3)
+  id: Bytes! # composite of lp address + tokenAddress + owner + tokenId(in case of v3)
   lpAddress: Bytes!
   owner: Account!
   depositBalance: BigInt!
   liquidity: BigInt!
-  cyToken: Bytes!
+  tokenAddress: Bytes! # cy token address
 }
 
 type LiquidityV2OwnerBalance implements LiquidityOwnerBalance @entity {
-  id: Bytes! # composite of lp address + cytoken + owner
+  id: Bytes! # composite of lp address + tokenAddress + owner
   lpAddress: Bytes!
   owner: Account!
   depositBalance: BigInt!
   liquidity: BigInt!
-  cyToken: Bytes!
+  tokenAddress: Bytes! # cy token address
 }
 
 type LiquidityV3OwnerBalance implements LiquidityOwnerBalance @entity {
-  id: Bytes! # composite of lp address + cytoken + owner + tokenId
+  id: Bytes! # composite of lp address + tokenAddress + owner + tokenId
   lpAddress: Bytes!
   owner: Account!
   depositBalance: BigInt!
   liquidity: BigInt!
-  cyToken: Bytes!
+  tokenAddress: Bytes! # cy token address
   tokenId: BigInt!
 }
 

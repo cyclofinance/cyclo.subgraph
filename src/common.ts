@@ -1,6 +1,6 @@
 import { Account } from "../generated/schema";
 import { factory } from "../generated/cysFLR/factory";
-import { Address, BigInt, BigDecimal } from "@graphprotocol/graph-ts";
+import { Address, BigInt, BigDecimal, Bytes } from "@graphprotocol/graph-ts";
 import { REWARDS_SOURCES, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
 
 export function getOrCreateAccount(address: Address): Account {
@@ -37,4 +37,14 @@ export function isPool(address: Address): boolean {
 // Check if the address is from approved source (pool or known reward source)
 export function isApprovedSource(address: Address): boolean {
   return REWARDS_SOURCES.includes(address) as boolean || isPool(address) as boolean;
+}
+
+// a unified fn to convert bigint to bytes
+export function bigintToBytes(value: BigInt): Bytes {
+  let hex = value.toHexString().toLowerCase();
+  if (hex.startsWith("0x")) {
+    hex = hex.substr(2);
+  }
+  hex = hex.padStart(64, "0");
+  return changetype<Bytes>(Bytes.fromHexString(hex));
 }

@@ -1,7 +1,7 @@
-import { isV2Pool, isV3Pool } from "./common";
 import { updateTotalsForAccount } from "./cys-flr";
 import { LiquidityV2 } from "../generated/templates";
 import { factory } from "../generated/cysFLR/factory";
+import { bigintToBytes, isV2Pool, isV3Pool } from "./common";
 import { Transfer as ERC20TransferEvent } from "../generated/cysFLR/cysFLR";
 import { Address, BigInt, Bytes, ethereum, store } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
@@ -37,7 +37,7 @@ export function getLiquidityV3OwnerBalanceId(
     cyToken: Address,
     tokenId: BigInt,
 ): Bytes {
-    return address.concat(owner).concat(cyToken).concat(Bytes.fromHexString(tokenId.toHexString()));
+    return address.concat(owner).concat(cyToken).concat(bigintToBytes(tokenId));
 }
 
 export function handleLiquidityAdd(
@@ -121,7 +121,7 @@ export function handleLiquidityV2Add(
             liquidityV2OwnerBalance.owner = owner;
             liquidityV2OwnerBalance.liquidity = value;
             liquidityV2OwnerBalance.depositBalance = event.params.value;
-            liquidityV2OwnerBalance.cyToken = cyToken;
+            liquidityV2OwnerBalance.tokenAddress = cyToken;
         } else {
             liquidityV2OwnerBalance.liquidity = liquidityV2OwnerBalance.liquidity.plus(value);
             liquidityV2OwnerBalance.depositBalance = liquidityV2OwnerBalance.depositBalance.plus(event.params.value);
@@ -188,7 +188,7 @@ export function handleLiquidityV3Add(
             liquidityV3OwnerBalance.liquidity = liquidity;
             liquidityV3OwnerBalance.tokenId = tokenId;
             liquidityV3OwnerBalance.depositBalance = event.params.value;
-            liquidityV3OwnerBalance.cyToken = cyToken;
+            liquidityV3OwnerBalance.tokenAddress = cyToken;
         } else {
             liquidityV3OwnerBalance.liquidity = liquidityV3OwnerBalance.liquidity.plus(liquidity);
             liquidityV3OwnerBalance.depositBalance = liquidityV3OwnerBalance.depositBalance.plus(event.params.value);
