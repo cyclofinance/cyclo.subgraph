@@ -101,6 +101,12 @@ export function handleLiquidityV2Add(
 
         if (log_.address.notEqual(event.params.to)) continue;
         if (log_.topics[0].notEqual(ERC20TransferEventABI.topic0)) continue;
+        if (!log_.topics[1]) continue; // skip if topic 1 and 2 are undefined
+        if (!log_.topics[2]) continue;
+        if (log_.topics[1].length != 32) continue; // expect 32 bytes length topic 1 and 2
+        if (log_.topics[2].length != 32) continue;
+
+        // the transfer should be a mint to the owner
         if (Address.fromBytes(changetype<Bytes>(log_.topics[1].subarray(12))).notEqual(Address.zero())) continue;
         if (Address.fromBytes(changetype<Bytes>(log_.topics[2].subarray(12))).notEqual(owner)) continue;
 
