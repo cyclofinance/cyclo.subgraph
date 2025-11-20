@@ -352,13 +352,12 @@ function handleLiquidityV2TransferInner(
     const oldCyWETH = account.cyWETHBalance;
     if (cyToken.equals(CYSFLR_ADDRESS)) {
         account.cysFLRBalance = account.cysFLRBalance.minus(depositDeduction);
-        updateTotalsForAccount(account, oldCysFLR, oldCyWETH);
     }
     if (cyToken.equals(CYWETH_ADDRESS)) {
         account.cyWETHBalance = account.cyWETHBalance.minus(depositDeduction);
-        updateTotalsForAccount(account, oldCysFLR, oldCyWETH);
     }
     account.save();
+    updateTotalsForAccount(account, oldCysFLR, oldCyWETH);
 }
 
 // handles LP erc721 token transfers (v3) and updates account cy token balances accordingly
@@ -418,13 +417,12 @@ function handleLiquidityV3TransferInner(
     const oldCyWETH = account.cyWETHBalance;
     if (cyToken.equals(CYSFLR_ADDRESS)) {
         account.cysFLRBalance = account.cysFLRBalance.minus(depositBalance);
-        updateTotalsForAccount(account, oldCysFLR, oldCyWETH);
     }
     if (cyToken.equals(CYWETH_ADDRESS)) {
         account.cyWETHBalance = account.cyWETHBalance.minus(depositBalance);
-        updateTotalsForAccount(account, oldCysFLR, oldCyWETH);
     }
     account.save();
+    updateTotalsForAccount(account, oldCysFLR, oldCyWETH);
 }
 
 export function createLiquidityV2Change(
