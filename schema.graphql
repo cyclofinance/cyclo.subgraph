@@ -94,7 +94,7 @@ enum LiquidityChangeType {
 
 interface LiquidityChange {
   id: Bytes!
-  cyToken: Bytes!
+  tokenAddress: Bytes! # cyclo token address
   lpAddress: Bytes!
   owner: Account!
   depositedBalanceChange: BigInt! # amount of original deposited token value that effectvely was transfered due to this liquidity transfer
@@ -107,7 +107,7 @@ interface LiquidityChange {
 
 type LiquidityV2Change implements LiquidityChange @entity(immutable: true) {
   id: Bytes!
-  cyToken: Bytes!
+  tokenAddress: Bytes! # cyclo token address
   lpAddress: Bytes!
   owner: Account!
   depositedBalanceChange: BigInt! # amount of original deposited token value that effectvely was transfered due to this liquidity transfer
@@ -120,7 +120,7 @@ type LiquidityV2Change implements LiquidityChange @entity(immutable: true) {
 
 type LiquidityV3Change implements LiquidityChange @entity(immutable: true) {
   id: Bytes!
-  cyToken: Bytes!
+  tokenAddress: Bytes! # cyclo token address
   lpAddress: Bytes!
   owner: Account!
   depositedBalanceChange: BigInt! # amount of original deposited token value that effectvely was transfered due to this liquidity transfer

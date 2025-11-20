@@ -439,7 +439,7 @@ export function createLiquidityV2Change(
     item.blockNumber = blockNumber;
     item.blockTimestamp = blockTimestamp;
     item.transactionHash = transactionHash;
-    item.cyToken = cyToken;
+    item.tokenAddress = cyToken;
     item.lpAddress = lpAddress;
     item.owner = owner;
     if (typ === DEPOSIT) {
@@ -471,7 +471,7 @@ export function createLiquidityV3Change(
     item.blockNumber = blockNumber;
     item.blockTimestamp = blockTimestamp;
     item.transactionHash = transactionHash;
-    item.cyToken = cyToken;
+    item.tokenAddress = cyToken;
     item.lpAddress = lpAddress;
     item.owner = owner;
     item.tokenId = tokenId;
