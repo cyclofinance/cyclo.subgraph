@@ -165,3 +165,19 @@ type CyWstethReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
   owner: Account!
   balance: BigInt!
 }
+
+type CycloVault @entity {
+  id: Bytes!
+  address: Bytes!
+  deployBlock: BigInt!
+  deployTimestamp: BigInt!
+  deployer: Bytes!
+}
+
+type CycloReceipt @entity {
+  id: Bytes!
+  address: Bytes!
+  deployBlock: BigInt!
+  deployTimestamp: BigInt!
+  deployer: Bytes!
+}
