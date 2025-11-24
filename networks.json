@@ -4,5 +4,11 @@
         "address": "0x67fe33484cAF1a8D716b84b779569f79881788Ae",
         "startBlock": 36028901
       }
+  },
+  "arbitrum-one": {
+      "CloneFactory": {
+        "address": "0xe01Db32B1E03976b24e3A948A560f4b97Dd732dA",
+        "startBlock": 399124995
+      }
   }
 }

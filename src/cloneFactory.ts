@@ -15,7 +15,7 @@ export function handleNewClone(event: NewClone): void {
 
   let cloneFactoryImplementation = new CloneFactoryImplementation(dataSource.network());
   
-  if (cloneFactoryImplementation.isFlareTokenReceiptImplementation(implementationAddress)) {
+  if (cloneFactoryImplementation.isCycloTokenReceiptImplementation(implementationAddress)) {
     // Handle as a receipt
     let receipt = new CycloReceipt(event.params.clone);
     receipt.address = event.params.clone;
@@ -25,7 +25,7 @@ export function handleNewClone(event: NewClone): void {
     receipt.save();
   
     CycloReceiptTemplate.create(event.params.clone);
-  } else if (cloneFactoryImplementation.isFlareTokenImplementation(implementationAddress)) {
+  } else if (cloneFactoryImplementation.isCycloTokenImplementation(implementationAddress)) {
     // Handle as a vault
     let vault = new CycloVault(event.params.clone);
     vault.address = event.params.clone;
