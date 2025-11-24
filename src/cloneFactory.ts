@@ -1,3 +1,4 @@
+import { BigInt } from "@graphprotocol/graph-ts";
 import {
   NewClone,
 } from "../generated/CloneFactory/CloneFactory";
@@ -31,6 +32,7 @@ export function handleNewClone(event: NewClone): void {
     vault.deployBlock = event.block.number;
     vault.deployTimestamp = event.block.timestamp;
     vault.deployer = event.params.sender;
+    vault.totalEligible = BigInt.fromI32(0);
     vault.save();
   
     CycloVaultTemplate.create(event.params.clone);

@@ -48,13 +48,8 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size-linux: 1G
 
-      - name: Verify submodules are initialized
-        run: |
-          if [ ! -d "cyclo.sol/.git" ]; then
-            echo "Submodule not initialized, initializing..."
-            git submodule init
-            git submodule update
-          fi
+      - name: Generate abis
+        run: ./prep-cyclo.sh
       
       - name: Generate subgraph code
         run: nix develop -c graph codegen

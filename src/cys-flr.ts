@@ -1,9 +1,8 @@
-import { Address, BigInt, BigDecimal, dataSource } from "@graphprotocol/graph-ts";
-import { Transfer as TransferEvent } from "../generated/cysFLR/cysFLR";
-import { Account, Transfer, EligibleTotals } from "../generated/schema";
-import { factory } from "../generated/cysFLR/factory";
+import { Address, BigInt, BigDecimal, Bytes, dataSource } from "@graphprotocol/graph-ts";
+import { Transfer as TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
+import { Account, Transfer, EligibleTotals, VaultBalance, CycloVault } from "../generated/schema";
+import { factory } from "../generated/templates/CycloVaultTemplate/factory";
 import { getOrCreateAccount } from "./common";
-import { NetworkImplementation } from "./networkImplementation";
 
 const REWARDS_SOURCES = [
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
@@ -46,49 +45,73 @@ function isApprovedSource(address: Address): boolean {
   return false;
 }
 
+// Get or create CycloVault entity
+function getOrCreateCycloVault(vaultAddress: Address): CycloVault {
+  let vault = CycloVault.load(vaultAddress);
+  if (!vault) {
+    // If vault doesn't exist, it should have been created by cloneFactory
+    // But in case it wasn't, create it with minimal info
+    vault = new CycloVault(vaultAddress);
+    vault.address = vaultAddress;
+    vault.deployBlock = BigInt.fromI32(0);
+    vault.deployTimestamp = BigInt.fromI32(0);
+    vault.deployer = Address.zero();
+    vault.totalEligible = BigInt.fromI32(0);
+    vault.save();
+  }
+  return vault;
+}
+
+// Create a unique ID for the vault balance entity
+function createVaultBalanceId(vaultAddress: Address, owner: Bytes): Bytes {
+  return vaultAddress.concat(owner);
+}
+
+// Get or create a VaultBalance entity
+function getOrCreateVaultBalance(
+  vaultAddress: Address,
+  owner: Bytes
+): VaultBalance {
+  const id = createVaultBalanceId(vaultAddress, owner);
+  let vaultBalance = VaultBalance.load(id);
+  if (!vaultBalance) {
+    const vault = getOrCreateCycloVault(vaultAddress);
+    vaultBalance = new VaultBalance(id);
+    vaultBalance.vault = vault.id;
+    vaultBalance.owner = owner;
+    vaultBalance.balance = BigInt.zero();
+    vaultBalance.save();
+  }
+  return vaultBalance;
+}
+
+// Get vault balance for an account (returns 0 if doesn't exist)
+function getVaultBalanceForAccount(
+  vaultAddress: Address,
+  account: Account
+): BigInt {
+  const id = createVaultBalanceId(vaultAddress, account.id);
+  const vaultBalance = VaultBalance.load(id);
+  if (!vaultBalance) {
+    return BigInt.zero();
+  }
+  return vaultBalance.balance;
+}
+
+// Calculate total positive balance across all vaults for an account
+function calculateTotalPositiveBalance(account: Account): BigInt {
+  // Note: In AssemblyScript/The Graph, we can't easily iterate over derived fields
+  // So we'll calculate this in updateTotalsForAccount by summing vault balances
+  // For now, we'll use account.totalCyBalance which is updated elsewhere
+  return account.totalCyBalance;
+}
+
 function calculateEligibleShare(
   account: Account,
   totals: EligibleTotals
 ): BigDecimal {
-  // Sum only positive balances
-  let positiveTotal = BigInt.fromI32(0);
-  if (account.cysFLRBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cysFLRBalance);
-  }
-  if (account.cyWETHBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyWETHBalance);
-  }
-  if (account.cyFXRPBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyFXRPBalance);
-  }
-  if (account.cyWBTCBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyWBTCBalance);
-  }
-  if (account.cycbBTCBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cycbBTCBalance);
-  }
-  if (account.cyLINKBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyLINKBalance);
-  }
-  if (account.cyDOTBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyDOTBalance);
-  }
-  if (account.cyUNIBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyUNIBalance);
-  }
-  if (account.cyPEPEBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyPEPEBalance);
-  }
-  if (account.cyENABalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyENABalance);
-  }
-  if (account.cyARBBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyARBBalance);
-  }
-  if (account.cywstETHBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cywstETHBalance);
-  }
-
+  // Use the totalCyBalance which is calculated from vault balances
+  const positiveTotal = calculateTotalPositiveBalance(account);
   account.totalCyBalance = positiveTotal;
 
   // If account has no positive balance, their share is 0
@@ -111,18 +134,6 @@ function getOrCreateTotals(): EligibleTotals {
   let totals = EligibleTotals.load(TOTALS_ID);
   if (!totals) {
     totals = new EligibleTotals(TOTALS_ID);
-    totals.totalEligibleCysFLR = BigInt.fromI32(0);
-    totals.totalEligibleCyWETH = BigInt.fromI32(0);
-    totals.totalEligibleCyFXRP = BigInt.fromI32(0);
-    totals.totalEligibleCyWBTC = BigInt.fromI32(0);
-    totals.totalEligibleCycbBTC = BigInt.fromI32(0);
-    totals.totalEligibleCyLINK = BigInt.fromI32(0);
-    totals.totalEligibleCyDOT = BigInt.fromI32(0);
-    totals.totalEligibleCyUNI = BigInt.fromI32(0);
-    totals.totalEligibleCyPEPE = BigInt.fromI32(0);
-    totals.totalEligibleCyENA = BigInt.fromI32(0);
-    totals.totalEligibleCyARB = BigInt.fromI32(0);
-    totals.totalEligibleCywstETH = BigInt.fromI32(0);
     totals.totalEligibleSum = BigInt.fromI32(0);
     totals.save();
   }
@@ -131,172 +142,50 @@ function getOrCreateTotals(): EligibleTotals {
 
 function updateTotalsForAccount(
   account: Account,
-  oldCysFLRBalance: BigInt,
-  oldCyWETHBalance: BigInt,
-  oldCyFXRPBalance: BigInt,
-  oldCyWBTCBalance: BigInt,
-  oldCycbBTCBalance: BigInt,
-  oldCyLINKBalance: BigInt,
-  oldCyDOTBalance: BigInt,
-  oldCyUNIBalance: BigInt,
-  oldCyPEPEBalance: BigInt,
-  oldCyENABalance: BigInt,
-  oldCyARBBalance: BigInt,
-  oldCywstETHBalance: BigInt
+  vaultAddress: Address,
+  oldBalance: BigInt,
+  newBalance: BigInt
 ): void {
   const totals = getOrCreateTotals();
-
-  // Handle cysFLR changes
-  if (oldCysFLRBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCysFLR =
-      totals.totalEligibleCysFLR.minus(oldCysFLRBalance);
+  const vault = getOrCreateCycloVault(vaultAddress);
+  
+  // Update vault's totalEligible based on balance changes
+  // Only count positive balances as eligible
+  if (oldBalance.gt(BigInt.fromI32(0))) {
+    vault.totalEligible = vault.totalEligible.minus(oldBalance);
   }
-  if (account.cysFLRBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCysFLR = totals.totalEligibleCysFLR.plus(
-      account.cysFLRBalance
-    );
+  if (newBalance.gt(BigInt.fromI32(0))) {
+    vault.totalEligible = vault.totalEligible.plus(newBalance);
   }
-
-  // Handle cyWETH changes
-  if (oldCyWETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWETH =
-      totals.totalEligibleCyWETH.minus(oldCyWETHBalance);
+  vault.save();
+  
+  // Update totalEligibleSum directly based on balance changes
+  // Only count positive balances as eligible
+  if (oldBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleSum = totals.totalEligibleSum.minus(oldBalance);
   }
-  if (account.cyWETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWETH = totals.totalEligibleCyWETH.plus(
-      account.cyWETHBalance
-    );
+  if (newBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleSum = totals.totalEligibleSum.plus(newBalance);
   }
-
-  // Handle cyFXRP changes
-  if (oldCyFXRPBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyFXRP =
-      totals.totalEligibleCyFXRP.minus(oldCyFXRPBalance);
-  }
-  if (account.cyFXRPBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyFXRP = totals.totalEligibleCyFXRP.plus(
-      account.cyFXRPBalance
-    );
-  }
-
-  // Handle cyWBTC changes
-  if (oldCyWBTCBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWBTC =
-      totals.totalEligibleCyWBTC.minus(oldCyWBTCBalance);
-  }
-  if (account.cyWBTCBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWBTC = totals.totalEligibleCyWBTC.plus(
-      account.cyWBTCBalance
-    );
-  }
-
-  // Handle cycbBTC changes
-  if (oldCycbBTCBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCycbBTC =
-      totals.totalEligibleCycbBTC.minus(oldCycbBTCBalance);
-  }
-  if (account.cycbBTCBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCycbBTC = totals.totalEligibleCycbBTC.plus(
-      account.cycbBTCBalance
-    );
-  }
-
-  // Handle cyLINK changes
-  if (oldCyLINKBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyLINK =
-      totals.totalEligibleCyLINK.minus(oldCyLINKBalance);
-  }
-  if (account.cyLINKBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyLINK = totals.totalEligibleCyLINK.plus(
-      account.cyLINKBalance
-    );
-  }
-
-  // Handle cyDOT changes
-  if (oldCyDOTBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyDOT = totals.totalEligibleCyDOT.minus(
-      oldCyDOTBalance
-    );
-  }
-  if (account.cyDOTBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyDOT = totals.totalEligibleCyDOT.plus(
-      account.cyDOTBalance
-    );
-  }
-
-  // Handle cyUNI changes
-  if (oldCyUNIBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyUNI = totals.totalEligibleCyUNI.minus(
-      oldCyUNIBalance
-    );
-  }
-  if (account.cyUNIBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyUNI = totals.totalEligibleCyUNI.plus(
-      account.cyUNIBalance
-    );
-  }
-
-  // Handle cyPEPE changes
-  if (oldCyPEPEBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyPEPE = totals.totalEligibleCyPEPE.minus(
-      oldCyPEPEBalance
-    );
-  }
-  if (account.cyPEPEBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyPEPE = totals.totalEligibleCyPEPE.plus(
-      account.cyPEPEBalance
-    );
-  }
-
-  // Handle cyENA changes
-  if (oldCyENABalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyENA = totals.totalEligibleCyENA.minus(
-      oldCyENABalance
-    );
-  }
-  if (account.cyENABalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyENA = totals.totalEligibleCyENA.plus(
-      account.cyENABalance
-    );
-  }
-
-  // Handle cyARB changes
-  if (oldCyARBBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyARB = totals.totalEligibleCyARB.minus(
-      oldCyARBBalance
-    );
-  }
-  if (account.cyARBBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyARB = totals.totalEligibleCyARB.plus(
-      account.cyARBBalance
-    );
-  }
-
-  // Handle cywstETH changes
-  if (oldCywstETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCywstETH =
-      totals.totalEligibleCywstETH.minus(oldCywstETHBalance);
-  }
-  if (account.cywstETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCywstETH = totals.totalEligibleCywstETH.plus(
-      account.cywstETHBalance
-    );
-  }
-
-  // Update total sum
-  totals.totalEligibleSum = totals.totalEligibleCysFLR
-    .plus(totals.totalEligibleCyWETH)
-    .plus(totals.totalEligibleCyFXRP)
-    .plus(totals.totalEligibleCyWBTC)
-    .plus(totals.totalEligibleCycbBTC)
-    .plus(totals.totalEligibleCyLINK)
-    .plus(totals.totalEligibleCyDOT)
-    .plus(totals.totalEligibleCyUNI)
-    .plus(totals.totalEligibleCyPEPE)
-    .plus(totals.totalEligibleCyENA)
-    .plus(totals.totalEligibleCyARB)
-    .plus(totals.totalEligibleCywstETH);
   totals.save();
+
+  // Calculate and update account's total positive balance
+  // We need to sum all positive vault balances for this account
+  // Since we can't easily iterate over derived fields in AssemblyScript,
+  // we'll calculate it by checking all known vault addresses
+  // In a truly generic system, you'd need to query all VaultBalance entities
+  // For now, we'll update it based on the current vault change
+  let totalPositive = account.totalCyBalance;
+  
+  // Adjust for the balance change in this vault
+  if (oldBalance.gt(BigInt.fromI32(0))) {
+    totalPositive = totalPositive.minus(oldBalance);
+  }
+  if (newBalance.gt(BigInt.fromI32(0))) {
+    totalPositive = totalPositive.plus(newBalance);
+  }
+  
+  account.totalCyBalance = totalPositive;
 
   // Update account's share
   account.eligibleShare = calculateEligibleShare(account, totals);
@@ -307,149 +196,33 @@ export function handleTransfer(event: TransferEvent): void {
   const fromAccount = getOrCreateAccount(event.params.from);
   const toAccount = getOrCreateAccount(event.params.to);
 
-  // Store old balances for totals calculation
-  const oldFromCysFLR = fromAccount.cysFLRBalance;
-  const oldFromCyWETH = fromAccount.cyWETHBalance;
-  const oldFromCyFXRP = fromAccount.cyFXRPBalance;
-  const oldFromCyWBTC = fromAccount.cyWBTCBalance;
-  const oldFromCycbBTC = fromAccount.cycbBTCBalance;
-  const oldFromCyLINK = fromAccount.cyLINKBalance;
-  const oldFromCyDOT = fromAccount.cyDOTBalance;
-  const oldFromCyUNI = fromAccount.cyUNIBalance;
-  const oldFromCyPEPE = fromAccount.cyPEPEBalance;
-  const oldFromCyENA = fromAccount.cyENABalance;
-  const oldFromCyARB = fromAccount.cyARBBalance;
-  const oldFromCywstETH = fromAccount.cywstETHBalance;
-  const oldToCysFLR = toAccount.cysFLRBalance;
-  const oldToCyWETH = toAccount.cyWETHBalance;
-  const oldToCyFXRP = toAccount.cyFXRPBalance;
-  const oldToCyWBTC = toAccount.cyWBTCBalance;
-  const oldToCycbBTC = toAccount.cycbBTCBalance;
-  const oldToCyLINK = toAccount.cyLINKBalance;
-  const oldToCyDOT = toAccount.cyDOTBalance;
-  const oldToCyUNI = toAccount.cyUNIBalance;
-  const oldToCyPEPE = toAccount.cyPEPEBalance;
-  const oldToCyENA = toAccount.cyENABalance;
-  const oldToCyARB = toAccount.cyARBBalance;
-  const oldToCywstETH = toAccount.cywstETHBalance;
+  const vaultAddress = event.address;
+  
+  // Get old balances for totals calculation
+  const oldFromBalance = getVaultBalanceForAccount(vaultAddress, fromAccount);
+  const oldToBalance = getVaultBalanceForAccount(vaultAddress, toAccount);
 
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
 
-  // Get network implementation to access addresses
-  const networkImplementation = new NetworkImplementation(dataSource.network());
+  // Get or create vault balances
+  const fromVaultBalance = getOrCreateVaultBalance(vaultAddress, fromAccount.id);
+  const toVaultBalance = getOrCreateVaultBalance(vaultAddress, toAccount.id);
 
-  // Update balances based on which token this is
-  const tokenAddress = event.address.toHexString().toLowerCase();
-  if (tokenAddress == networkImplementation.getCysFLRAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cysFLRBalance = toAccount.cysFLRBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cysFLRBalance = fromAccount.cysFLRBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyWETHAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyWETHBalance = toAccount.cyWETHBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cyWETHBalance = fromAccount.cyWETHBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyFXRPAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyFXRPBalance = toAccount.cyFXRPBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cyFXRPBalance = fromAccount.cyFXRPBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyWBTCAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyWBTCBalance = toAccount.cyWBTCBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cyWBTCBalance = fromAccount.cyWBTCBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCycbBTCAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cycbBTCBalance = toAccount.cycbBTCBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cycbBTCBalance = fromAccount.cycbBTCBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyLINKAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyLINKBalance = toAccount.cyLINKBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cyLINKBalance = fromAccount.cyLINKBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyDOTAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyDOTBalance = toAccount.cyDOTBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cyDOTBalance = fromAccount.cyDOTBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyUNIAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyUNIBalance = toAccount.cyUNIBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cyUNIBalance = fromAccount.cyUNIBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyPEPEAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyPEPEBalance = toAccount.cyPEPEBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cyPEPEBalance = fromAccount.cyPEPEBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyENAAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyENABalance = toAccount.cyENABalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cyENABalance = fromAccount.cyENABalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyARBAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyARBBalance = toAccount.cyARBBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cyARBBalance = fromAccount.cyARBBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCywstETHAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cywstETHBalance = toAccount.cywstETHBalance.plus(
-        event.params.value
-      );
-    }
-    fromAccount.cywstETHBalance = fromAccount.cywstETHBalance.minus(
-      event.params.value
-    );
+  // Update balances
+  // Always subtract from sender
+  fromVaultBalance.balance = fromVaultBalance.balance.minus(event.params.value);
+  fromVaultBalance.save();
+
+  // Only add to receiver if from approved source
+  if (fromIsApprovedSource) {
+    toVaultBalance.balance = toVaultBalance.balance.plus(event.params.value);
+    toVaultBalance.save();
   }
+
+  // Get new balances
+  const newFromBalance = fromVaultBalance.balance;
+  const newToBalance = toVaultBalance.balance;
 
   // Save accounts
   fromAccount.save();
@@ -472,32 +245,14 @@ export function handleTransfer(event: TransferEvent): void {
   // Update totals for both accounts
   updateTotalsForAccount(
     fromAccount,
-    oldFromCysFLR,
-    oldFromCyWETH,
-    oldFromCyFXRP,
-    oldFromCyWBTC,
-    oldFromCycbBTC,
-    oldFromCyLINK,
-    oldFromCyDOT,
-    oldFromCyUNI,
-    oldFromCyPEPE,
-    oldFromCyENA,
-    oldFromCyARB,
-    oldFromCywstETH
+    vaultAddress,
+    oldFromBalance,
+    newFromBalance
   );
   updateTotalsForAccount(
     toAccount,
-    oldToCysFLR,
-    oldToCyWETH,
-    oldToCyFXRP,
-    oldToCyWBTC,
-    oldToCycbBTC,
-    oldToCyLINK,
-    oldToCyDOT,
-    oldToCyUNI,
-    oldToCyPEPE,
-    oldToCyENA,
-    oldToCyARB,
-    oldToCywstETH
+    vaultAddress,
+    oldToBalance,
+    newToBalance
   );
 }

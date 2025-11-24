@@ -43,6 +43,8 @@ templates:
       abis:
         - name: CycloVault
           file: ./lib/cyclo.sol/out/CycloVault.sol/CycloVault.json
+        - name: factory
+          file: ./abis/factory.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
