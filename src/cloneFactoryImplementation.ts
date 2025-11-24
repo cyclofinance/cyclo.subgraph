@@ -5,7 +5,7 @@ export const FLARE_TOKEN_IMPLEMENTATION_ADDRESS = "0x35ea13bBEfF8115fb63E4164237
 export const FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS = "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09";
 
 export const FLARE_TOKEN_IMPLEMENTATION_ADDRESS_2 = "0x76A064c006B62eb26565B91dB59c62666d291F4d";
-export const FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRES_2 = "0x3aCEB4F257c169f9143524FF11092f268294fC7c";
+export const FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_2 = "0x3aCEB4F257c169f9143524FF11092f268294fC7c";
 
 export const FLARE_TOKEN_IMPLEMENTATION_ADDRESS_3 = "0xb04c8ca7127997f8832152112a00cd37dc3f49e9";
 export const FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_3 = "0xac2c4d2d2fb38e26064fe7e8e4dc734bdf0add14";
@@ -21,11 +21,12 @@ export class CloneFactoryImplementation {
 
         if (network == 'flare') {
             this.cycloTokenImplementation = [FLARE_TOKEN_IMPLEMENTATION_ADDRESS, FLARE_TOKEN_IMPLEMENTATION_ADDRESS_2, FLARE_TOKEN_IMPLEMENTATION_ADDRESS_3];
-            this.cycloTokenReceiptImplementation = [FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS, FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRES_2, FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_3];
-        } else if (network == 'arbitrum-one') {
+            this.cycloTokenReceiptImplementation = [FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS, FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_2, FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_3];
+        } else if (network == 'arbitrum-one' || network == 'arbitrum_one') {
+            // Support both hyphen and underscore formats
             this.cycloTokenImplementation = [ARBITRUM_ONE_TOKEN_IMPLEMENTATION_ADDRESS];
             this.cycloTokenReceiptImplementation = [ARBITRUM_ONE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS];
-        } {
+        } else {
             this.cycloTokenImplementation = [];
             this.cycloTokenReceiptImplementation = [];
         }
