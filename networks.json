@@ -2,7 +2,7 @@
   "flare": {
       "CloneFactory": {
         "address": "0x67fe33484cAF1a8D716b84b779569f79881788Ae",
-        "startBlock": 34244043
+        "startBlock": 36028901
       }
   }
 }
