@@ -15,6 +15,10 @@
     "cyWETHReceipt": {
       "address": "0xBE2615A0fcB54A49A1eB472be30d992599FE0968",
       "startBlock": 36028901
+    },
+    "LiquidityV3": {
+      "address": "0xee5ff5bc5f852764b5584d92a4d592a53dc527da",
+      "startBlock": 30718579
     }
   }
 }
