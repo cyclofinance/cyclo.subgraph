@@ -18,6 +18,8 @@ export function getOrCreateAccount(address: Address): Account {
     account.cyENABalance = BigInt.fromI32(0);
     account.cyARBBalance = BigInt.fromI32(0);
     account.cywstETHBalance = BigInt.fromI32(0);
+    account.cyXAUt0Balance = BigInt.fromI32(0);
+    account.cyPYTHBalance = BigInt.fromI32(0);
     account.totalCyBalance = BigInt.fromI32(0);
     account.eligibleShare = BigDecimal.fromString("0");
     account.save();

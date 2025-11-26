@@ -1,7 +1,7 @@
 import { getOrCreateAccount } from "./common";
 import { Address, BigInt, Bytes, dataSource } from "@graphprotocol/graph-ts";
 import { TransferSingle, TransferBatch } from "../generated/cysFLRReceipt/receipt";
-import { CysFlrReceiptOwnerBalance, CyWethReceiptOwnerBalance, CyFxrpReceiptOwnerBalance, CyWbtcReceiptOwnerBalance, CycbBTCReceiptOwnerBalance, CyLinkReceiptOwnerBalance, CyDotReceiptOwnerBalance, CyUniReceiptOwnerBalance, CyPepeReceiptOwnerBalance, CyEnaReceiptOwnerBalance, CyArbReceiptOwnerBalance, CyWstethReceiptOwnerBalance } from "../generated/schema";
+import { CysFlrReceiptOwnerBalance, CyWethReceiptOwnerBalance, CyFxrpReceiptOwnerBalance, CyWbtcReceiptOwnerBalance, CycbBTCReceiptOwnerBalance, CyLinkReceiptOwnerBalance, CyDotReceiptOwnerBalance, CyUniReceiptOwnerBalance, CyPepeReceiptOwnerBalance, CyEnaReceiptOwnerBalance, CyArbReceiptOwnerBalance, CyWstethReceiptOwnerBalance, CyXAUt0ReceiptOwnerBalance, CyPYTHReceiptOwnerBalance } from "../generated/schema";
 import { NetworkImplementation } from "./networkImplementation";
 
 // create a unique ID for the receipt owner balance entity
@@ -237,6 +237,44 @@ export function getOrCreateReceiptOwnerBalanceForCywstETH(
   return item;
 }
 
+// Get or create a CyXAUt0ReceiptOwnerBalance entity
+export function getOrCreateReceiptOwnerBalanceForCyXAUt0(
+  receiptAddress: Address,
+  tokenId: BigInt,
+  owner: Bytes
+): CyXAUt0ReceiptOwnerBalance {
+  const id = createReceiptOwnerBalanceId(receiptAddress, tokenId, owner);
+  let item = CyXAUt0ReceiptOwnerBalance.load(id);
+  if (!item) {
+    item = new CyXAUt0ReceiptOwnerBalance(id);
+    item.receiptAddress = receiptAddress;
+    item.tokenId = tokenId;
+    item.owner = owner;
+    item.balance = BigInt.zero();
+    item.save();
+  }
+  return item;
+}
+
+// Get or create a CyPYTHReceiptOwnerBalance entity
+export function getOrCreateReceiptOwnerBalanceForCyPYTH(
+  receiptAddress: Address,
+  tokenId: BigInt,
+  owner: Bytes
+): CyPYTHReceiptOwnerBalance {
+  const id = createReceiptOwnerBalanceId(receiptAddress, tokenId, owner);
+  let item = CyPYTHReceiptOwnerBalance.load(id);
+  if (!item) {
+    item = new CyPYTHReceiptOwnerBalance(id);
+    item.receiptAddress = receiptAddress;
+    item.tokenId = tokenId;
+    item.owner = owner;
+    item.balance = BigInt.zero();
+    item.save();
+  }
+  return item;
+}
+
 // Handle balance changes for receipt tokens based on receipt address
 export function handleBalanceChange(
   receiptAddress: Address,
@@ -337,6 +375,22 @@ export function handleBalanceChange(
     item.save();
   } else if (receiptAddress.equals(networkImplementation.getCywstETHReceiptAddress())) {
     const item = getOrCreateReceiptOwnerBalanceForCywstETH(
+      receiptAddress,
+      tokenId,
+      owner
+    );
+    item.balance = item.balance.plus(amountChange);
+    item.save();
+  } else if (receiptAddress.equals(networkImplementation.getCyXAUt0ReceiptAddress())) {
+    const item = getOrCreateReceiptOwnerBalanceForCyXAUt0(
+      receiptAddress,
+      tokenId,
+      owner
+    );
+    item.balance = item.balance.plus(amountChange);
+    item.save();
+  } else if (receiptAddress.equals(networkImplementation.getCyPYTHReceiptAddress())) {
+    const item = getOrCreateReceiptOwnerBalanceForCyPYTH(
       receiptAddress,
       tokenId,
       owner

@@ -95,6 +95,22 @@
     "cywstETHReceipt": {
       "address": "0x8C1843A9f3278C94f6d79cebA9828596F524E898",
       "startBlock": 50345677
+    },
+    "cyXAUt0": {
+      "address": "0x6Ddc84F2FC195AE372501B01Bb1CA25CA3221776",
+      "startBlock": 50345677
+    },
+    "cyXAUt0Receipt": {
+      "address": "0x45D63e1C4cb7201ed45d75Af771BCfA9116a99Be",
+      "startBlock": 50345677
+    },
+    "cyPYTH": {
+      "address": "0x87f7B55D7CCc9Be93B0a8aE601801d79FA96FD4f",
+      "startBlock": 50345677
+    },
+    "cyPYTHReceipt": {
+      "address": "0x93AC50B43aFf21aDD1Ad2a626CF6E88C5e00ea39",
+      "startBlock": 50345677
     }
   },
   "arbitrum-one": {
@@ -186,13 +202,21 @@
       "address": "0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e",
       "startBlock": 399923376
     },
-    "cywstETH": {
-      "address": "0xC43ee790dc819dB728e2c5bB6285359BBdE7E016",
-      "startBlock": 400251851
+    "cyXAUt0": {
+      "address": "0x6Ddc84F2FC195AE372501B01Bb1CA25CA3221776",
+      "startBlock": 404067622
     },
-    "cywstETHReceipt": {
-      "address": "0x8C1843A9f3278C94f6d79cebA9828596F524E898",
-      "startBlock": 400251851
+    "cyXAUt0Receipt": {
+      "address": "0x45D63e1C4cb7201ed45d75Af771BCfA9116a99Be",
+      "startBlock": 404067622
+    },
+    "cyPYTH": {
+      "address": "0x87f7B55D7CCc9Be93B0a8aE601801d79FA96FD4f",
+      "startBlock": 404060269
+    },
+    "cyPYTHReceipt": {
+      "address": "0x93AC50B43aFf21aDD1Ad2a626CF6E88C5e00ea39",
+      "startBlock": 404060269
     }
   }
 }

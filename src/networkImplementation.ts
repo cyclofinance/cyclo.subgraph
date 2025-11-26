@@ -14,6 +14,8 @@ export class NetworkImplementation {
     public cyENAAddress: string = "";
     public cyARBAddress: string = "";
     public cywstETHAddress: string = "";
+    public cyXAUt0Address: string = "";
+    public cyPYTHAddress: string = "";
     
     // Receipt addresses by network
     public cysFLRReceiptAddress: Address = Address.zero();
@@ -28,6 +30,8 @@ export class NetworkImplementation {
     public cyENAReceiptAddress: Address = Address.zero();
     public cyARBReceiptAddress: Address = Address.zero();
     public cywstETHReceiptAddress: Address = Address.zero();
+    public cyXAUt0ReceiptAddress: Address = Address.zero();
+    public cyPYTHReceiptAddress: Address = Address.zero();
     
     constructor(network: string) {
       if (network == 'flare') {
@@ -52,6 +56,8 @@ export class NetworkImplementation {
       this.cyENAAddress = "0x5D938CAf878BD56ACcF2B27Fad9F697aA206dF40".toLowerCase();
       this.cyARBAddress = "0xc83563177290bdd391DB56553Ed828413b7689bc".toLowerCase();
       this.cywstETHAddress = "0xC43ee790dc819dB728e2c5bB6285359BBdE7E016".toLowerCase();
+      this.cyXAUt0Address = "0x6Ddc84F2FC195AE372501B01Bb1CA25CA3221776".toLowerCase();
+      this.cyPYTHAddress = "0x87f7B55D7CCc9Be93B0a8aE601801d79FA96FD4f".toLowerCase();
       
       this.cysFLRReceiptAddress = Address.fromString("0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09");
       this.cyWETHReceiptAddress = Address.fromString("0xBE2615A0fcB54A49A1eB472be30d992599FE0968");
@@ -65,6 +71,8 @@ export class NetworkImplementation {
       this.cyENAReceiptAddress = Address.fromString("0x7426ddC75b522e40552ea24D647898fAcE0E2360");
       this.cyARBReceiptAddress = Address.fromString("0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e");
       this.cywstETHReceiptAddress = Address.fromString("0x8C1843A9f3278C94f6d79cebA9828596F524E898");
+      this.cyXAUt0ReceiptAddress = Address.fromString("0x45D63e1C4cb7201ed45d75Af771BCfA9116a99Be");
+      this.cyPYTHReceiptAddress = Address.fromString("0x93AC50B43aFf21aDD1Ad2a626CF6E88C5e00ea39");
     }
     
     private setAddressesForArbitrum(): void {
@@ -80,6 +88,8 @@ export class NetworkImplementation {
       this.cyENAAddress = "0x5D938CAf878BD56ACcF2B27Fad9F697aA206dF40".toLowerCase();
       this.cyARBAddress = "0xc83563177290bdd391DB56553Ed828413b7689bc".toLowerCase();
       this.cywstETHAddress = "0xC43ee790dc819dB728e2c5bB6285359BBdE7E016".toLowerCase();
+      this.cyXAUt0Address = "0x6Ddc84F2FC195AE372501B01Bb1CA25CA3221776".toLowerCase();
+      this.cyPYTHAddress = "0x87f7B55D7CCc9Be93B0a8aE601801d79FA96FD4f".toLowerCase();
       
       this.cysFLRReceiptAddress = Address.fromString("0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09");
       this.cyWETHReceiptAddress = Address.fromString("0x0E67a81B967c189Cf50353B0fE6fef572dC55319");
@@ -93,6 +103,8 @@ export class NetworkImplementation {
       this.cyENAReceiptAddress = Address.fromString("0x7426ddC75b522e40552ea24D647898fAcE0E2360");
       this.cyARBReceiptAddress = Address.fromString("0x3fEe841c184dCF93f15CD28144b6E5514fFfC18e");
       this.cywstETHReceiptAddress = Address.fromString("0x8C1843A9f3278C94f6d79cebA9828596F524E898");
+      this.cyXAUt0ReceiptAddress = Address.fromString("0x45D63e1C4cb7201ed45d75Af771BCfA9116a99Be");
+      this.cyPYTHReceiptAddress = Address.fromString("0x93AC50B43aFf21aDD1Ad2a626CF6E88C5e00ea39");
     }
     
     // Getter methods for cy token addresses
@@ -144,6 +156,14 @@ export class NetworkImplementation {
       return this.cywstETHAddress;
     }
     
+    public getCyXAUt0Address(): string {
+      return this.cyXAUt0Address;
+    }
+    
+    public getCyPYTHAddress(): string {
+      return this.cyPYTHAddress;
+    }
+    
     // Getter methods for receipt addresses
     public getCysFLRReceiptAddress(): Address {
       return this.cysFLRReceiptAddress;
@@ -191,5 +211,13 @@ export class NetworkImplementation {
     
     public getCywstETHReceiptAddress(): Address {
       return this.cywstETHReceiptAddress;
+    }
+    
+    public getCyXAUt0ReceiptAddress(): Address {
+      return this.cyXAUt0ReceiptAddress;
+    }
+    
+    public getCyPYTHReceiptAddress(): Address {
+      return this.cyPYTHReceiptAddress;
     }
   }

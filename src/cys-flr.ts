@@ -88,6 +88,12 @@ function calculateEligibleShare(
   if (account.cywstETHBalance.gt(BigInt.fromI32(0))) {
     positiveTotal = positiveTotal.plus(account.cywstETHBalance);
   }
+  if (account.cyXAUt0Balance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyXAUt0Balance);
+  }
+  if (account.cyPYTHBalance.gt(BigInt.fromI32(0))) {
+    positiveTotal = positiveTotal.plus(account.cyPYTHBalance);
+  }
 
   account.totalCyBalance = positiveTotal;
 
@@ -123,6 +129,8 @@ function getOrCreateTotals(): EligibleTotals {
     totals.totalEligibleCyENA = BigInt.fromI32(0);
     totals.totalEligibleCyARB = BigInt.fromI32(0);
     totals.totalEligibleCywstETH = BigInt.fromI32(0);
+    totals.totalEligibleCyXAUt0 = BigInt.fromI32(0);
+    totals.totalEligibleCyPYTH = BigInt.fromI32(0);
     totals.totalEligibleSum = BigInt.fromI32(0);
     totals.save();
   }
@@ -142,7 +150,9 @@ function updateTotalsForAccount(
   oldCyPEPEBalance: BigInt,
   oldCyENABalance: BigInt,
   oldCyARBBalance: BigInt,
-  oldCywstETHBalance: BigInt
+  oldCywstETHBalance: BigInt,
+  oldCyXAUt0Balance: BigInt,
+  oldCyPYTHBalance: BigInt
 ): void {
   const totals = getOrCreateTotals();
 
@@ -283,6 +293,28 @@ function updateTotalsForAccount(
     );
   }
 
+  // Handle cyXAUt0 changes
+  if (oldCyXAUt0Balance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyXAUt0 =
+      totals.totalEligibleCyXAUt0.minus(oldCyXAUt0Balance);
+  }
+  if (account.cyXAUt0Balance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyXAUt0 = totals.totalEligibleCyXAUt0.plus(
+      account.cyXAUt0Balance
+    );
+  }
+
+  // Handle cyPYTH changes
+  if (oldCyPYTHBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyPYTH =
+      totals.totalEligibleCyPYTH.minus(oldCyPYTHBalance);
+  }
+  if (account.cyPYTHBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleCyPYTH = totals.totalEligibleCyPYTH.plus(
+      account.cyPYTHBalance
+    );
+  }
+
   // Update total sum
   totals.totalEligibleSum = totals.totalEligibleCysFLR
     .plus(totals.totalEligibleCyWETH)
@@ -295,7 +327,9 @@ function updateTotalsForAccount(
     .plus(totals.totalEligibleCyPEPE)
     .plus(totals.totalEligibleCyENA)
     .plus(totals.totalEligibleCyARB)
-    .plus(totals.totalEligibleCywstETH);
+    .plus(totals.totalEligibleCywstETH)
+    .plus(totals.totalEligibleCyXAUt0)
+    .plus(totals.totalEligibleCyPYTH);
   totals.save();
 
   // Update account's share
@@ -320,6 +354,8 @@ export function handleTransfer(event: TransferEvent): void {
   const oldFromCyENA = fromAccount.cyENABalance;
   const oldFromCyARB = fromAccount.cyARBBalance;
   const oldFromCywstETH = fromAccount.cywstETHBalance;
+  const oldFromCyXAUt0 = fromAccount.cyXAUt0Balance;
+  const oldFromCyPYTH = fromAccount.cyPYTHBalance;
   const oldToCysFLR = toAccount.cysFLRBalance;
   const oldToCyWETH = toAccount.cyWETHBalance;
   const oldToCyFXRP = toAccount.cyFXRPBalance;
@@ -332,6 +368,8 @@ export function handleTransfer(event: TransferEvent): void {
   const oldToCyENA = toAccount.cyENABalance;
   const oldToCyARB = toAccount.cyARBBalance;
   const oldToCywstETH = toAccount.cywstETHBalance;
+  const oldToCyXAUt0 = toAccount.cyXAUt0Balance;
+  const oldToCyPYTH = toAccount.cyPYTHBalance;
 
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
@@ -449,6 +487,24 @@ export function handleTransfer(event: TransferEvent): void {
     fromAccount.cywstETHBalance = fromAccount.cywstETHBalance.minus(
       event.params.value
     );
+  } else if (tokenAddress == networkImplementation.getCyXAUt0Address()) {
+    if (fromIsApprovedSource) {
+      toAccount.cyXAUt0Balance = toAccount.cyXAUt0Balance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyXAUt0Balance = fromAccount.cyXAUt0Balance.minus(
+      event.params.value
+    );
+  } else if (tokenAddress == networkImplementation.getCyPYTHAddress()) {
+    if (fromIsApprovedSource) {
+      toAccount.cyPYTHBalance = toAccount.cyPYTHBalance.plus(
+        event.params.value
+      );
+    }
+    fromAccount.cyPYTHBalance = fromAccount.cyPYTHBalance.minus(
+      event.params.value
+    );
   }
 
   // Save accounts
@@ -483,7 +539,9 @@ export function handleTransfer(event: TransferEvent): void {
     oldFromCyPEPE,
     oldFromCyENA,
     oldFromCyARB,
-    oldFromCywstETH
+    oldFromCywstETH,
+    oldFromCyXAUt0,
+    oldFromCyPYTH
   );
   updateTotalsForAccount(
     toAccount,
@@ -498,6 +556,8 @@ export function handleTransfer(event: TransferEvent): void {
     oldToCyPEPE,
     oldToCyENA,
     oldToCyARB,
-    oldToCywstETH
+    oldToCywstETH,
+    oldToCyXAUt0,
+    oldToCyPYTH
   );
 }
