@@ -5,7 +5,17 @@ import { ReceiptOwnerBalance, CycloReceipt } from "../generated/schema";
 
 // create a unique ID for the receipt owner balance entity
 export function createReceiptOwnerBalanceId(receiptAddress: Address, tokenId: BigInt, owner: Bytes): Bytes {
-  return receiptAddress.concat(Bytes.fromByteArray(Bytes.fromBigInt(tokenId))).concat(owner);
+  // Convert BigInt to Bytes via hex string
+  // BigInt.toHexString() returns hex with '0x' prefix, pad to 32 bytes (64 hex chars)
+  let tokenIdHex = tokenId.toHexString();
+  // Remove '0x' prefix
+  let hexWithoutPrefix = tokenIdHex.slice(2);
+  // Pad to 64 hex characters (32 bytes)
+  while (hexWithoutPrefix.length < 64) {
+    hexWithoutPrefix = "0" + hexWithoutPrefix;
+  }
+  const tokenIdBytes = Bytes.fromHexString("0x" + hexWithoutPrefix);
+  return receiptAddress.concat(tokenIdBytes).concat(owner);
 }
 
 // Get or create CycloReceipt entity

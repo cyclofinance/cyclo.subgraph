@@ -193,8 +193,8 @@ function updateTotalsForAccount(
 }
 
 export function handleTransfer(event: TransferEvent): void {
-  const fromAccount = getOrCreateAccount(event.params.from);
-  const toAccount = getOrCreateAccount(event.params.to);
+  let fromAccount = getOrCreateAccount(event.params.from);
+  let toAccount = getOrCreateAccount(event.params.to);
 
   const vaultAddress = event.address;
   
@@ -224,10 +224,6 @@ export function handleTransfer(event: TransferEvent): void {
   const newFromBalance = fromVaultBalance.balance;
   const newToBalance = toVaultBalance.balance;
 
-  // Save accounts
-  fromAccount.save();
-  toAccount.save();
-
   // Create transfer entity
   const transfer = new Transfer(
     event.transaction.hash.concatI32(event.logIndex.toI32())
@@ -241,6 +237,10 @@ export function handleTransfer(event: TransferEvent): void {
   transfer.blockTimestamp = event.block.timestamp;
   transfer.transactionHash = event.transaction.hash;
   transfer.save();
+
+  // Reload accounts to ensure we have the latest totalCyBalance from previous transfers
+  fromAccount = getOrCreateAccount(event.params.from);
+  toAccount = getOrCreateAccount(event.params.to);
 
   // Update totals for both accounts
   updateTotalsForAccount(
