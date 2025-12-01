@@ -19,14 +19,17 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@main
         with:
           determinate: true
-      - uses: DeterminateSystems/flakehub-cache-action@main
+      - name: Cache Nix
+        uses: DeterminateSystems/flakehub-cache-action@main
 
       - name: Generate abis
-        run: ./prep-ethgild.sh
+        run: ./prep-cyclo.sh
         
-      - name: Build subgraph
+      - name: Generate subgraph code
         run: nix develop -c graph codegen
+
+      - name: Build subgraph
         run: nix develop -c graph build
 
-      - name: Matchstick tests
-        run: nix develop -c offchain-assets-subgraph-test
+      - name: Run Matchstick tests
+        run: nix develop -c graph test
