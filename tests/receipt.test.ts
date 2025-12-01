@@ -1,7 +1,8 @@
-import { Address, BigInt } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { createReceiptTransferBatchEvent, createReceiptTransferSingleEvent } from "./utils";
 import { test, assert, describe, clearStore, beforeAll, afterAll } from "matchstick-as/assembly/index";
 import { createReceiptOwnerBalanceId, handleReceiptTransferBatch, handleReceiptTransferSingle } from "../src/receipt";
+import { getOrCreateAccount } from "../src/common";
 import { dataSourceMock } from "matchstick-as";
 
 const FROM = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -35,8 +36,12 @@ describe("ReceiptOwnerBalance handling", () => {
       assert.entityCount("Account", 2); // from, to
       assert.entityCount("ReceiptOwnerBalance", 2);
 
-      const fromId = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.id, transferEvent.params.from).toHexString();
-      const toId = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.id, transferEvent.params.to).toHexString();
+      // Get account IDs (Bytes) to match implementation
+      const fromAccount = getOrCreateAccount(FROM);
+      const toAccount = getOrCreateAccount(TO);
+      
+      const fromId = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.id, fromAccount.id).toHexString();
+      const toId = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.id, toAccount.id).toHexString();
 
       assert.fieldEquals("ReceiptOwnerBalance", fromId, "receiptAddress", RECEIPT_ADDRESS.toHexString());
       assert.fieldEquals("ReceiptOwnerBalance", fromId, "owner", FROM.toHexString());
@@ -65,8 +70,12 @@ describe("ReceiptOwnerBalance handling", () => {
       assert.entityCount("Account", 2); // from, to
       assert.entityCount("ReceiptOwnerBalance", 4);
 
-      const fromId0 = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.ids[0], transferEvent.params.from).toHexString();
-      const toId0 = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.ids[0], transferEvent.params.to).toHexString();
+      // Get account IDs (Bytes) to match implementation
+      const fromAccount = getOrCreateAccount(FROM);
+      const toAccount = getOrCreateAccount(TO);
+
+      const fromId0 = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.ids[0], fromAccount.id).toHexString();
+      const toId0 = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.ids[0], toAccount.id).toHexString();
 
       assert.fieldEquals("ReceiptOwnerBalance", fromId0, "receiptAddress", RECEIPT_ADDRESS.toHexString());
       assert.fieldEquals("ReceiptOwnerBalance", fromId0, "owner", FROM.toHexString());
@@ -78,8 +87,8 @@ describe("ReceiptOwnerBalance handling", () => {
       assert.fieldEquals("ReceiptOwnerBalance", toId0, "balance", "100");
       assert.fieldEquals("ReceiptOwnerBalance", toId0, "tokenId", "1");
 
-      const fromId1 = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.ids[1], transferEvent.params.from).toHexString();
-      const toId1 = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.ids[1], transferEvent.params.to).toHexString();
+      const fromId1 = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.ids[1], fromAccount.id).toHexString();
+      const toId1 = createReceiptOwnerBalanceId(transferEvent.address, transferEvent.params.ids[1], toAccount.id).toHexString();
 
       assert.fieldEquals("ReceiptOwnerBalance", fromId1, "receiptAddress", RECEIPT_ADDRESS.toHexString());
       assert.fieldEquals("ReceiptOwnerBalance", fromId1, "owner", FROM.toHexString());
