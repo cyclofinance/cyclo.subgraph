@@ -1,0 +1,32 @@
+name: Subgraph unit tests
+on: [push]
+
+jobs:
+  test:
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
+
+      - name: Generate abis
+        run: ./prep-ethgild.sh
+        
+      - name: Build subgraph
+        run: nix develop -c graph codegen
+        run: nix develop -c graph build
+
+      - name: Matchstick tests
+        run: nix develop -c offchain-assets-subgraph-test

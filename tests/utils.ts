@@ -1,7 +1,10 @@
 import { newMockEvent } from "matchstick-as";
 import { ethereum, Address, BigInt } from "@graphprotocol/graph-ts";
-import { Transfer } from "../generated/cysFLR/cysFLR";
-import { TransferBatch, TransferSingle } from "../generated/cysFLRReceipt/receipt";
+import { Transfer } from "../generated/templates/CycloVaultTemplate/CycloVault";
+import { TransferBatch, TransferSingle } from "../generated/templates/CycloReceiptTemplate/CycloReceipt";
+
+// changetype is a built-in AssemblyScript function
+declare function changetype<T>(value: any): T;
 
 export function createTransferEvent(
   from: Address,
