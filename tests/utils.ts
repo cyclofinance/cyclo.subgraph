@@ -3,16 +3,14 @@ import { ethereum, Address, BigInt } from "@graphprotocol/graph-ts";
 import { Transfer } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import { TransferBatch, TransferSingle } from "../generated/templates/CycloReceiptTemplate/CycloReceipt";
 
-// changetype is a built-in AssemblyScript function
-declare function changetype<T>(value: any): T;
-
 export function createTransferEvent(
   from: Address,
   to: Address,
   value: BigInt,
   tokenAddress: Address
 ): Transfer {
-  let transferEvent = changetype<Transfer>(newMockEvent());
+  let mockEvent = newMockEvent();
+  let transferEvent = changetype<Transfer>(mockEvent);
 
   transferEvent.address = tokenAddress;
   transferEvent.parameters = new Array();
@@ -38,11 +36,15 @@ export function createReceiptTransferSingleEvent(
   value: BigInt,
   tokenId: BigInt,
 ): TransferSingle {
-  let transferEvent = changetype<TransferSingle>(newMockEvent());
+  let mockEvent = newMockEvent();
+  let transferEvent = changetype<TransferSingle>(mockEvent);
 
   transferEvent.address = receiptAddress;
   transferEvent.parameters = new Array();
 
+  transferEvent.parameters.push(
+    new ethereum.EventParam("operator", ethereum.Value.fromAddress(operator))
+  );
   transferEvent.parameters.push(
     new ethereum.EventParam("from", ethereum.Value.fromAddress(from))
   );
@@ -50,13 +52,10 @@ export function createReceiptTransferSingleEvent(
     new ethereum.EventParam("to", ethereum.Value.fromAddress(to))
   );
   transferEvent.parameters.push(
-    new ethereum.EventParam("operator", ethereum.Value.fromAddress(operator))
+    new ethereum.EventParam("id", ethereum.Value.fromUnsignedBigInt(tokenId))
   );
   transferEvent.parameters.push(
     new ethereum.EventParam("value", ethereum.Value.fromUnsignedBigInt(value))
-  );
-  transferEvent.parameters.push(
-    new ethereum.EventParam("id", ethereum.Value.fromUnsignedBigInt(tokenId))
   );
 
   return transferEvent;
@@ -70,11 +69,15 @@ export function createReceiptTransferBatchEvent(
   values: Array<BigInt>,
   tokenIds: Array<BigInt>,
 ): TransferBatch {
-  let transferEvent = changetype<TransferBatch>(newMockEvent());
+  let mockEvent = newMockEvent();
+  let transferEvent = changetype<TransferBatch>(mockEvent);
 
   transferEvent.address = receiptAddress;
   transferEvent.parameters = new Array();
 
+  transferEvent.parameters.push(
+    new ethereum.EventParam("operator", ethereum.Value.fromAddress(operator))
+  );
   transferEvent.parameters.push(
     new ethereum.EventParam("from", ethereum.Value.fromAddress(from))
   );
@@ -82,13 +85,10 @@ export function createReceiptTransferBatchEvent(
     new ethereum.EventParam("to", ethereum.Value.fromAddress(to))
   );
   transferEvent.parameters.push(
-    new ethereum.EventParam("operator", ethereum.Value.fromAddress(operator))
+    new ethereum.EventParam("ids", ethereum.Value.fromUnsignedBigIntArray(tokenIds))
   );
   transferEvent.parameters.push(
     new ethereum.EventParam("values", ethereum.Value.fromUnsignedBigIntArray(values))
-  );
-  transferEvent.parameters.push(
-    new ethereum.EventParam("ids", ethereum.Value.fromUnsignedBigIntArray(tokenIds))
   );
 
   return transferEvent;

@@ -23,6 +23,7 @@ describe("ReceiptOwnerBalance handling", () => {
 
   describe("single", () => {
     test("should build, apply balance changes and store ReceiptOwnerBalance items from SingleTransfer event", () => {
+      clearStore();
       let transferEvent = createReceiptTransferSingleEvent(
         RECEIPT_ADDRESS,
         FROM,
@@ -36,7 +37,7 @@ describe("ReceiptOwnerBalance handling", () => {
       assert.entityCount("Account", 2); // from, to
       assert.entityCount("ReceiptOwnerBalance", 2);
 
-      // Get account IDs (Bytes) to match implementation
+      // Get accounts (using same method as handler - getOrCreateAccount)
       const fromAccount = getOrCreateAccount(FROM);
       const toAccount = getOrCreateAccount(TO);
       
@@ -57,6 +58,7 @@ describe("ReceiptOwnerBalance handling", () => {
 
   describe("batch", () => {
     test("should build, apply balance changes and store ReceiptOwnerBalance items from BatchTransfer event", () => {
+      clearStore();
       let transferEvent = createReceiptTransferBatchEvent(
         RECEIPT_ADDRESS,
         FROM,
@@ -70,7 +72,7 @@ describe("ReceiptOwnerBalance handling", () => {
       assert.entityCount("Account", 2); // from, to
       assert.entityCount("ReceiptOwnerBalance", 4);
 
-      // Get account IDs (Bytes) to match implementation
+      // Get accounts (using same method as handler - getOrCreateAccount)
       const fromAccount = getOrCreateAccount(FROM);
       const toAccount = getOrCreateAccount(TO);
 
