@@ -2,7 +2,7 @@ import { BigInt, BigDecimal, dataSource } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/cysFLR/cysFLR";
 import { Account, Transfer, EligibleTotals } from "../generated/schema";
 import { getOrCreateAccount, isApprovedSource } from "./common";
-import { CYSFLR_ADDRESS, CYWETH_ADDRESS, TOTALS_ID } from "./constants";
+import { TOTALS_ID } from "./constants";
 import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
 import { NetworkImplementation } from "./networkImplementation";
 
@@ -180,7 +180,7 @@ export function handleTransfer(event: TransferEvent): void {
         event.params.value
       );
     }
-  } else if (tokenAddress.equals(networkImplementation.getCyWETHAddress())) {
+  } else if (tokenAddress == networkImplementation.getCyWETHAddress()) {
     if (fromIsApprovedSource) {
       toAccount.cyWETHBalance = toAccount.cyWETHBalance.plus(
         event.params.value
@@ -197,7 +197,7 @@ export function handleTransfer(event: TransferEvent): void {
         event.params.value
       );
     }
-  } else if (tokenAddress.equals(networkImplementation.getCyFXRPAddress())) {
+  } else if (tokenAddress == networkImplementation.getCyFXRPAddress()) {
     if (fromIsApprovedSource) {
       toAccount.cyFXRPBalance = toAccount.cyFXRPBalance.plus(
         event.params.value
@@ -214,7 +214,7 @@ export function handleTransfer(event: TransferEvent): void {
         event.params.value
       );
     }
-  } else if (tokenAddress.equals(networkImplementation.getCyWBTCAddress())) {
+  } else if (tokenAddress == networkImplementation.getCyWBTCAddress()) {
     if (fromIsApprovedSource) {
       toAccount.cyWBTCBalance = toAccount.cyWBTCBalance.plus(
         event.params.value
@@ -231,7 +231,7 @@ export function handleTransfer(event: TransferEvent): void {
         event.params.value
       );
     }
-  } else if (tokenAddress.equals(networkImplementation.getCycbBTCAddress())) {
+  } else if (tokenAddress == networkImplementation.getCycbBTCAddress()) {
     if (fromIsApprovedSource) {
       toAccount.cycbBTCBalance = toAccount.cycbBTCBalance.plus(
         event.params.value

@@ -8,6 +8,12 @@ export const CYSFLR_ADDRESS = Address.fromString("0x19831cfB53A0dbeAD9866C43557C
 
 export const CYWETH_ADDRESS = Address.fromString("0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4");
 
+export const CYFXRP_ADDRESS = Address.fromString("0xF23595Ede14b54817397B1dAb899bA061BdCe7b5");
+
+export const CYWBTC_ADDRESS = Address.fromString("0x229917ac2842Eaab42060a1A9213CA78e01b572a");
+
+export const CYCBBTC_ADDRESS = Address.fromString("0x9fC9dA918552df0DAd6C00051351e335656da100");
+
 export const REWARDS_SOURCES = [
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
   Address.fromString("0x0f3D8a38D4c74afBebc2c42695642f0e3acb15D3"), // Sparkdex Universal Router
