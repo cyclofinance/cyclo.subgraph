@@ -39,6 +39,10 @@
     "cycbBTCReceipt": {
       "address": "0x3a5eDe5AE4EC55F61c4aFf2CDfC920b5029Abf05",
       "startBlock": 50345677
+    },
+    "LiquidityV3": {
+      "address": "0xee5ff5bc5f852764b5584d92a4d592a53dc527da",
+      "startBlock": 30718579
     }
   },
   "arbitrum-one": {

@@ -9,8 +9,8 @@ import {
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { Transfer } from "../generated/schema";
 import { handleTransfer } from "../src/cys-flr";
-import { createTransferEvent } from "./utils";
 import { dataSourceMock } from "matchstick-as";
+import { createTransferEvent, mockLog } from "./utils";
 
 // Test addresses
 const APPROVED_DEX_ROUTER = Address.fromString(
@@ -269,7 +269,7 @@ describe("Transfer handling", () => {
       APPROVED_DEX_POOL,
       USER_1,
       BigInt.fromI32(50),
-      CYWETH_ADDRESS
+      CYWETH_ADDRESS,
     );
     handleTransfer(transferEvent);
 
@@ -492,5 +492,57 @@ describe("Transfer handling", () => {
       "100"
     );
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "100");
+  });
+
+    test("Updates totals with liquidity add", () => {
+    // User 1 sends 100 cysFLR to DEX
+    let transferEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_ROUTER,
+      BigInt.fromI32(100),
+      CYSFLR_ADDRESS,
+      mockLog(
+        APPROVED_DEX_POOL,
+        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        [USER_1.toHexString(), APPROVED_DEX_POOL.toHexString()],
+        BigInt.fromI32(100)
+      ),
+    );
+    handleTransfer(transferEvent);
+
+    assert.fieldEquals(
+      "EligibleTotals",
+      TOTALS_ID,
+      "totalEligibleCysFLR",
+      "100"
+    );
+    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
+    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "100");
+  });
+
+  test("Updates totals with liquidity withdraw", () => {
+    // User 1 gets 100 cysFLR from DEX
+    let transferEvent = createTransferEvent(
+      APPROVED_DEX_ROUTER,
+      USER_1,
+      BigInt.fromI32(100),
+      CYSFLR_ADDRESS,
+      mockLog(
+        APPROVED_DEX_POOL,
+        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        [APPROVED_DEX_POOL.toHexString(), USER_1.toHexString()],
+        BigInt.fromI32(100)
+      ),
+    );
+    handleTransfer(transferEvent);
+
+    assert.fieldEquals(
+      "EligibleTotals",
+      TOTALS_ID,
+      "totalEligibleCysFLR",
+      "0"
+    );
+    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
+    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "0");
   });
 });

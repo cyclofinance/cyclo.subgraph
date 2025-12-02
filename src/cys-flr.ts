@@ -1,50 +1,10 @@
-import { Address, BigInt, BigDecimal, dataSource } from "@graphprotocol/graph-ts";
+import { BigInt, BigDecimal, dataSource } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/cysFLR/cysFLR";
 import { Account, Transfer, EligibleTotals } from "../generated/schema";
-import { factory } from "../generated/cysFLR/factory";
-import { getOrCreateAccount } from "./common";
+import { getOrCreateAccount, isApprovedSource } from "./common";
+import { CYSFLR_ADDRESS, CYWETH_ADDRESS, TOTALS_ID } from "./constants";
+import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
 import { NetworkImplementation } from "./networkImplementation";
-
-const REWARDS_SOURCES = [
-  Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
-  Address.fromString("0x0f3D8a38D4c74afBebc2c42695642f0e3acb15D3"), // Sparkdex Universal Router
-  Address.fromString("0x6352a56caadC4F1E25CD6c75970Fa768A3304e64"), // OpenOcean Exchange Proxy
-  Address.fromString("0xeD85325119cCFc6aCB16FA931bAC6378B76e4615"), // OpenOcean Exchange Impl
-  Address.fromString("0x8c7ba8f245aef3216698087461e05b85483f791f"), // OpenOcean Exchange Router
-  Address.fromString("0x9D70B0b90915Bb8b9bdAC7e6a7e6435bBF1feC4D"), // Sparkdex TWAP
-];
-
-const FACTORIES = [
-  Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"), // Sparkdex V2
-  Address.fromString("0xb3fB4f96175f6f9D716c17744e5A6d4BA9da8176"), // Sparkdex V3
-  Address.fromString("0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652"), // Sparkdex V3.1
-  Address.fromString("0x440602f459D7Dd500a74528003e6A20A46d6e2A6"), // Blazeswap
-];
-
-const TOTALS_ID = "SINGLETON";
-
-function isApprovedSource(address: Address): boolean {
-  // Non-flare networks consider all sources approved.
-  if (dataSource.network() != "flare") {
-    return true;
-  }
-
-  // Check if the address is a pool from approved factories
-  const maybeHasFactory = factory.bind(address);
-  const factoryAddress = maybeHasFactory.try_factory();
-  if (!factoryAddress.reverted) {
-    if (FACTORIES.includes(factoryAddress.value)) {
-      return true;
-    }
-  }
-
-  // Check if address is directly an approved source
-  if (REWARDS_SOURCES.includes(address)) {
-    return true;
-  }
-
-  return false;
-}
 
 function calculateEligibleShare(
   account: Account,
@@ -101,7 +61,7 @@ function getOrCreateTotals(): EligibleTotals {
   return totals;
 }
 
-function updateTotalsForAccount(
+export function updateTotalsForAccount(
   account: Account,
   oldCysFLRBalance: BigInt,
   oldCyWETHBalance: BigInt,
@@ -208,46 +168,88 @@ export function handleTransfer(event: TransferEvent): void {
       toAccount.cysFLRBalance = toAccount.cysFLRBalance.plus(
         event.params.value
       );
+
+      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
+      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
+      toAccount.cysFLRBalance = toAccount.cysFLRBalance.minus(lpDeductionValue);
     }
-    fromAccount.cysFLRBalance = fromAccount.cysFLRBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyWETHAddress()) {
+
+    // deduct if not a liq add
+    if (!handleLiquidityAdd(event, event.address)) {
+      fromAccount.cysFLRBalance = fromAccount.cysFLRBalance.minus(
+        event.params.value
+      );
+    }
+  } else if (tokenAddress.equals(networkImplementation.getCyWETHAddress())) {
     if (fromIsApprovedSource) {
       toAccount.cyWETHBalance = toAccount.cyWETHBalance.plus(
         event.params.value
       );
+
+      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
+      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
+      toAccount.cyWETHBalance = toAccount.cyWETHBalance.minus(lpDeductionValue);
     }
-    fromAccount.cyWETHBalance = fromAccount.cyWETHBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyFXRPAddress()) {
+
+    // deduct if not a liq add
+    if (!handleLiquidityAdd(event, event.address)) {
+      fromAccount.cyWETHBalance = fromAccount.cyWETHBalance.minus(
+        event.params.value
+      );
+    }
+  } else if (tokenAddress.equals(networkImplementation.getCyFXRPAddress())) {
     if (fromIsApprovedSource) {
       toAccount.cyFXRPBalance = toAccount.cyFXRPBalance.plus(
         event.params.value
       );
+
+      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
+      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
+      toAccount.cyFXRPBalance = toAccount.cyFXRPBalance.minus(lpDeductionValue);
     }
-    fromAccount.cyFXRPBalance = fromAccount.cyFXRPBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCyWBTCAddress()) {
+
+    // deduct if not a liq add
+    if (!handleLiquidityAdd(event, event.address)) {
+      fromAccount.cyFXRPBalance = fromAccount.cyFXRPBalance.minus(
+        event.params.value
+      );
+    }
+  } else if (tokenAddress.equals(networkImplementation.getCyWBTCAddress())) {
     if (fromIsApprovedSource) {
       toAccount.cyWBTCBalance = toAccount.cyWBTCBalance.plus(
         event.params.value
       );
+
+      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
+      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
+      toAccount.cyWBTCBalance = toAccount.cyWBTCBalance.minus(lpDeductionValue);
     }
-    fromAccount.cyWBTCBalance = fromAccount.cyWBTCBalance.minus(
-      event.params.value
-    );
-  } else if (tokenAddress == networkImplementation.getCycbBTCAddress()) {
+
+    // deduct if not a liq add
+    if (!handleLiquidityAdd(event, event.address)) {
+      fromAccount.cyWBTCBalance = fromAccount.cyWBTCBalance.minus(
+        event.params.value
+      );
+    }
+  } else if (tokenAddress.equals(networkImplementation.getCycbBTCAddress())) {
     if (fromIsApprovedSource) {
       toAccount.cycbBTCBalance = toAccount.cycbBTCBalance.plus(
         event.params.value
       );
+
+      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
+      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
+      toAccount.cycbBTCBalance = toAccount.cycbBTCBalance.minus(lpDeductionValue);
     }
-    fromAccount.cycbBTCBalance = fromAccount.cycbBTCBalance.minus(
-      event.params.value
-    );
+
+    // deduct if not a liq add
+    if (!handleLiquidityAdd(event, event.address)) {
+      fromAccount.cycbBTCBalance = fromAccount.cycbBTCBalance.minus(
+        event.params.value
+      );
+    }
+  } else {
+    return;
   }
 
   // Save accounts
