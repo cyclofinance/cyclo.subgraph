@@ -111,6 +111,10 @@
     "cyPYTHReceipt": {
       "address": "0x93AC50B43aFf21aDD1Ad2a626CF6E88C5e00ea39",
       "startBlock": 50345677
+    },
+    "LiquidityV3": {
+      "address": "0xee5ff5bc5f852764b5584d92a4d592a53dc527da",
+      "startBlock": 30718579
     }
   },
   "arbitrum-one": {
@@ -225,6 +229,10 @@
     "cyPYTHReceipt": {
       "address": "0x93AC50B43aFf21aDD1Ad2a626CF6E88C5e00ea39",
       "startBlock": 404060269
+    },
+    "LiquidityV3": {
+      "address": "0xee5ff5bc5f852764b5584d92a4d592a53dc527da",
+      "startBlock": 399250230
     }
   }
 }
