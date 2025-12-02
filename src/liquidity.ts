@@ -1,12 +1,11 @@
 import { updateTotalsForAccount } from "./cys-flr";
 import { LiquidityV2 } from "../generated/templates";
-import { factory } from "../generated/cysFLR/factory";
+import { factory } from "../generated/templates/CycloVaultTemplate/factory";
 import { bigintToBytes, isV2Pool, isV3Pool } from "./common";
-import { Transfer as ERC20TransferEvent } from "../generated/cysFLR/cysFLR";
+import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import { Address, BigInt, Bytes, ethereum, store, dataSource } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
-import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance } from "../generated/schema";
-import { NetworkImplementation } from "./networkImplementation";
+import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance, CycloVault, VaultBalance } from "../generated/schema";
 import {
     ONE18,
     SparkdexV2LiquidityManager,
@@ -300,31 +299,11 @@ export function handleLiquidityV2Transfer(event: ERC20TransferEvent): void {
     const token0 = token0Result.value;
     const token1 = token1Result.value;
 
-    const network = new NetworkImplementation(dataSource.network());
-    const cysFLR = Address.fromString(network.getCysFLRAddress());
-    const cyWETH = Address.fromString(network.getCyWETHAddress());
-    const cyFXRP = Address.fromString(network.getCyFXRPAddress());
-    const cyWBTC = Address.fromString(network.getCyWBTCAddress());
-    const cycbBTC = Address.fromString(network.getCycbBTCAddress());
-    const cyLINK = Address.fromString(network.getCyLINKAddress());
-    const cyDOT = Address.fromString(network.getCyDOTAddress());
-    const cyUNI = Address.fromString(network.getCyUNIAddress());
-    const cyPEPE = Address.fromString(network.getCyPEPEAddress());
-    const cyENA = Address.fromString(network.getCyENAAddress());
-    const cyARB = Address.fromString(network.getCyARBAddress());
-    const cywstETH = Address.fromString(network.getCywstETHAddress());
-    const cyXAUt0 = Address.fromString(network.getCyXAUt0Address());
-    const cyPYTH = Address.fromString(network.getCyPYTHAddress());
-
-    if (token0.equals(cysFLR) || token0.equals(cyWETH) || token0.equals(cyFXRP) || token0.equals(cyWBTC) || token0.equals(cycbBTC) ||
-        token0.equals(cyLINK) || token0.equals(cyDOT) || token0.equals(cyUNI) || token0.equals(cyPEPE) || token0.equals(cyENA) ||
-        token0.equals(cyARB) || token0.equals(cywstETH) || token0.equals(cyXAUt0) || token0.equals(cyPYTH)) {
-        handleLiquidityV2TransferInner(event, owner, token0Result.value);
+    if (CycloVault.load(token0)) {
+        handleLiquidityV2TransferInner(event, owner, token0);
     }
-    if (token1.equals(cysFLR) || token1.equals(cyWETH) || token1.equals(cyFXRP) || token1.equals(cyWBTC) || token1.equals(cycbBTC) ||
-        token1.equals(cyLINK) || token1.equals(cyDOT) || token1.equals(cyUNI) || token1.equals(cyPEPE) || token1.equals(cyENA) ||
-        token1.equals(cyARB) || token1.equals(cywstETH) || token1.equals(cyXAUt0) || token1.equals(cyPYTH)) {
-        handleLiquidityV2TransferInner(event, owner, token1Result.value);
+    if (CycloVault.load(token1)) {
+        handleLiquidityV2TransferInner(event, owner, token1);
     }
 }
 
@@ -368,97 +347,20 @@ function handleLiquidityV2TransferInner(
 
     const account = Account.load(owner);
     if (!account) return;
-    const oldCysFLR = account.cysFLRBalance;
-    const oldCyWETH = account.cyWETHBalance;
-    const oldCyFXRP = account.cyFXRPBalance;
-    const oldCyWBTC = account.cyWBTCBalance;
-    const oldCycbBTC = account.cycbBTCBalance;
-    const oldCyLINK = account.cyLINKBalance;
-    const oldCyDOT = account.cyDOTBalance;
-    const oldCyUNI = account.cyUNIBalance;
-    const oldCyPEPE = account.cyPEPEBalance;
-    const oldCyENA = account.cyENABalance;
-    const oldCyARB = account.cyARBBalance;
-    const oldCywstETH = account.cywstETHBalance;
-    const oldCyXAUt0 = account.cyXAUt0Balance;
-    const oldCyPYTH = account.cyPYTHBalance;
 
-    const network = new NetworkImplementation(dataSource.network());
-    const cysFLR = Address.fromString(network.getCysFLRAddress());
-    const cyWETH = Address.fromString(network.getCyWETHAddress());
-    const cyFXRP = Address.fromString(network.getCyFXRPAddress());
-    const cyWBTC = Address.fromString(network.getCyWBTCAddress());
-    const cycbBTC = Address.fromString(network.getCycbBTCAddress());
-    const cyLINK = Address.fromString(network.getCyLINKAddress());
-    const cyDOT = Address.fromString(network.getCyDOTAddress());
-    const cyUNI = Address.fromString(network.getCyUNIAddress());
-    const cyPEPE = Address.fromString(network.getCyPEPEAddress());
-    const cyENA = Address.fromString(network.getCyENAAddress());
-    const cyARB = Address.fromString(network.getCyARBAddress());
-    const cywstETH = Address.fromString(network.getCywstETHAddress());
-    const cyXAUt0 = Address.fromString(network.getCyXAUt0Address());
-    const cyPYTH = Address.fromString(network.getCyPYTHAddress());
+    const vaultId = cyToken.concat(owner);
+    let vaultBalance = VaultBalance.load(vaultId);
+    if (!vaultBalance) return; // Should exist if they have liquidity
 
-    if (cyToken.equals(cysFLR)) {
-        account.cysFLRBalance = account.cysFLRBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyWETH)) {
-        account.cyWETHBalance = account.cyWETHBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyFXRP)) {
-        account.cyFXRPBalance = account.cyFXRPBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyWBTC)) {
-        account.cyWBTCBalance = account.cyWBTCBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cycbBTC)) {
-        account.cycbBTCBalance = account.cycbBTCBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyLINK)) {
-        account.cyLINKBalance = account.cyLINKBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyDOT)) {
-        account.cyDOTBalance = account.cyDOTBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyUNI)) {
-        account.cyUNIBalance = account.cyUNIBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyPEPE)) {
-        account.cyPEPEBalance = account.cyPEPEBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyENA)) {
-        account.cyENABalance = account.cyENABalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyARB)) {
-        account.cyARBBalance = account.cyARBBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cywstETH)) {
-        account.cywstETHBalance = account.cywstETHBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyXAUt0)) {
-        account.cyXAUt0Balance = account.cyXAUt0Balance.minus(depositDeduction);
-    }
-    if (cyToken.equals(cyPYTH)) {
-        account.cyPYTHBalance = account.cyPYTHBalance.minus(depositDeduction);
-    }
+    const oldBalance = vaultBalance.balance;
+    
+    vaultBalance.balance = vaultBalance.balance.minus(depositDeduction);
+    vaultBalance.save();
+
+    account.totalCyBalance = account.totalCyBalance.minus(depositDeduction);
     account.save();
-    updateTotalsForAccount(
-        account,
-        oldCysFLR,
-        oldCyWETH,
-        oldCyFXRP,
-        oldCyWBTC,
-        oldCycbBTC,
-        oldCyLINK,
-        oldCyDOT,
-        oldCyUNI,
-        oldCyPEPE,
-        oldCyENA,
-        oldCyARB,
-        oldCywstETH,
-        oldCyXAUt0,
-        oldCyPYTH
-    );
+
+    updateTotalsForAccount(account, cyToken, oldBalance, vaultBalance.balance);
 }
 
 // handles LP erc721 token transfers (v3) and updates account cy token balances accordingly
@@ -475,30 +377,10 @@ export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
     const token0Address = result.value.getToken0();
     const token1Address = result.value.getToken1();
 
-    const network = new NetworkImplementation(dataSource.network());
-    const cysFLR = Address.fromString(network.getCysFLRAddress());
-    const cyWETH = Address.fromString(network.getCyWETHAddress());
-    const cyFXRP = Address.fromString(network.getCyFXRPAddress());
-    const cyWBTC = Address.fromString(network.getCyWBTCAddress());
-    const cycbBTC = Address.fromString(network.getCycbBTCAddress());
-    const cyLINK = Address.fromString(network.getCyLINKAddress());
-    const cyDOT = Address.fromString(network.getCyDOTAddress());
-    const cyUNI = Address.fromString(network.getCyUNIAddress());
-    const cyPEPE = Address.fromString(network.getCyPEPEAddress());
-    const cyENA = Address.fromString(network.getCyENAAddress());
-    const cyARB = Address.fromString(network.getCyARBAddress());
-    const cywstETH = Address.fromString(network.getCywstETHAddress());
-    const cyXAUt0 = Address.fromString(network.getCyXAUt0Address());
-    const cyPYTH = Address.fromString(network.getCyPYTHAddress());
-
-    if (token0Address.equals(cysFLR) || token0Address.equals(cyWETH) || token0Address.equals(cyFXRP) || token0Address.equals(cyWBTC) || token0Address.equals(cycbBTC) ||
-        token0Address.equals(cyLINK) || token0Address.equals(cyDOT) || token0Address.equals(cyUNI) || token0Address.equals(cyPEPE) || token0Address.equals(cyENA) ||
-        token0Address.equals(cyARB) || token0Address.equals(cywstETH) || token0Address.equals(cyXAUt0) || token0Address.equals(cyPYTH)) {
+    if (CycloVault.load(token0Address)) {
         handleLiquidityV3TransferInner(event, owner, token0Address, tokenId);
     }
-    if (token1Address.equals(cysFLR) || token1Address.equals(cyWETH) || token1Address.equals(cyFXRP) || token1Address.equals(cyWBTC) || token1Address.equals(cycbBTC) ||
-        token1Address.equals(cyLINK) || token1Address.equals(cyDOT) || token1Address.equals(cyUNI) || token1Address.equals(cyPEPE) || token1Address.equals(cyENA) ||
-        token1Address.equals(cyARB) || token1Address.equals(cywstETH) || token1Address.equals(cyXAUt0) || token1Address.equals(cyPYTH)) {
+    if (CycloVault.load(token1Address)) {
         handleLiquidityV3TransferInner(event, owner, token1Address, tokenId);
     }
 }
@@ -535,97 +417,20 @@ function handleLiquidityV3TransferInner(
 
     const account = Account.load(owner);
     if (!account) return;
-    const oldCysFLR = account.cysFLRBalance;
-    const oldCyWETH = account.cyWETHBalance;
-    const oldCyFXRP = account.cyFXRPBalance;
-    const oldCyWBTC = account.cyWBTCBalance;
-    const oldCycbBTC = account.cycbBTCBalance;
-    const oldCyLINK = account.cyLINKBalance;
-    const oldCyDOT = account.cyDOTBalance;
-    const oldCyUNI = account.cyUNIBalance;
-    const oldCyPEPE = account.cyPEPEBalance;
-    const oldCyENA = account.cyENABalance;
-    const oldCyARB = account.cyARBBalance;
-    const oldCywstETH = account.cywstETHBalance;
-    const oldCyXAUt0 = account.cyXAUt0Balance;
-    const oldCyPYTH = account.cyPYTHBalance;
 
-    const network = new NetworkImplementation(dataSource.network());
-    const cysFLR = Address.fromString(network.getCysFLRAddress());
-    const cyWETH = Address.fromString(network.getCyWETHAddress());
-    const cyFXRP = Address.fromString(network.getCyFXRPAddress());
-    const cyWBTC = Address.fromString(network.getCyWBTCAddress());
-    const cycbBTC = Address.fromString(network.getCycbBTCAddress());
-    const cyLINK = Address.fromString(network.getCyLINKAddress());
-    const cyDOT = Address.fromString(network.getCyDOTAddress());
-    const cyUNI = Address.fromString(network.getCyUNIAddress());
-    const cyPEPE = Address.fromString(network.getCyPEPEAddress());
-    const cyENA = Address.fromString(network.getCyENAAddress());
-    const cyARB = Address.fromString(network.getCyARBAddress());
-    const cywstETH = Address.fromString(network.getCywstETHAddress());
-    const cyXAUt0 = Address.fromString(network.getCyXAUt0Address());
-    const cyPYTH = Address.fromString(network.getCyPYTHAddress());
+    const vaultId = cyToken.concat(owner);
+    let vaultBalance = VaultBalance.load(vaultId);
+    if (!vaultBalance) return; // Should exist
 
-    if (cyToken.equals(cysFLR)) {
-        account.cysFLRBalance = account.cysFLRBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyWETH)) {
-        account.cyWETHBalance = account.cyWETHBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyFXRP)) {
-        account.cyFXRPBalance = account.cyFXRPBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyWBTC)) {
-        account.cyWBTCBalance = account.cyWBTCBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cycbBTC)) {
-        account.cycbBTCBalance = account.cycbBTCBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyLINK)) {
-        account.cyLINKBalance = account.cyLINKBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyDOT)) {
-        account.cyDOTBalance = account.cyDOTBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyUNI)) {
-        account.cyUNIBalance = account.cyUNIBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyPEPE)) {
-        account.cyPEPEBalance = account.cyPEPEBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyENA)) {
-        account.cyENABalance = account.cyENABalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyARB)) {
-        account.cyARBBalance = account.cyARBBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cywstETH)) {
-        account.cywstETHBalance = account.cywstETHBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyXAUt0)) {
-        account.cyXAUt0Balance = account.cyXAUt0Balance.minus(depositBalance);
-    }
-    if (cyToken.equals(cyPYTH)) {
-        account.cyPYTHBalance = account.cyPYTHBalance.minus(depositBalance);
-    }
+    const oldBalance = vaultBalance.balance;
+
+    vaultBalance.balance = vaultBalance.balance.minus(depositBalance);
+    vaultBalance.save();
+
+    account.totalCyBalance = account.totalCyBalance.minus(depositBalance);
     account.save();
-    updateTotalsForAccount(
-        account,
-        oldCysFLR,
-        oldCyWETH,
-        oldCyFXRP,
-        oldCyWBTC,
-        oldCycbBTC,
-        oldCyLINK,
-        oldCyDOT,
-        oldCyUNI,
-        oldCyPEPE,
-        oldCyENA,
-        oldCyARB,
-        oldCywstETH,
-        oldCyXAUt0,
-        oldCyPYTH
-    );
+
+    updateTotalsForAccount(account, cyToken, oldBalance, vaultBalance.balance);
 }
 
 export function createLiquidityV2Change(

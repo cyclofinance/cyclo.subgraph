@@ -1,62 +1,14 @@
-import { BigInt, BigDecimal, dataSource } from "@graphprotocol/graph-ts";
-import { Transfer as TransferEvent } from "../generated/cysFLR/cysFLR";
-import { Account, Transfer, EligibleTotals } from "../generated/schema";
+import { BigInt, BigDecimal, Address } from "@graphprotocol/graph-ts";
+import { Transfer as TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
+import { Account, Transfer, EligibleTotals, CycloVault, VaultBalance } from "../generated/schema";
 import { getOrCreateAccount, isApprovedSource } from "./common";
 import { TOTALS_ID } from "./constants";
 import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
-import { NetworkImplementation } from "./networkImplementation";
 
 function calculateEligibleShare(
   account: Account,
   totals: EligibleTotals
 ): BigDecimal {
-  // Sum only positive balances
-  let positiveTotal = BigInt.fromI32(0);
-  if (account.cysFLRBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cysFLRBalance);
-  }
-  if (account.cyWETHBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyWETHBalance);
-  }
-  if (account.cyFXRPBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyFXRPBalance);
-  }
-  if (account.cyWBTCBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyWBTCBalance);
-  }
-  if (account.cycbBTCBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cycbBTCBalance);
-  }
-  if (account.cyLINKBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyLINKBalance);
-  }
-  if (account.cyDOTBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyDOTBalance);
-  }
-  if (account.cyUNIBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyUNIBalance);
-  }
-  if (account.cyPEPEBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyPEPEBalance);
-  }
-  if (account.cyENABalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyENABalance);
-  }
-  if (account.cyARBBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyARBBalance);
-  }
-  if (account.cywstETHBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cywstETHBalance);
-  }
-  if (account.cyXAUt0Balance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyXAUt0Balance);
-  }
-  if (account.cyPYTHBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyPYTHBalance);
-  }
-
-  account.totalCyBalance = positiveTotal;
-
   // If account has no positive balance, their share is 0
   if (account.totalCyBalance.equals(BigInt.fromI32(0))) {
     return BigDecimal.fromString("0");
@@ -77,20 +29,6 @@ function getOrCreateTotals(): EligibleTotals {
   let totals = EligibleTotals.load(TOTALS_ID);
   if (!totals) {
     totals = new EligibleTotals(TOTALS_ID);
-    totals.totalEligibleCysFLR = BigInt.fromI32(0);
-    totals.totalEligibleCyWETH = BigInt.fromI32(0);
-    totals.totalEligibleCyFXRP = BigInt.fromI32(0);
-    totals.totalEligibleCyWBTC = BigInt.fromI32(0);
-    totals.totalEligibleCycbBTC = BigInt.fromI32(0);
-    totals.totalEligibleCyLINK = BigInt.fromI32(0);
-    totals.totalEligibleCyDOT = BigInt.fromI32(0);
-    totals.totalEligibleCyUNI = BigInt.fromI32(0);
-    totals.totalEligibleCyPEPE = BigInt.fromI32(0);
-    totals.totalEligibleCyENA = BigInt.fromI32(0);
-    totals.totalEligibleCyARB = BigInt.fromI32(0);
-    totals.totalEligibleCywstETH = BigInt.fromI32(0);
-    totals.totalEligibleCyXAUt0 = BigInt.fromI32(0);
-    totals.totalEligibleCyPYTH = BigInt.fromI32(0);
     totals.totalEligibleSum = BigInt.fromI32(0);
     totals.save();
   }
@@ -99,197 +37,33 @@ function getOrCreateTotals(): EligibleTotals {
 
 export function updateTotalsForAccount(
   account: Account,
-  oldCysFLRBalance: BigInt,
-  oldCyWETHBalance: BigInt,
-  oldCyFXRPBalance: BigInt,
-  oldCyWBTCBalance: BigInt,
-  oldCycbBTCBalance: BigInt,
-  oldCyLINKBalance: BigInt,
-  oldCyDOTBalance: BigInt,
-  oldCyUNIBalance: BigInt,
-  oldCyPEPEBalance: BigInt,
-  oldCyENABalance: BigInt,
-  oldCyARBBalance: BigInt,
-  oldCywstETHBalance: BigInt,
-  oldCyXAUt0Balance: BigInt,
-  oldCyPYTHBalance: BigInt
+  vaultAddress: Address,
+  oldBalance: BigInt,
+  newBalance: BigInt
 ): void {
   const totals = getOrCreateTotals();
 
-  // Handle cysFLR changes
-  if (oldCysFLRBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCysFLR =
-      totals.totalEligibleCysFLR.minus(oldCysFLRBalance);
-  }
-  if (account.cysFLRBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCysFLR = totals.totalEligibleCysFLR.plus(
-      account.cysFLRBalance
-    );
-  }
-
-  // Handle cyWETH changes
-  if (oldCyWETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWETH =
-      totals.totalEligibleCyWETH.minus(oldCyWETHBalance);
-  }
-  if (account.cyWETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWETH = totals.totalEligibleCyWETH.plus(
-      account.cyWETHBalance
-    );
+  // Handle vault total changes
+  let vault = CycloVault.load(vaultAddress);
+  if (vault) {
+    // Subtract old balance from vault total if positive
+    if (oldBalance.gt(BigInt.fromI32(0))) {
+      vault.totalEligible = vault.totalEligible.minus(oldBalance);
+    }
+    // Add new balance to vault total if positive
+    if (newBalance.gt(BigInt.fromI32(0))) {
+      vault.totalEligible = vault.totalEligible.plus(newBalance);
+    }
+    vault.save();
   }
 
-  // Handle cyFXRP changes
-  if (oldCyFXRPBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyFXRP =
-      totals.totalEligibleCyFXRP.minus(oldCyFXRPBalance);
+  // Handle global totals
+  if (oldBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleSum = totals.totalEligibleSum.minus(oldBalance);
   }
-  if (account.cyFXRPBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyFXRP = totals.totalEligibleCyFXRP.plus(
-      account.cyFXRPBalance
-    );
+  if (newBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleSum = totals.totalEligibleSum.plus(newBalance);
   }
-
-  // Handle cyWBTC changes
-  if (oldCyWBTCBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWBTC =
-      totals.totalEligibleCyWBTC.minus(oldCyWBTCBalance);
-  }
-  if (account.cyWBTCBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWBTC = totals.totalEligibleCyWBTC.plus(
-      account.cyWBTCBalance
-    );
-  }
-
-  // Handle cycbBTC changes
-  if (oldCycbBTCBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCycbBTC =
-      totals.totalEligibleCycbBTC.minus(oldCycbBTCBalance);
-  }
-  if (account.cycbBTCBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCycbBTC = totals.totalEligibleCycbBTC.plus(
-      account.cycbBTCBalance
-    );
-  }
-
-  // Handle cyLINK changes
-  if (oldCyLINKBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyLINK =
-      totals.totalEligibleCyLINK.minus(oldCyLINKBalance);
-  }
-  if (account.cyLINKBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyLINK = totals.totalEligibleCyLINK.plus(
-      account.cyLINKBalance
-    );
-  }
-
-  // Handle cyDOT changes
-  if (oldCyDOTBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyDOT = totals.totalEligibleCyDOT.minus(
-      oldCyDOTBalance
-    );
-  }
-  if (account.cyDOTBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyDOT = totals.totalEligibleCyDOT.plus(
-      account.cyDOTBalance
-    );
-  }
-
-  // Handle cyUNI changes
-  if (oldCyUNIBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyUNI = totals.totalEligibleCyUNI.minus(
-      oldCyUNIBalance
-    );
-  }
-  if (account.cyUNIBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyUNI = totals.totalEligibleCyUNI.plus(
-      account.cyUNIBalance
-    );
-  }
-
-  // Handle cyPEPE changes
-  if (oldCyPEPEBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyPEPE = totals.totalEligibleCyPEPE.minus(
-      oldCyPEPEBalance
-    );
-  }
-  if (account.cyPEPEBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyPEPE = totals.totalEligibleCyPEPE.plus(
-      account.cyPEPEBalance
-    );
-  }
-
-  // Handle cyENA changes
-  if (oldCyENABalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyENA = totals.totalEligibleCyENA.minus(
-      oldCyENABalance
-    );
-  }
-  if (account.cyENABalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyENA = totals.totalEligibleCyENA.plus(
-      account.cyENABalance
-    );
-  }
-
-  // Handle cyARB changes
-  if (oldCyARBBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyARB = totals.totalEligibleCyARB.minus(
-      oldCyARBBalance
-    );
-  }
-  if (account.cyARBBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyARB = totals.totalEligibleCyARB.plus(
-      account.cyARBBalance
-    );
-  }
-
-  // Handle cywstETH changes
-  if (oldCywstETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCywstETH =
-      totals.totalEligibleCywstETH.minus(oldCywstETHBalance);
-  }
-  if (account.cywstETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCywstETH = totals.totalEligibleCywstETH.plus(
-      account.cywstETHBalance
-    );
-  }
-
-  // Handle cyXAUt0 changes
-  if (oldCyXAUt0Balance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyXAUt0 =
-      totals.totalEligibleCyXAUt0.minus(oldCyXAUt0Balance);
-  }
-  if (account.cyXAUt0Balance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyXAUt0 = totals.totalEligibleCyXAUt0.plus(
-      account.cyXAUt0Balance
-    );
-  }
-
-  // Handle cyPYTH changes
-  if (oldCyPYTHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyPYTH =
-      totals.totalEligibleCyPYTH.minus(oldCyPYTHBalance);
-  }
-  if (account.cyPYTHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyPYTH = totals.totalEligibleCyPYTH.plus(
-      account.cyPYTHBalance
-    );
-  }
-
-  // Update total sum
-  totals.totalEligibleSum = totals.totalEligibleCysFLR
-    .plus(totals.totalEligibleCyWETH)
-    .plus(totals.totalEligibleCyFXRP)
-    .plus(totals.totalEligibleCyWBTC)
-    .plus(totals.totalEligibleCycbBTC)
-    .plus(totals.totalEligibleCyLINK)
-    .plus(totals.totalEligibleCyDOT)
-    .plus(totals.totalEligibleCyUNI)
-    .plus(totals.totalEligibleCyPEPE)
-    .plus(totals.totalEligibleCyENA)
-    .plus(totals.totalEligibleCyARB)
-    .plus(totals.totalEligibleCywstETH)
-    .plus(totals.totalEligibleCyXAUt0)
-    .plus(totals.totalEligibleCyPYTH);
   totals.save();
 
   // Update account's share
@@ -297,289 +71,57 @@ export function updateTotalsForAccount(
   account.save();
 }
 
+function getOrCreateVaultBalance(vaultAddress: Address, account: Account): VaultBalance {
+  let id = vaultAddress.concat(account.address);
+  let vaultBalance = VaultBalance.load(id);
+  
+  if (!vaultBalance) {
+    vaultBalance = new VaultBalance(id);
+    vaultBalance.vault = vaultAddress;
+    vaultBalance.owner = account.id;
+    vaultBalance.balance = BigInt.fromI32(0);
+    vaultBalance.save();
+  }
+  
+  return vaultBalance;
+}
+
 export function handleTransfer(event: TransferEvent): void {
   const fromAccount = getOrCreateAccount(event.params.from);
   const toAccount = getOrCreateAccount(event.params.to);
+  const vaultAddress = event.address;
 
-  // Store old balances for totals calculation
-  const oldFromCysFLR = fromAccount.cysFLRBalance;
-  const oldFromCyWETH = fromAccount.cyWETHBalance;
-  const oldFromCyFXRP = fromAccount.cyFXRPBalance;
-  const oldFromCyWBTC = fromAccount.cyWBTCBalance;
-  const oldFromCycbBTC = fromAccount.cycbBTCBalance;
-  const oldFromCyLINK = fromAccount.cyLINKBalance;
-  const oldFromCyDOT = fromAccount.cyDOTBalance;
-  const oldFromCyUNI = fromAccount.cyUNIBalance;
-  const oldFromCyPEPE = fromAccount.cyPEPEBalance;
-  const oldFromCyENA = fromAccount.cyENABalance;
-  const oldFromCyARB = fromAccount.cyARBBalance;
-  const oldFromCywstETH = fromAccount.cywstETHBalance;
-  const oldFromCyXAUt0 = fromAccount.cyXAUt0Balance;
-  const oldFromCyPYTH = fromAccount.cyPYTHBalance;
-  const oldToCysFLR = toAccount.cysFLRBalance;
-  const oldToCyWETH = toAccount.cyWETHBalance;
-  const oldToCyFXRP = toAccount.cyFXRPBalance;
-  const oldToCyWBTC = toAccount.cyWBTCBalance;
-  const oldToCycbBTC = toAccount.cycbBTCBalance;
-  const oldToCyLINK = toAccount.cyLINKBalance;
-  const oldToCyDOT = toAccount.cyDOTBalance;
-  const oldToCyUNI = toAccount.cyUNIBalance;
-  const oldToCyPEPE = toAccount.cyPEPEBalance;
-  const oldToCyENA = toAccount.cyENABalance;
-  const oldToCyARB = toAccount.cyARBBalance;
-  const oldToCywstETH = toAccount.cywstETHBalance;
-  const oldToCyXAUt0 = toAccount.cyXAUt0Balance;
-  const oldToCyPYTH = toAccount.cyPYTHBalance;
+  // Get vault balances
+  const fromVaultBalance = getOrCreateVaultBalance(vaultAddress, fromAccount);
+  const toVaultBalance = getOrCreateVaultBalance(vaultAddress, toAccount);
+
+  // Store old balances
+  const oldFromBalance = fromVaultBalance.balance;
+  const oldToBalance = toVaultBalance.balance;
 
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
 
-  // Get network implementation to access addresses
-  const networkImplementation = new NetworkImplementation(dataSource.network());
-
-  // Update balances based on which token this is
-  const tokenAddress = event.address.toHexString().toLowerCase();
-  if (tokenAddress == networkImplementation.getCysFLRAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cysFLRBalance = toAccount.cysFLRBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cysFLRBalance = toAccount.cysFLRBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cysFLRBalance = fromAccount.cysFLRBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyWETHAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyWETHBalance = toAccount.cyWETHBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyWETHBalance = toAccount.cyWETHBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyWETHBalance = fromAccount.cyWETHBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyFXRPAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyFXRPBalance = toAccount.cyFXRPBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyFXRPBalance = toAccount.cyFXRPBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyFXRPBalance = fromAccount.cyFXRPBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyWBTCAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyWBTCBalance = toAccount.cyWBTCBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyWBTCBalance = toAccount.cyWBTCBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyWBTCBalance = fromAccount.cyWBTCBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCycbBTCAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cycbBTCBalance = toAccount.cycbBTCBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cycbBTCBalance = toAccount.cycbBTCBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cycbBTCBalance = fromAccount.cycbBTCBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyLINKAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyLINKBalance = toAccount.cyLINKBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyLINKBalance = toAccount.cyLINKBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyLINKBalance = fromAccount.cyLINKBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyDOTAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyDOTBalance = toAccount.cyDOTBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyDOTBalance = toAccount.cyDOTBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyDOTBalance = fromAccount.cyDOTBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyUNIAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyUNIBalance = toAccount.cyUNIBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyUNIBalance = toAccount.cyUNIBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyUNIBalance = fromAccount.cyUNIBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyPEPEAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyPEPEBalance = toAccount.cyPEPEBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyPEPEBalance = toAccount.cyPEPEBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyPEPEBalance = fromAccount.cyPEPEBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyENAAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyENABalance = toAccount.cyENABalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyENABalance = toAccount.cyENABalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyENABalance = fromAccount.cyENABalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyARBAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyARBBalance = toAccount.cyARBBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyARBBalance = toAccount.cyARBBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyARBBalance = fromAccount.cyARBBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCywstETHAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cywstETHBalance = toAccount.cywstETHBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cywstETHBalance = toAccount.cywstETHBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cywstETHBalance = fromAccount.cywstETHBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyXAUt0Address()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyXAUt0Balance = toAccount.cyXAUt0Balance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyXAUt0Balance = toAccount.cyXAUt0Balance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyXAUt0Balance = fromAccount.cyXAUt0Balance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress == networkImplementation.getCyPYTHAddress()) {
-    if (fromIsApprovedSource) {
-      toAccount.cyPYTHBalance = toAccount.cyPYTHBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyPYTHBalance = toAccount.cyPYTHBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyPYTHBalance = fromAccount.cyPYTHBalance.minus(
-        event.params.value
-      );
-    }
-  } else {
-    return;
+  // Update balances
+  if (fromIsApprovedSource) {
+    toVaultBalance.balance = toVaultBalance.balance.plus(event.params.value);
+    
+    // Deduct LP position value if this transfer belongs to a LP withdraw
+    const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
+    toVaultBalance.balance = toVaultBalance.balance.minus(lpDeductionValue);
+    
+    toAccount.totalCyBalance = toAccount.totalCyBalance.plus(event.params.value).minus(lpDeductionValue);
   }
+
+  // Deduct if not a liq add
+  if (!handleLiquidityAdd(event, event.address)) {
+    fromVaultBalance.balance = fromVaultBalance.balance.minus(event.params.value);
+    fromAccount.totalCyBalance = fromAccount.totalCyBalance.minus(event.params.value);
+  }
+
+  // Save vault balances
+  fromVaultBalance.save();
+  toVaultBalance.save();
 
   // Save accounts
   fromAccount.save();
@@ -600,38 +142,6 @@ export function handleTransfer(event: TransferEvent): void {
   transfer.save();
 
   // Update totals for both accounts
-  updateTotalsForAccount(
-    fromAccount,
-    oldFromCysFLR,
-    oldFromCyWETH,
-    oldFromCyFXRP,
-    oldFromCyWBTC,
-    oldFromCycbBTC,
-    oldFromCyLINK,
-    oldFromCyDOT,
-    oldFromCyUNI,
-    oldFromCyPEPE,
-    oldFromCyENA,
-    oldFromCyARB,
-    oldFromCywstETH,
-    oldFromCyXAUt0,
-    oldFromCyPYTH
-  );
-  updateTotalsForAccount(
-    toAccount,
-    oldToCysFLR,
-    oldToCyWETH,
-    oldToCyFXRP,
-    oldToCyWBTC,
-    oldToCycbBTC,
-    oldToCyLINK,
-    oldToCyDOT,
-    oldToCyUNI,
-    oldToCyPEPE,
-    oldToCyENA,
-    oldToCyARB,
-    oldToCywstETH,
-    oldToCyXAUt0,
-    oldToCyPYTH
-  );
+  updateTotalsForAccount(fromAccount, vaultAddress, oldFromBalance, fromVaultBalance.balance);
+  updateTotalsForAccount(toAccount, vaultAddress, oldToBalance, toVaultBalance.balance);
 }

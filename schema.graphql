@@ -3,36 +3,10 @@ type Account @entity {
   address: Bytes!
   transfersIn: [Transfer!]! @derivedFrom(field: "to")
   transfersOut: [Transfer!]! @derivedFrom(field: "from")
-  cysFLRBalance: BigInt!
-  cyWETHBalance: BigInt!
-  cyFXRPBalance: BigInt!
-  cyWBTCBalance: BigInt!
-  cycbBTCBalance: BigInt!
-  cyLINKBalance: BigInt!
-  cyDOTBalance: BigInt!
-  cyUNIBalance: BigInt!
-  cyPEPEBalance: BigInt!
-  cyENABalance: BigInt!
-  cyARBBalance: BigInt!
-  cywstETHBalance: BigInt!
-  cyXAUt0Balance: BigInt!
-  cyPYTHBalance: BigInt!
+  vaultBalances: [VaultBalance!]! @derivedFrom(field: "owner")
+  receiptBalances: [ReceiptOwnerBalance!]! @derivedFrom(field: "owner")
   totalCyBalance: BigInt! # Sum of all token balances
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
-  cysFLRReceiptBalance: [CysFlrReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyWETHReceiptBalance: [CyWethReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyFXRPReceiptBalance: [CyFxrpReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyWBTCReceiptBalance: [CyWbtcReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cycbBTCReceiptBalance: [CycbBTCReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyLINKReceiptBalance: [CyLinkReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyDOTReceiptBalance: [CyDotReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyUNIReceiptBalance: [CyUniReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyPEPEReceiptBalance: [CyPepeReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyENAReceiptBalance: [CyEnaReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyARBReceiptBalance: [CyArbReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cywstETHReceiptBalance: [CyWstethReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyXAUt0ReceiptBalance: [CyXAUt0ReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyPYTHReceiptBalance: [CyPYTHReceiptOwnerBalance!]! @derivedFrom(field: "owner")
   liquidityBalances: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
   liquidityChanges: [LiquidityChange!]! @derivedFrom(field: "owner")
 }
@@ -51,143 +25,40 @@ type Transfer @entity(immutable: true) {
 
 type EligibleTotals @entity {
   id: String!
-  totalEligibleCysFLR: BigInt!
-  totalEligibleCyWETH: BigInt!
-  totalEligibleCyFXRP: BigInt!
-  totalEligibleCyWBTC: BigInt!
-  totalEligibleCycbBTC: BigInt!
-  totalEligibleCyLINK: BigInt!
-  totalEligibleCyDOT: BigInt!
-  totalEligibleCyUNI: BigInt!
-  totalEligibleCyPEPE: BigInt!
-  totalEligibleCyENA: BigInt!
-  totalEligibleCyARB: BigInt!
-  totalEligibleCywstETH: BigInt!
-  totalEligibleCyXAUt0: BigInt!
-  totalEligibleCyPYTH: BigInt!
-  totalEligibleSum: BigInt!
+  totalEligibleSum: BigInt! # Sum of all positive vault balances across all accounts
 }
 
-# interface for receipt owner balance entities that each cy receipts will implement
-# this allows us to do `derivedFrom` on the Account entity for all receipt types
-interface ReceiptOwnerBalance {
+type VaultBalance @entity {
+  id: Bytes! # composite of vaultAddress + owner
+  vault: CycloVault!
+  owner: Account!
+  balance: BigInt!
+}
+
+type ReceiptOwnerBalance @entity {
   id: Bytes! # composite of receiptAddress + tokenId + owner
+  receipt: CycloReceipt!
   receiptAddress: Bytes!
   tokenId: BigInt!
   owner: Account!
   balance: BigInt!
 }
 
-type CysFlrReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
+type CycloVault @entity {
   id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
+  address: Bytes!
+  deployBlock: BigInt!
+  deployTimestamp: BigInt!
+  deployer: Bytes!
+  totalEligible: BigInt! # Sum of all positive balances for this vault across all accounts
 }
 
-type CyWethReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
+type CycloReceipt @entity {
   id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyFxrpReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyWbtcReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CycbBTCReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyLinkReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyDotReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyUniReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyPepeReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyEnaReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyArbReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyWstethReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyXAUt0ReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
-}
-
-type CyPYTHReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
-  id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
+  address: Bytes!
+  deployBlock: BigInt!
+  deployTimestamp: BigInt!
+  deployer: Bytes!
 }
 
 interface LiquidityOwnerBalance {
