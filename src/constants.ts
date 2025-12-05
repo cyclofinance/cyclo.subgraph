@@ -33,7 +33,6 @@ export const CYXAUT0_ADDRESS = Address.fromString("0x6Ddc84F2FC195AE372501B01Bb1
 export const CYPYTH_ADDRESS = Address.fromString("0x87f7B55D7CCc9Be93B0a8aE601801d79FA96FD4f");
 
 export const REWARDS_SOURCES = [
-  Address.fromString("0x0000000000000000000000000000000000000000"), // minting
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
   Address.fromString("0x0f3D8a38D4c74afBebc2c42695642f0e3acb15D3"), // Sparkdex Universal Router
   Address.fromString("0x6352a56caadC4F1E25CD6c75970Fa768A3304e64"), // OpenOcean Exchange Proxy

@@ -1,4 +1,4 @@
-import { BigInt, BigDecimal, Address } from "@graphprotocol/graph-ts";
+import { BigInt, BigDecimal, Address, log } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import { Account, Transfer, EligibleTotals, CycloVault, VaultBalance } from "../generated/schema";
 import { getOrCreateAccount, isApprovedSource } from "./common";
@@ -87,6 +87,14 @@ function getOrCreateVaultBalance(vaultAddress: Address, account: Account): Vault
 }
 
 export function handleTransfer(event: TransferEvent): void {
+  log.info("handleTransfer called: txHash={}, logIndex={}, from={}, to={}, value={}", [
+    event.transaction.hash.toHex(),
+    event.logIndex.toString(),
+    event.params.from.toHex(),
+    event.params.to.toHex(),
+    event.params.value.toString()
+  ]);
+
   const fromAccount = getOrCreateAccount(event.params.from);
   const toAccount = getOrCreateAccount(event.params.to);
   const vaultAddress = event.address;
@@ -101,6 +109,10 @@ export function handleTransfer(event: TransferEvent): void {
 
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
+  log.info("isApprovedSource check: address={}, result={}", [
+    event.params.from.toHex(),
+    fromIsApprovedSource.toString()
+  ]);
 
   // Update balances
   if (fromIsApprovedSource) {
@@ -108,6 +120,10 @@ export function handleTransfer(event: TransferEvent): void {
     
     // Deduct LP position value if this transfer belongs to a LP withdraw
     const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
+    if (lpDeductionValue.gt(BigInt.fromI32(0))) {
+        log.info("LP withdrawal detected: amount={}", [lpDeductionValue.toString()]);
+    }
+
     toVaultBalance.balance = toVaultBalance.balance.minus(lpDeductionValue);
     
     toAccount.totalCyBalance = toAccount.totalCyBalance.plus(event.params.value).minus(lpDeductionValue);
@@ -117,6 +133,8 @@ export function handleTransfer(event: TransferEvent): void {
   if (!handleLiquidityAdd(event, event.address)) {
     fromVaultBalance.balance = fromVaultBalance.balance.minus(event.params.value);
     fromAccount.totalCyBalance = fromAccount.totalCyBalance.minus(event.params.value);
+  } else {
+    log.info("LP addition detected", []);
   }
 
   // Save vault balances
@@ -126,6 +144,13 @@ export function handleTransfer(event: TransferEvent): void {
   // Save accounts
   fromAccount.save();
   toAccount.save();
+
+  log.info("Balances updated: fromOld={}, fromNew={}, toOld={}, toNew={}", [
+      oldFromBalance.toString(),
+      fromVaultBalance.balance.toString(),
+      oldToBalance.toString(),
+      toVaultBalance.balance.toString()
+  ]);
 
   // Create transfer entity
   const transfer = new Transfer(
@@ -144,4 +169,6 @@ export function handleTransfer(event: TransferEvent): void {
   // Update totals for both accounts
   updateTotalsForAccount(fromAccount, vaultAddress, oldFromBalance, fromVaultBalance.balance);
   updateTotalsForAccount(toAccount, vaultAddress, oldToBalance, toVaultBalance.balance);
+
+  log.info("handleTransfer completed", []);
 }
