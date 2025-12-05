@@ -30,7 +30,7 @@ export function handleNewClone(event: NewClone): void {
   let cloneFactoryImplementation = new CloneFactoryImplementation(network);
   
   // Check receipt implementation first
-  if (cloneFactoryImplementation.isCycloTokenReceiptImplementation(implementationAddress)) {
+  if (cloneFactoryImplementation.isCycloTokenReceiptImplementation(event.params.implementation)) {
     log.info("Matched receipt implementation: implementation={}, clone={}", [
       implementationAddress,
       cloneAddress
@@ -50,7 +50,7 @@ export function handleNewClone(event: NewClone): void {
   }
   
   // Check vault implementation
-  if (cloneFactoryImplementation.isCycloTokenImplementation(implementationAddress)) {
+  if (cloneFactoryImplementation.isCycloTokenImplementation(event.params.implementation)) {
     log.info("Matched vault implementation: implementation={}, clone={}", [
       implementationAddress,
       cloneAddress
