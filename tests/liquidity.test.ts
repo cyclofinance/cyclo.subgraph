@@ -52,7 +52,7 @@ describe("Liquidity Transfer Handling", () => {
       handleLiquidityV2Transfer(transferEvent);
 
       // Assert that balances are updated correctly
-      const id = POOL.concat(USER_1).concat(CYSFLR_ADDRESS).toHexString();
+      const id = transferEvent.address.concat(USER_1).concat(CYSFLR_ADDRESS).toHexString();
       assert.fieldEquals("LiquidityV2OwnerBalance", id, "liquidity", "0");
       assert.fieldEquals("LiquidityV2OwnerBalance", id, "depositBalance", "100");
     });
@@ -78,7 +78,7 @@ describe("Liquidity Transfer Handling", () => {
       handleLiquidityV3Transfer(transferEvent);
 
       // Assert that balances are updated correctly
-      const id = POOL.concat(USER_1).concat(CYSFLR_ADDRESS).concat(Bytes.fromByteArray(Bytes.fromBigInt(BigInt.fromI32(1)))).toHexString();
+      const id = transferEvent.address.concat(USER_1).concat(CYSFLR_ADDRESS).concat(Bytes.fromByteArray(Bytes.fromBigInt(BigInt.fromI32(1)))).toHexString();
       assert.fieldEquals("LiquidityV3OwnerBalance", id, "liquidity", "0");
       assert.fieldEquals("LiquidityV3OwnerBalance", id, "depositBalance", "0");
     });

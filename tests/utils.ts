@@ -1,7 +1,7 @@
 import { newMockEvent } from "matchstick-as";
 import { ethereum, Address, BigInt, Bytes, Wrapped } from "@graphprotocol/graph-ts";
-import { Transfer as ERC20TransferEvent } from "../generated/cysFLR/cysFLR";
-import { TransferBatch, TransferSingle } from "../generated/cysFLRReceipt/receipt";
+import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
+import { TransferBatch, TransferSingle } from "../generated/templates/CycloReceiptTemplate/CycloReceipt";
 import { Transfer as ERC721TransferEvent } from "../generated/LiquidityV3/LiquidityV3";
 
 export const defaultAddress = Address.fromString("0xA16081F360e3847006dB660bae1c6d1b2e17eC2A");

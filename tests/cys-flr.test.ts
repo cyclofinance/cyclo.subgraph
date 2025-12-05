@@ -50,8 +50,6 @@ describe("Transfer handling", () => {
   });
 
   test("Initializes totals at zero", () => {
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCysFLR", "0");
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "0");
   });
 
@@ -66,12 +64,12 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "balance",
       "100"
     );
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
+
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "100");
 
     // User 2 gets 150 cyWETH from DEX
@@ -84,17 +82,12 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
-      "100"
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
+      "VaultBalance",
+      CYWETH_ADDRESS.concat(USER_2).toHexString(),
+      "balance",
       "150"
     );
+
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "250");
   });
 
@@ -109,13 +102,6 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // User 1's balance is now 0, User 2's cysFLR balance is -100
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCysFLR", "0");
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      "150"
-    );
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "150");
   });
 
@@ -140,18 +126,6 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // Check initial totals
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
-      "1000"
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      "500"
-    );
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "1500");
 
     // 2. User 1 transfers some to User 2 (making User 2's balances negative)
@@ -172,18 +146,9 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // Check updated totals (only User 1's positive balances should count)
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
-      "700"
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      "300"
-    );
+    // User 1 cysFLR: 1000 - 300 = 700
+    // User 1 cyWETH: 500 - 200 = 300
+    // Total: 1000
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "1000");
   });
 
@@ -212,18 +177,6 @@ describe("Transfer handling", () => {
     assert.fieldEquals(
       "EligibleTotals",
       TOTALS_ID,
-      "totalEligibleCysFLR",
-      largeValue.toString()
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      largeValue.toString()
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
       "totalEligibleSum",
       largeValue.plus(largeValue).toString()
     );
@@ -238,8 +191,6 @@ describe("Transfer handling", () => {
     );
     handleTransfer(transferEvent);
 
-    assert.fieldEquals("Account", USER_1.toHexString(), "cysFLRBalance", "0");
-    assert.fieldEquals("Account", USER_1.toHexString(), "cyWETHBalance", "0");
     assert.fieldEquals("Account", USER_1.toHexString(), "totalCyBalance", "0");
     assert.fieldEquals("Account", USER_1.toHexString(), "eligibleShare", "0");
   });
@@ -470,12 +421,18 @@ describe("Transfer handling", () => {
 
     // Check User 1's balances
     assert.fieldEquals(
-      "Account",
-      USER_1.toHexString(),
-      "cysFLRBalance",
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "balance",
       "-150"
     );
-    assert.fieldEquals("Account", USER_1.toHexString(), "cyWETHBalance", "100");
+    assert.fieldEquals(
+      "VaultBalance",
+      CYWETH_ADDRESS.concat(USER_1).toHexString(),
+      "balance",
+      "100"
+    );
+
     assert.fieldEquals(
       "Account",
       USER_1.toHexString(),
@@ -484,17 +441,10 @@ describe("Transfer handling", () => {
     );
 
     // Check totals
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCysFLR", "0");
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      "100"
-    );
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "100");
   });
 
-    test("Updates totals with liquidity add", () => {
+  test("Updates totals with liquidity add", () => {
     // User 1 sends 100 cysFLR to DEX
     let transferEvent = createTransferEvent(
       USER_1,
@@ -510,13 +460,6 @@ describe("Transfer handling", () => {
     );
     handleTransfer(transferEvent);
 
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
-      "100"
-    );
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "100");
   });
 
@@ -539,10 +482,8 @@ describe("Transfer handling", () => {
     assert.fieldEquals(
       "EligibleTotals",
       TOTALS_ID,
-      "totalEligibleCysFLR",
+      "totalEligibleSum",
       "0"
     );
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "0");
   });
 });
