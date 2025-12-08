@@ -52,6 +52,7 @@ describe("ReceiptOwnerBalance handling", () => {
 
   describe("batch", () => {
     test("should build, apply balance changes and store ReceiptOwnerBalance items from BatchTransfer event", () => {
+      clearStore();
       let transferEvent = createReceiptTransferBatchEvent(
         RECEIPT_ADDRESS,
         FROM,
