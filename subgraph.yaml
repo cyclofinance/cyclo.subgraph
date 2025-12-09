@@ -15,9 +15,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
-      entities:
-        - VerifyFactory
-        - Verify
+      entities: []
       abis:
         - name: CloneFactory
           file: ./lib/rain.factory/out/CloneFactory.sol/CloneFactory.json
@@ -84,8 +82,6 @@ templates:
       language: wasm/assemblyscript
       entities:
         - Account
-        - Token
-        - TokenBalance
         - Transfer
       abis:
         - name: CycloReceipt

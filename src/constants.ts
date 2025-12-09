@@ -4,34 +4,6 @@ export const ONE18 = BigInt.fromString(`1${"0".repeat(18)}`);
 
 export const TOTALS_ID = "SINGLETON";
 
-export const CYSFLR_ADDRESS = Address.fromString("0x19831cfB53A0dbeAD9866C43557C1D48DfF76567");
-
-export const CYWETH_ADDRESS = Address.fromString("0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4");
-
-export const CYFXRP_ADDRESS = Address.fromString("0xF23595Ede14b54817397B1dAb899bA061BdCe7b5");
-
-export const CYWBTC_ADDRESS = Address.fromString("0x229917ac2842Eaab42060a1A9213CA78e01b572a");
-
-export const CYCBBTC_ADDRESS = Address.fromString("0x9fC9dA918552df0DAd6C00051351e335656da100");
-
-export const CYLINK_ADDRESS = Address.fromString("0x715aa5f9A5b3C2b51c432C9028C8692029BCE609");
-
-export const CYDOT_ADDRESS = Address.fromString("0xEE6a7019679f96CED1Ea861Aae0c88D4481c7226");
-
-export const CYUNI_ADDRESS = Address.fromString("0x7Cad3F864639738f9cC25952433cd844c07D16a4");
-
-export const CYPEPE_ADDRESS = Address.fromString("0x4DD4230F3B4d6118D905eD0B6f5f20A3b2472166");
-
-export const CYENA_ADDRESS = Address.fromString("0x5D938CAf878BD56ACcF2B27Fad9F697aA206dF40");
-
-export const CYARB_ADDRESS = Address.fromString("0xc83563177290bdd391DB56553Ed828413b7689bc");
-
-export const CYWSTETH_ADDRESS = Address.fromString("0xC43ee790dc819dB728e2c5bB6285359BBdE7E016");
-
-export const CYXAUT0_ADDRESS = Address.fromString("0x6Ddc84F2FC195AE372501B01Bb1CA25CA3221776");
-
-export const CYPYTH_ADDRESS = Address.fromString("0x87f7B55D7CCc9Be93B0a8aE601801d79FA96FD4f");
-
 export const REWARDS_SOURCES = [
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook
   Address.fromString("0x0f3D8a38D4c74afBebc2c42695642f0e3acb15D3"), // Sparkdex Universal Router

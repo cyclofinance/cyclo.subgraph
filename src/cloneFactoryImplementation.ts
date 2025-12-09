@@ -1,4 +1,4 @@
-import { Address } from "@graphprotocol/graph-ts";
+import { Address, dataSource } from "@graphprotocol/graph-ts";
 
 export const ARBITRUM_ONE_TOKEN_IMPLEMENTATION_ADDRESS = Address.fromString("0x934CAD642Ec68A0f33C15DB129a13028Afa616fC");
 export const ARBITRUM_ONE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS = Address.fromString("0xfF5d5E89F4Cd37c413716531506CfaE062ab77cB");
@@ -35,20 +35,12 @@ export class CloneFactoryImplementation {
     }
 
     public isCycloTokenImplementation(address: Address): boolean {
-        for(let i = 0; i < this.cycloTokenImplementation.length; i++) {
-            if(this.cycloTokenImplementation[i].equals(address)) {
-                return true;
-            }
-        }
-        return false;
+        return this.cycloTokenImplementation.includes(address) as boolean;
     }
 
     public isCycloTokenReceiptImplementation(address: Address): boolean {
-        for(let i = 0; i < this.cycloTokenReceiptImplementation.length; i++) {
-            if(this.cycloTokenReceiptImplementation[i].equals(address)) {
-                return true;
-            }
-        }
-        return false;
+        return this.cycloTokenReceiptImplementation.includes(address) as boolean;
     }
 }
+
+export const cloneFactoryImplementation = new CloneFactoryImplementation(dataSource.network());

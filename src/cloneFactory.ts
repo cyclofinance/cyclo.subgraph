@@ -7,7 +7,7 @@ import {
   CycloReceipt
 } from "../generated/schema";
 import { CycloVaultTemplate, CycloReceiptTemplate } from "../generated/templates";
-import { CloneFactoryImplementation } from "./cloneFactoryImplementation";
+import { cloneFactoryImplementation } from "./cloneFactoryImplementation";
 import { dataSource } from "@graphprotocol/graph-ts";
 
 export function handleNewClone(event: NewClone): void {  
@@ -27,8 +27,6 @@ export function handleNewClone(event: NewClone): void {
     event.params.sender.toHex().toLowerCase()
   ]);
 
-  let cloneFactoryImplementation = new CloneFactoryImplementation(network);
-  
   // Check receipt implementation first
   if (cloneFactoryImplementation.isCycloTokenReceiptImplementation(event.params.implementation)) {
     log.info("Matched receipt implementation: implementation={}, clone={}", [
