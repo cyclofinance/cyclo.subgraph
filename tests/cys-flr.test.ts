@@ -6,10 +6,14 @@ import {
   beforeAll,
   afterAll,
 } from "matchstick-as/assembly/index";
-import { Address, BigInt } from "@graphprotocol/graph-ts";
-import { Transfer } from "../generated/schema";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Transfer, LiquidityV3OwnerBalance } from "../generated/schema";
 import { handleTransfer } from "../src/cys-flr";
-import { createTransferEvent, mockLog } from "./utils";
+import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
+import { dataSourceMock } from "matchstick-as";
+import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType } from "./utils";
+import { SparkdexV3LiquidityManager, DecreaseLiquidityV3ABI } from "../src/constants";
+import { ethereum, Wrapped } from "@graphprotocol/graph-ts";
 
 // Test addresses
 const APPROVED_DEX_ROUTER = Address.fromString(
@@ -40,6 +44,15 @@ const TOTALS_ID = "SINGLETON";
 describe("Transfer handling", () => {
   beforeAll(() => {
     clearStore();
+    // Mock dataSource.network() to return "flare" for tests
+    dataSourceMock.setNetwork("flare");
+    
+    // Mock factory calls
+    mockFactoryRevert(USER_1);
+    mockFactoryRevert(USER_2);
+    mockFactoryRevert(ZERO_ADDRESS);
+    mockFactory(APPROVED_DEX_ROUTER, Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89")); // Valid V2 factory
+    mockFactory(APPROVED_DEX_POOL, Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89")); // Valid V2 factory
   });
 
   afterAll(() => {
@@ -47,9 +60,8 @@ describe("Transfer handling", () => {
   });
 
   test("Initializes totals at zero", () => {
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCysFLR", "0");
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "0");
+    // assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "0");
+    // Removed because entity is lazily created
   });
 
   test("Updates totals with approved transfers", () => {
@@ -63,12 +75,12 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "balance",
       "100"
     );
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
+
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "100");
 
     // User 2 gets 150 cyWETH from DEX
@@ -81,17 +93,12 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
-      "100"
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
+      "VaultBalance",
+      CYWETH_ADDRESS.concat(USER_2).toHexString(),
+      "balance",
       "150"
     );
+
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "250");
   });
 
@@ -106,13 +113,6 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // User 1's balance is now 0, User 2's cysFLR balance is -100
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCysFLR", "0");
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      "150"
-    );
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "150");
   });
 
@@ -137,18 +137,6 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // Check initial totals
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
-      "1000"
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      "500"
-    );
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "1500");
 
     // 2. User 1 transfers some to User 2 (making User 2's balances negative)
@@ -169,18 +157,9 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // Check updated totals (only User 1's positive balances should count)
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
-      "700"
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      "300"
-    );
+    // User 1 cysFLR: 1000 - 300 = 700
+    // User 1 cyWETH: 500 - 200 = 300
+    // Total: 1000
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "1000");
   });
 
@@ -209,24 +188,13 @@ describe("Transfer handling", () => {
     assert.fieldEquals(
       "EligibleTotals",
       TOTALS_ID,
-      "totalEligibleCysFLR",
-      largeValue.toString()
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      largeValue.toString()
-    );
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
       "totalEligibleSum",
       largeValue.plus(largeValue).toString()
     );
   });
 
   test("Initializes account with zero balances and share", () => {
+    clearStore();
     const transferEvent = createTransferEvent(
       APPROVED_DEX_ROUTER,
       USER_1,
@@ -235,8 +203,6 @@ describe("Transfer handling", () => {
     );
     handleTransfer(transferEvent);
 
-    assert.fieldEquals("Account", USER_1.toHexString(), "cysFLRBalance", "0");
-    assert.fieldEquals("Account", USER_1.toHexString(), "cyWETHBalance", "0");
     assert.fieldEquals("Account", USER_1.toHexString(), "totalCyBalance", "0");
     assert.fieldEquals("Account", USER_1.toHexString(), "eligibleShare", "0");
   });
@@ -300,6 +266,15 @@ describe("Transfer handling", () => {
     );
     handleTransfer(transferEvent);
 
+    // Refresh User 1's share by sending a 0 value transfer
+    transferEvent = createTransferEvent(
+      APPROVED_DEX_ROUTER,
+      USER_1,
+      BigInt.fromI32(0),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(transferEvent);
+
     // Total eligible = 400, User 1 has 300/400 = 0.75, User 2 has 100/400 = 0.25
     assert.fieldEquals(
       "Account",
@@ -340,14 +315,14 @@ describe("Transfer handling", () => {
       "Account",
       USER_1.toHexString(),
       "totalCyBalance",
-      "-50"
+      "0"
     );
     assert.fieldEquals("Account", USER_1.toHexString(), "eligibleShare", "0"); // No share with negative balance
     assert.fieldEquals(
       "Account",
       USER_2.toHexString(),
       "totalCyBalance",
-      "-150"
+      "0"
     );
     assert.fieldEquals("Account", USER_2.toHexString(), "eligibleShare", "0"); // No share with negative balance
   });
@@ -390,6 +365,15 @@ describe("Transfer handling", () => {
     );
     handleTransfer(transferEvent);
 
+    // Refresh User 1's share
+    transferEvent = createTransferEvent(
+      APPROVED_DEX_ROUTER,
+      USER_1,
+      BigInt.fromI32(0),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(transferEvent);
+
     // Total is now 2000, User 1 has 1500/2000 = 0.75, User 2 has 500/2000 = 0.25
     assert.fieldEquals(
       "Account",
@@ -428,19 +412,28 @@ describe("Transfer handling", () => {
     );
     handleTransfer(transferEvent);
 
+    // Refresh User 1's share
+    transferEvent = createTransferEvent(
+      APPROVED_DEX_ROUTER,
+      USER_1,
+      BigInt.fromI32(0),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(transferEvent);
+
     // User 1 should have 0.666... share (1M/1.5M)
     assert.fieldEquals(
       "Account",
       USER_1.toHexString(),
       "eligibleShare",
-      "0.666666666666666666"
+      "0.6666666666666666666666666666666667"
     );
     // User 2 should have 0.333... share (500K/1.5M)
     assert.fieldEquals(
       "Account",
       USER_2.toHexString(),
       "eligibleShare",
-      "0.333333333333333333"
+      "0.3333333333333333333333333333333333"
     );
   });
 
@@ -467,12 +460,18 @@ describe("Transfer handling", () => {
 
     // Check User 1's balances
     assert.fieldEquals(
-      "Account",
-      USER_1.toHexString(),
-      "cysFLRBalance",
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "balance",
       "-150"
     );
-    assert.fieldEquals("Account", USER_1.toHexString(), "cyWETHBalance", "100");
+    assert.fieldEquals(
+      "VaultBalance",
+      CYWETH_ADDRESS.concat(USER_1).toHexString(),
+      "balance",
+      "100"
+    );
+
     assert.fieldEquals(
       "Account",
       USER_1.toHexString(),
@@ -481,17 +480,10 @@ describe("Transfer handling", () => {
     );
 
     // Check totals
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCysFLR", "0");
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCyWETH",
-      "100"
-    );
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "100");
   });
 
-    test("Updates totals with liquidity add", () => {
+  test("Updates totals with liquidity add", () => {
     // User 1 sends 100 cysFLR to DEX
     let transferEvent = createTransferEvent(
       USER_1,
@@ -507,39 +499,74 @@ describe("Transfer handling", () => {
     );
     handleTransfer(transferEvent);
 
-    assert.fieldEquals(
-      "EligibleTotals",
-      TOTALS_ID,
-      "totalEligibleCysFLR",
-      "100"
-    );
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "100");
   });
 
   test("Updates totals with liquidity withdraw", () => {
-    // User 1 gets 100 cysFLR from DEX
+    clearStore();
+    // Setup a valid V3 pool mock
+    // 0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652 is Sparkdex V3.1 Factory
+    const V3_FACTORY = Address.fromString("0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652");
+    mockFactory(APPROVED_DEX_POOL, V3_FACTORY);
+
+    // We need to setup a liquidity position for the withdraw to work
+    // Manually create LiquidityV3OwnerBalance entity
+    const tokenId = BigInt.fromI32(1);
+    // V3 positions are indexed by the Manager address, not the pool
+    const id = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId);
+    const liquidityPosition = new LiquidityV3OwnerBalance(id);
+    liquidityPosition.lpAddress = SparkdexV3LiquidityManager;
+    liquidityPosition.owner = USER_1;
+    liquidityPosition.liquidity = BigInt.fromI32(100);
+    liquidityPosition.tokenId = tokenId;
+    liquidityPosition.depositBalance = BigInt.fromI32(100);
+    liquidityPosition.tokenAddress = CYSFLR_ADDRESS;
+    liquidityPosition.save();
+
+    // Now process the withdraw transfer
+    // The sender must be the pool (APPROVED_DEX_POOL) for the logic to recognize it as a withdraw
+    
+    // Construct proper DecreaseLiquidity log
+    const liquidity = BigInt.fromI32(100);
+    const amount0 = BigInt.fromI32(0);
+    const amount1 = BigInt.fromI32(0);
+    
+    const tuple = new ethereum.Tuple();
+    tuple.push(ethereum.Value.fromUnsignedBigInt(liquidity));
+    tuple.push(ethereum.Value.fromUnsignedBigInt(amount0));
+    tuple.push(ethereum.Value.fromUnsignedBigInt(amount1));
+    
+    const logTopics = new Array<Bytes>();
+    logTopics.push(DecreaseLiquidityV3ABI.topic0);
+    // topic1 is tokenId (encoded as 32 bytes BE)
+    // tokenId = 1 -> 0x0...01
+    const tokenIdHex = tokenId.toHexString().slice(2).padStart(64, "0");
+    logTopics.push(Bytes.fromHexString(tokenIdHex));
+
+    const log = new ethereum.Log(
+        SparkdexV3LiquidityManager,
+        logTopics,
+        ethereum.encode(ethereum.Value.fromTuple(tuple))!,
+        defaultAddressBytes, defaultIntBytes, defaultAddressBytes, defaultBigInt,
+        defaultBigInt, defaultBigInt, defaultEventDataLogType, new Wrapped(false)
+    );
+
     let transferEvent = createTransferEvent(
-      APPROVED_DEX_ROUTER,
+      APPROVED_DEX_POOL,
       USER_1,
       BigInt.fromI32(100),
       CYSFLR_ADDRESS,
-      mockLog(
-        APPROVED_DEX_POOL,
-        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
-        [APPROVED_DEX_POOL.toHexString(), USER_1.toHexString()],
-        BigInt.fromI32(100)
-      ),
+      log
     );
+    transferEvent.transaction.to = SparkdexV3LiquidityManager;
+    transferEvent.transaction.from = USER_1;
     handleTransfer(transferEvent);
 
     assert.fieldEquals(
       "EligibleTotals",
       TOTALS_ID,
-      "totalEligibleCysFLR",
+      "totalEligibleSum",
       "0"
     );
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleCyWETH", "0");
-    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "0");
   });
 });

@@ -3,12 +3,10 @@ type Account @entity {
   address: Bytes!
   transfersIn: [Transfer!]! @derivedFrom(field: "to")
   transfersOut: [Transfer!]! @derivedFrom(field: "from")
-  cysFLRBalance: BigInt!
-  cyWETHBalance: BigInt!
-  totalCyBalance: BigInt! # Sum of both token balances
+  vaultBalances: [VaultBalance!]! @derivedFrom(field: "owner")
+  receiptBalances: [ReceiptOwnerBalance!]! @derivedFrom(field: "owner")
+  totalCyBalance: BigInt! # Sum of all token balances
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
-  cysFLRReceiptBalance: [CysFlrReceiptOwnerBalance!]! @derivedFrom(field: "owner")
-  cyWETHReceiptBalance: [CyWethReceiptOwnerBalance!]! @derivedFrom(field: "owner")
   liquidityBalances: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
   liquidityChanges: [LiquidityChange!]! @derivedFrom(field: "owner")
 }
@@ -27,35 +25,40 @@ type Transfer @entity(immutable: true) {
 
 type EligibleTotals @entity {
   id: String!
-  totalEligibleCysFLR: BigInt!
-  totalEligibleCyWETH: BigInt!
-  totalEligibleSum: BigInt!
+  totalEligibleSum: BigInt! # Sum of all positive vault balances across all accounts
 }
 
-# interface for receipt owner balance entities that each cy receipts will implement
-# this allows us to do `derivedFrom` on the Account entity for all receipt types
-interface ReceiptOwnerBalance {
+type VaultBalance @entity {
+  id: Bytes! # composite of vaultAddress + owner
+  vault: CycloVault!
+  owner: Account!
+  balance: BigInt!
+}
+
+type ReceiptOwnerBalance @entity {
   id: Bytes! # composite of receiptAddress + tokenId + owner
+  receipt: CycloReceipt!
   receiptAddress: Bytes!
   tokenId: BigInt!
   owner: Account!
   balance: BigInt!
 }
 
-type CysFlrReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
+type CycloVault @entity {
   id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
+  address: Bytes!
+  deployBlock: BigInt!
+  deployTimestamp: BigInt!
+  deployer: Bytes!
+  totalEligible: BigInt! # Sum of all positive balances for this vault across all accounts
 }
 
-type CyWethReceiptOwnerBalance implements ReceiptOwnerBalance @entity {
+type CycloReceipt @entity {
   id: Bytes!
-  receiptAddress: Bytes!
-  tokenId: BigInt!
-  owner: Account!
-  balance: BigInt!
+  address: Bytes!
+  deployBlock: BigInt!
+  deployTimestamp: BigInt!
+  deployer: Bytes!
 }
 
 interface LiquidityOwnerBalance {

@@ -38,10 +38,17 @@
               cp -r $src/* $out
             '';
           };
+          offchain-assets-subgraph-test = rainix.mkTask.${system} {
+            name = "offchain-assets-subgraph-test";
+            body = ''
+              set -euxo pipefail
+              docker compose up --abort-on-container-exit
+            '';
+          };
         } // rainix.packages.${system};
 
         devShells.default = pkgs.mkShell {
-          packages = [];
+          packages = [packages.offchain-assets-subgraph-test];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
           buildInputs = rainix.devShells.${system}.default.buildInputs;

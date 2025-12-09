@@ -1,5 +1,5 @@
 import { Account } from "../generated/schema";
-import { factory } from "../generated/cysFLR/factory";
+import { factory } from "../generated/templates/CycloVaultTemplate/factory";
 import { Address, BigInt, BigDecimal, Bytes } from "@graphprotocol/graph-ts";
 import { REWARDS_SOURCES, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
 
@@ -8,8 +8,6 @@ export function getOrCreateAccount(address: Address): Account {
   if (!account) {
     account = new Account(address);
     account.address = address;
-    account.cysFLRBalance = BigInt.fromI32(0);
-    account.cyWETHBalance = BigInt.fromI32(0);
     account.totalCyBalance = BigInt.fromI32(0);
     account.eligibleShare = BigDecimal.fromString("0");
     account.save();

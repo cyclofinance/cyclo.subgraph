@@ -1,3 +1,6 @@
-[submodule "cyclo.sol"]
-	path = cyclo.sol
+[submodule "lib/cyclo.sol"]
+	path = lib/cyclo.sol
 	url = https://github.com/cyclofinance/cyclo.sol.git
+[submodule "lib/rain.factory"]
+	path = lib/rain.factory
+	url = https://github.com/rainlanguage/rain.factory.git

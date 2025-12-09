@@ -4,130 +4,25 @@ indexerHints:
 schema:
   file: ./schema.graphql
 dataSources:
-  - kind: ethereum
-    name: cysFLR
+  - kind: ethereum/contract
+    name: CloneFactory
     network: flare
     source:
-      address: "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567"
-      abi: cysFLR
-      startBlock: 34244389
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - Account
-        - Token
-        - TokenBalance
-        - Transfer
-        - LiquidityV2OwnerBalance
-        - LiquidityV3OwnerBalance
-        - LiquidityV2Change
-        - LiquidityV3Change
-      abis:
-        - name: cysFLR
-          file: ./abis/cysFLR.json
-        - name: factory
-          file: ./abis/factory.json
-      eventHandlers:
-        # - event: Approval(indexed address,indexed address,uint256)
-        #   handler: handleApproval
-        # - event: Deposit(address,address,uint256,uint256,uint256,bytes)
-        #   handler: handleDeposit
-        # - event: ERC20PriceOracleReceiptVaultInitialized(address,(address,(address,(address,string,string))))
-        #   handler: handleERC20PriceOracleReceiptVaultInitialized
-        # - event: Initialized(uint8)
-        #   handler: handleInitialized
-        # - event: ReceiptVaultInformation(address,bytes)
-        #   handler: handleReceiptVaultInformation
-        # - event: Snapshot(uint256)
-        #   handler: handleSnapshot
-        - event: Transfer(indexed address,indexed address,uint256)
-          handler: handleTransfer
-          receipt: true
-        # - event: Withdraw(address,address,address,uint256,uint256,uint256,bytes)
-        #   handler: handleWithdraw
-      file: ./src/cys-flr.ts
-
-  - kind: ethereum
-    name: cyWETH
-    network: flare
-    source:
-      address: "0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B852b4"
-      abi: cysFLR # We can reuse the same ABI since they're the same interface
-      startBlock: 34244389
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - Account
-        - Token
-        - TokenBalance
-        - Transfer
-        - LiquidityV2OwnerBalance
-        - LiquidityV3OwnerBalance
-        - LiquidityV2Change
-        - LiquidityV3Change
-      abis:
-        - name: cysFLR
-          file: ./abis/cysFLR.json
-        - name: factory
-          file: ./abis/factory.json
-      eventHandlers:
-        - event: Transfer(indexed address,indexed address,uint256)
-          handler: handleTransfer
-          receipt: true
-      file: ./src/cys-flr.ts
-
-  - kind: ethereum
-    name: cysFLRReceipt
-    network: flare
-    source:
-      address: "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09"
-      abi: receipt
-      startBlock: 34244389
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - Account
-        - CysFlrReceiptOwnerBalance
-      abis:
-        - name: receipt
-          file: ./abis/IReceiptV2.json
-      eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
-          handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
-          handler: handleReceiptTransferBatch
-      file: ./src/receipt.ts
-    
-  - kind: ethereum
-    name: cyWETHReceipt
-    network: flare
-    source:
-      address: "0xBE2615A0fcB54A49A1eB472be30d992599FE0968"
-      abi: receipt
+      abi: CloneFactory
+      address: "0x67fe33484cAF1a8D716b84b779569f79881788Ae"
       startBlock: 36028901
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
-      entities:
-        - Account
-        - CyWethReceiptOwnerBalance
+      entities: []
       abis:
-        - name: receipt
-          file: ./abis/IReceiptV2.json
+        - name: CloneFactory
+          file: ./lib/rain.factory/out/CloneFactory.sol/CloneFactory.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
-          handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
-          handler: handleReceiptTransferBatch
-      file: ./src/receipt.ts
-
+        - event: NewClone(address,address,address)
+          handler: handleNewClone
+      file: ./src/cloneFactory.ts
   - kind: ethereum
     name: LiquidityV3
     network: flare
@@ -152,10 +47,53 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleLiquidityV3Transfer
-
 templates:
-  - name: LiquidityV2
-    kind: ethereum/contract
+  - kind: ethereum/contract
+    name: CycloVaultTemplate
+    network: flare
+    source:
+      abi: CycloVault
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - Transfer
+      abis:
+        - name: CycloVault
+          file: ./lib/cyclo.sol/out/CycloVault.sol/CycloVault.json
+        - name: factory
+          file: ./abis/factory.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/cys-flr.ts
+  - kind: ethereum/contract
+    name: CycloReceiptTemplate
+    network: flare
+    source:
+      abi: CycloReceipt
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - Transfer
+      abis:
+        - name: CycloReceipt
+          file: ./lib/cyclo.sol/out/CycloReceipt.sol/CycloReceipt.json
+      eventHandlers:
+        - event: TransferSingle(indexed address,indexed address,indexed
+            address,uint256,uint256)
+          handler: handleReceiptTransferSingle
+        - event: TransferBatch(indexed address,indexed address,indexed
+            address,uint256[],uint256[])
+          handler: handleReceiptTransferBatch
+      file: ./src/receipt.ts
+  - kind: ethereum/contract
+    name: LiquidityV2
     network: flare
     source:
       abi: LiquidityV2

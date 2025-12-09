@@ -1,27 +1,16 @@
-import { BigInt, BigDecimal } from "@graphprotocol/graph-ts";
-import { Transfer as TransferEvent } from "../generated/cysFLR/cysFLR";
-import { Account, Transfer, EligibleTotals } from "../generated/schema";
+import { BigInt, BigDecimal, Address } from "@graphprotocol/graph-ts";
+import { Transfer as TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
+import { Account, Transfer, EligibleTotals, CycloVault, VaultBalance } from "../generated/schema";
 import { getOrCreateAccount, isApprovedSource } from "./common";
-import { CYSFLR_ADDRESS, CYWETH_ADDRESS, TOTALS_ID } from "./constants";
+import { TOTALS_ID } from "./constants";
 import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
 
 function calculateEligibleShare(
   account: Account,
   totals: EligibleTotals
 ): BigDecimal {
-  // Sum only positive balances
-  let positiveTotal = BigInt.fromI32(0);
-  if (account.cysFLRBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cysFLRBalance);
-  }
-  if (account.cyWETHBalance.gt(BigInt.fromI32(0))) {
-    positiveTotal = positiveTotal.plus(account.cyWETHBalance);
-  }
-
-  account.totalCyBalance = positiveTotal;
-
   // If account has no positive balance, their share is 0
-  if (account.totalCyBalance.equals(BigInt.fromI32(0))) {
+  if (account.totalCyBalance.le(BigInt.fromI32(0))) {
     return BigDecimal.fromString("0");
   }
 
@@ -40,8 +29,6 @@ function getOrCreateTotals(): EligibleTotals {
   let totals = EligibleTotals.load(TOTALS_ID);
   if (!totals) {
     totals = new EligibleTotals(TOTALS_ID);
-    totals.totalEligibleCysFLR = BigInt.fromI32(0);
-    totals.totalEligibleCyWETH = BigInt.fromI32(0);
     totals.totalEligibleSum = BigInt.fromI32(0);
     totals.save();
   }
@@ -50,37 +37,33 @@ function getOrCreateTotals(): EligibleTotals {
 
 export function updateTotalsForAccount(
   account: Account,
-  oldCysFLRBalance: BigInt,
-  oldCyWETHBalance: BigInt
+  vaultAddress: Address,
+  oldBalance: BigInt,
+  newBalance: BigInt
 ): void {
   const totals = getOrCreateTotals();
 
-  // Handle cysFLR changes
-  if (oldCysFLRBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCysFLR =
-      totals.totalEligibleCysFLR.minus(oldCysFLRBalance);
-  }
-  if (account.cysFLRBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCysFLR = totals.totalEligibleCysFLR.plus(
-      account.cysFLRBalance
-    );
-  }
-
-  // Handle cyWETH changes
-  if (oldCyWETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWETH =
-      totals.totalEligibleCyWETH.minus(oldCyWETHBalance);
-  }
-  if (account.cyWETHBalance.gt(BigInt.fromI32(0))) {
-    totals.totalEligibleCyWETH = totals.totalEligibleCyWETH.plus(
-      account.cyWETHBalance
-    );
+  // Handle vault total changes
+  let vault = CycloVault.load(vaultAddress);
+  if (vault) {
+    // Subtract old balance from vault total if positive
+    if (oldBalance.gt(BigInt.fromI32(0))) {
+      vault.totalEligible = vault.totalEligible.minus(oldBalance);
+    }
+    // Add new balance to vault total if positive
+    if (newBalance.gt(BigInt.fromI32(0))) {
+      vault.totalEligible = vault.totalEligible.plus(newBalance);
+    }
+    vault.save();
   }
 
-  // Update total sum
-  totals.totalEligibleSum = totals.totalEligibleCysFLR.plus(
-    totals.totalEligibleCyWETH
-  );
+  // Handle global totals
+  if (oldBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleSum = totals.totalEligibleSum.minus(oldBalance);
+  }
+  if (newBalance.gt(BigInt.fromI32(0))) {
+    totals.totalEligibleSum = totals.totalEligibleSum.plus(newBalance);
+  }
   totals.save();
 
   // Update account's share
@@ -88,58 +71,70 @@ export function updateTotalsForAccount(
   account.save();
 }
 
+function getOrCreateVaultBalance(vaultAddress: Address, account: Account): VaultBalance {
+  let id = vaultAddress.concat(account.address);
+  let vaultBalance = VaultBalance.load(id);
+  
+  if (!vaultBalance) {
+    vaultBalance = new VaultBalance(id);
+    vaultBalance.vault = vaultAddress;
+    vaultBalance.owner = account.id;
+    vaultBalance.balance = BigInt.fromI32(0);
+    vaultBalance.save();
+  }
+  
+  return vaultBalance;
+}
+
+function getEligibleBalance(balance: BigInt): BigInt {
+    return balance.gt(BigInt.fromI32(0)) ? balance : BigInt.fromI32(0);
+}
+
 export function handleTransfer(event: TransferEvent): void {
   const fromAccount = getOrCreateAccount(event.params.from);
   const toAccount = getOrCreateAccount(event.params.to);
+  const vaultAddress = event.address;
 
-  // Store old balances for totals calculation
-  const oldFromCysFLR = fromAccount.cysFLRBalance;
-  const oldFromCyWETH = fromAccount.cyWETHBalance;
-  const oldToCysFLR = toAccount.cysFLRBalance;
-  const oldToCyWETH = toAccount.cyWETHBalance;
+  // Get vault balances
+  const fromVaultBalance = getOrCreateVaultBalance(vaultAddress, fromAccount);
+  const toVaultBalance = getOrCreateVaultBalance(vaultAddress, toAccount);
+
+  // Store old balances
+  const oldFromBalance = fromVaultBalance.balance;
+  const oldToBalance = toVaultBalance.balance;
 
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
 
-  // Update balances based on which token this is
-  const tokenAddress = event.address;
-  if (tokenAddress.equals(CYSFLR_ADDRESS)) {
-    if (fromIsApprovedSource) {
-      toAccount.cysFLRBalance = toAccount.cysFLRBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cysFLRBalance = toAccount.cysFLRBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cysFLRBalance = fromAccount.cysFLRBalance.minus(
-        event.params.value
-      );
-    }
-  } else if (tokenAddress.equals(CYWETH_ADDRESS)) {
-    if (fromIsApprovedSource) {
-      toAccount.cyWETHBalance = toAccount.cyWETHBalance.plus(
-        event.params.value
-      );
-
-      // deduct the calculated lp position value if this transfer belongs to a lp withdraw
-      const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-      toAccount.cyWETHBalance = toAccount.cyWETHBalance.minus(lpDeductionValue);
-    }
-
-    // deduct if not a liq add
-    if (!handleLiquidityAdd(event, event.address)) {
-      fromAccount.cyWETHBalance = fromAccount.cyWETHBalance.minus(
-        event.params.value
-      );
-    }
-  } else {
-    return;
+  // Update balances
+  if (fromIsApprovedSource) {
+    toVaultBalance.balance = toVaultBalance.balance.plus(event.params.value);
+    
+    // Deduct LP position value if this transfer belongs to a LP withdraw
+    const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
+    toVaultBalance.balance = toVaultBalance.balance.minus(lpDeductionValue);
+    
+    // Update totalCyBalance based on change in eligible balance
+    const eligibleOld = getEligibleBalance(oldToBalance);
+    const eligibleNew = getEligibleBalance(toVaultBalance.balance);
+    const delta = eligibleNew.minus(eligibleOld);
+    toAccount.totalCyBalance = toAccount.totalCyBalance.plus(delta);
   }
+
+  // Deduct if not a liq add
+  if (!handleLiquidityAdd(event, event.address)) {
+    fromVaultBalance.balance = fromVaultBalance.balance.minus(event.params.value);
+    
+    // Update totalCyBalance based on change in eligible balance
+    const eligibleOld = getEligibleBalance(oldFromBalance);
+    const eligibleNew = getEligibleBalance(fromVaultBalance.balance);
+    const delta = eligibleNew.minus(eligibleOld);
+    fromAccount.totalCyBalance = fromAccount.totalCyBalance.plus(delta);
+  }
+
+  // Save vault balances
+  fromVaultBalance.save();
+  toVaultBalance.save();
 
   // Save accounts
   fromAccount.save();
@@ -160,6 +155,6 @@ export function handleTransfer(event: TransferEvent): void {
   transfer.save();
 
   // Update totals for both accounts
-  updateTotalsForAccount(fromAccount, oldFromCysFLR, oldFromCyWETH);
-  updateTotalsForAccount(toAccount, oldToCysFLR, oldToCyWETH);
+  updateTotalsForAccount(fromAccount, vaultAddress, oldFromBalance, fromVaultBalance.balance);
+  updateTotalsForAccount(toAccount, vaultAddress, oldToBalance, toVaultBalance.balance);
 }

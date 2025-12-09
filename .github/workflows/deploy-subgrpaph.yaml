@@ -48,13 +48,8 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size-linux: 1G
 
-      - name: Verify submodules are initialized
-        run: |
-          if [ ! -d "cyclo.sol/.git" ]; then
-            echo "Submodule not initialized, initializing..."
-            git submodule init
-            git submodule update
-          fi
+      - name: Generate abis
+        run: ./prep-cyclo.sh
       
       - name: Generate subgraph code
         run: nix develop -c graph codegen
@@ -68,7 +63,8 @@ jobs:
         run: nix develop -c goldsky login --token ${{ secrets.GOLDSKY_CI }}
 
       # Check if the repo is clean before deploying.
+      # Exclude subgraph.yaml (updated by build) and address files (updated by script)
       - run: git diff --exit-code -- . ':!subgraph.yaml'
       - run: >
-          nix develop -c goldsky subgraph deploy "cyclo-${{ inputs.network }}/$(date -Idate)-$(openssl rand -hex 2)"
+          nix develop -c goldsky subgraph deploy "cyclo-${{ inputs.network }}-test/$(date -Idate)-$(openssl rand -hex 2)"
         working-directory: .

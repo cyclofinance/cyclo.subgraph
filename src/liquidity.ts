@@ -1,21 +1,19 @@
 import { updateTotalsForAccount } from "./cys-flr";
 import { LiquidityV2 } from "../generated/templates";
-import { factory } from "../generated/cysFLR/factory";
+import { factory } from "../generated/templates/CycloVaultTemplate/factory";
 import { bigintToBytes, isV2Pool, isV3Pool } from "./common";
-import { Transfer as ERC20TransferEvent } from "../generated/cysFLR/cysFLR";
-import { Address, BigInt, Bytes, ethereum, store } from "@graphprotocol/graph-ts";
+import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
+import { Address, BigInt, Bytes, ethereum, store, dataSource } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
-import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance } from "../generated/schema";
+import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance, CycloVault, VaultBalance } from "../generated/schema";
 import {
     ONE18,
-    CYSFLR_ADDRESS,
-    CYWETH_ADDRESS,
-    ERC20TransferEventABI,
-    IncreaseLiquidityV3ABI,
-    DecreaseLiquidityV3ABI,
     SparkdexV2LiquidityManager,
     SparkdexV3LiquidityManager,
     BlazeswapV2LiquidityManager,
+    ERC20TransferEventABI,
+    IncreaseLiquidityV3ABI,
+    DecreaseLiquidityV3ABI,
 } from "./constants";
 
 export const DEPOSIT = "DEPOSIT";
@@ -300,11 +298,12 @@ export function handleLiquidityV2Transfer(event: ERC20TransferEvent): void {
 
     const token0 = token0Result.value;
     const token1 = token1Result.value;
-    if (token0.equals(CYSFLR_ADDRESS) || token0.equals(CYWETH_ADDRESS)) {
-        handleLiquidityV2TransferInner(event, owner, token0Result.value);
+
+    if (CycloVault.load(token0)) {
+        handleLiquidityV2TransferInner(event, owner, token0);
     }
-    if (token1.equals(CYSFLR_ADDRESS) || token1.equals(CYWETH_ADDRESS)) {
-        handleLiquidityV2TransferInner(event, owner, token1Result.value);
+    if (CycloVault.load(token1)) {
+        handleLiquidityV2TransferInner(event, owner, token1);
     }
 }
 
@@ -348,16 +347,20 @@ function handleLiquidityV2TransferInner(
 
     const account = Account.load(owner);
     if (!account) return;
-    const oldCysFLR = account.cysFLRBalance;
-    const oldCyWETH = account.cyWETHBalance;
-    if (cyToken.equals(CYSFLR_ADDRESS)) {
-        account.cysFLRBalance = account.cysFLRBalance.minus(depositDeduction);
-    }
-    if (cyToken.equals(CYWETH_ADDRESS)) {
-        account.cyWETHBalance = account.cyWETHBalance.minus(depositDeduction);
-    }
+
+    const vaultId = cyToken.concat(owner);
+    let vaultBalance = VaultBalance.load(vaultId);
+    if (!vaultBalance) return; // Should exist if they have liquidity
+
+    const oldBalance = vaultBalance.balance;
+    
+    vaultBalance.balance = vaultBalance.balance.minus(depositDeduction);
+    vaultBalance.save();
+
+    account.totalCyBalance = account.totalCyBalance.minus(depositDeduction);
     account.save();
-    updateTotalsForAccount(account, oldCysFLR, oldCyWETH);
+
+    updateTotalsForAccount(account, cyToken, oldBalance, vaultBalance.balance);
 }
 
 // handles LP erc721 token transfers (v3) and updates account cy token balances accordingly
@@ -373,10 +376,11 @@ export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
 
     const token0Address = result.value.getToken0();
     const token1Address = result.value.getToken1();
-    if (token0Address.equals(CYSFLR_ADDRESS) || token0Address.equals(CYWETH_ADDRESS)) {
+
+    if (CycloVault.load(token0Address)) {
         handleLiquidityV3TransferInner(event, owner, token0Address, tokenId);
     }
-    if (token1Address.equals(CYSFLR_ADDRESS) || token1Address.equals(CYWETH_ADDRESS)) {
+    if (CycloVault.load(token1Address)) {
         handleLiquidityV3TransferInner(event, owner, token1Address, tokenId);
     }
 }
@@ -413,16 +417,20 @@ function handleLiquidityV3TransferInner(
 
     const account = Account.load(owner);
     if (!account) return;
-    const oldCysFLR = account.cysFLRBalance;
-    const oldCyWETH = account.cyWETHBalance;
-    if (cyToken.equals(CYSFLR_ADDRESS)) {
-        account.cysFLRBalance = account.cysFLRBalance.minus(depositBalance);
-    }
-    if (cyToken.equals(CYWETH_ADDRESS)) {
-        account.cyWETHBalance = account.cyWETHBalance.minus(depositBalance);
-    }
+
+    const vaultId = cyToken.concat(owner);
+    let vaultBalance = VaultBalance.load(vaultId);
+    if (!vaultBalance) return; // Should exist
+
+    const oldBalance = vaultBalance.balance;
+
+    vaultBalance.balance = vaultBalance.balance.minus(depositBalance);
+    vaultBalance.save();
+
+    account.totalCyBalance = account.totalCyBalance.minus(depositBalance);
     account.save();
-    updateTotalsForAccount(account, oldCysFLR, oldCyWETH);
+
+    updateTotalsForAccount(account, cyToken, oldBalance, vaultBalance.balance);
 }
 
 export function createLiquidityV2Change(
