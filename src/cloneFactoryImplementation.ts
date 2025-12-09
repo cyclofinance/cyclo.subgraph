@@ -34,12 +34,22 @@ export class CloneFactoryImplementation {
         }
     }
 
-    public isCycloTokenImplementation(address: Address): boolean {
-        return this.cycloTokenImplementation.includes(address) as boolean;
+    public isCycloTokenImplementation(normalizedAddress: Address): boolean {
+        for (let i = 0; i < this.cycloTokenImplementation.length; i++) {
+            if (this.cycloTokenImplementation[i].equals(normalizedAddress)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    public isCycloTokenReceiptImplementation(address: Address): boolean {
-        return this.cycloTokenReceiptImplementation.includes(address) as boolean;
+    public isCycloTokenReceiptImplementation(normalizedAddress: Address): boolean {
+        for (let i = 0; i < this.cycloTokenReceiptImplementation.length; i++) {
+            if (this.cycloTokenReceiptImplementation[i].equals(normalizedAddress)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

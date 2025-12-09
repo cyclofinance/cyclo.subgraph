@@ -59,8 +59,6 @@ templates:
       language: wasm/assemblyscript
       entities:
         - Account
-        - Token
-        - TokenBalance
         - Transfer
       abis:
         - name: CycloVault
