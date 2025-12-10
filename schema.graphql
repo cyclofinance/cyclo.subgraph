@@ -87,12 +87,17 @@ type LiquidityV3OwnerBalance implements LiquidityOwnerBalance @entity {
   liquidity: BigInt!
   tokenAddress: Bytes! # cy token address
   tokenId: BigInt!
+  poolAddress: Bytes!
+  fee: Int!
+  lowerTick: Int!
+  upperTick: Int!
 }
 
 enum LiquidityChangeType {
   DEPOSIT
   WITHDRAW
   TRANSFER
+  OUT_OF_RANGE_DEPOSIT
 }
 
 interface LiquidityChange {
@@ -105,7 +110,7 @@ interface LiquidityChange {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
-  LiquidityChangeType: LiquidityChangeType!
+  liquidityChangeType: LiquidityChangeType!
 }
 
 type LiquidityV2Change implements LiquidityChange @entity(immutable: true) {
@@ -118,7 +123,7 @@ type LiquidityV2Change implements LiquidityChange @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
-  LiquidityChangeType: LiquidityChangeType!
+  liquidityChangeType: LiquidityChangeType!
 }
 
 type LiquidityV3Change implements LiquidityChange @entity(immutable: true) {
@@ -131,6 +136,6 @@ type LiquidityV3Change implements LiquidityChange @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
-  LiquidityChangeType: LiquidityChangeType!
+  liquidityChangeType: LiquidityChangeType!
   tokenId: BigInt!
 }

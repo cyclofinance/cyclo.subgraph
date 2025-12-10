@@ -3,7 +3,7 @@ import { LiquidityV2 } from "../generated/templates";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
 import { bigintToBytes, isV2Pool, isV3Pool } from "./common";
 import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
-import { Address, BigInt, Bytes, ethereum, store, dataSource } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, ethereum, store, dataSource, BigDecimal } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
 import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance, CycloVault, VaultBalance } from "../generated/schema";
 import {
@@ -19,6 +19,7 @@ import {
 export const DEPOSIT = "DEPOSIT";
 export const WITHDRAW = "WITHDRAW";
 export const TRANSFER = "TRANSFER";
+export const OUT_OF_RANGE_DEPOSIT = "OUT_OF_RANGE_DEPOSIT";
 
 export function getLiquidityV2OwnerBalanceId(
     address: Address,
@@ -185,18 +186,34 @@ export function handleLiquidityV3Add(
         const id = getLiquidityV3OwnerBalanceId(log_.address, owner, cyToken, tokenId);
         let liquidityV3OwnerBalance = LiquidityV3OwnerBalance.load(id);
         if (!liquidityV3OwnerBalance) {
-            liquidityV3OwnerBalance = new LiquidityV3OwnerBalance(id);
-            liquidityV3OwnerBalance.lpAddress = log_.address;
-            liquidityV3OwnerBalance.owner = owner;
-            liquidityV3OwnerBalance.liquidity = liquidity;
-            liquidityV3OwnerBalance.tokenId = tokenId;
-            liquidityV3OwnerBalance.depositBalance = event.params.value;
-            liquidityV3OwnerBalance.tokenAddress = cyToken;
+            const positionResult = LiquidityV3.bind(event.address).try_positions(tokenId);
+            if (!positionResult.reverted) {
+                const fee = positionResult.value.getFee();
+                const lowerTick = positionResult.value.getTickLower();
+                const upperTick = positionResult.value.getTickUpper();
+                liquidityV3OwnerBalance = new LiquidityV3OwnerBalance(id);
+                liquidityV3OwnerBalance.lpAddress = log_.address;
+                liquidityV3OwnerBalance.owner = owner;
+                liquidityV3OwnerBalance.liquidity = liquidity;
+                liquidityV3OwnerBalance.tokenId = tokenId;
+                liquidityV3OwnerBalance.depositBalance = event.params.value;
+                liquidityV3OwnerBalance.tokenAddress = cyToken;
+                liquidityV3OwnerBalance.poolAddress = event.params.to;
+                liquidityV3OwnerBalance.fee = fee;
+                liquidityV3OwnerBalance.lowerTick = lowerTick;
+                liquidityV3OwnerBalance.upperTick = upperTick;
+            }
         } else {
             liquidityV3OwnerBalance.liquidity = liquidityV3OwnerBalance.liquidity.plus(liquidity);
             liquidityV3OwnerBalance.depositBalance = liquidityV3OwnerBalance.depositBalance.plus(event.params.value);
         }
-        liquidityV3OwnerBalance.save();
+        if (liquidityV3OwnerBalance) liquidityV3OwnerBalance.save();
+
+        // check if the current market price is within lp position rangeshit
+        const slot0Result = factory.bind(event.params.to).try_slot0();
+        if (slot0Result.reverted || !liquidityV3OwnerBalance) return false;
+        const currentTick = slot0Result.value.getTick();
+        const isInRange = liquidityV3OwnerBalance.lowerTick <= currentTick && currentTick <= liquidityV3OwnerBalance.upperTick;
 
         // create liquidity change entity for this deposit
         createLiquidityV3Change(
@@ -209,10 +226,11 @@ export function handleLiquidityV3Add(
             event.block.timestamp,
             event.transaction.hash,
             log_.logIndex,
-            DEPOSIT,
+            isInRange ? DEPOSIT : OUT_OF_RANGE_DEPOSIT,
             tokenId,
         )
-        return true;
+
+        return isInRange;
     }
 
     return false;
@@ -447,7 +465,7 @@ export function createLiquidityV2Change(
 ): void {
     const id = transactionHash.concatI32(logIndex.toI32());
     const item = new LiquidityV2Change(id);
-    item.LiquidityChangeType = typ;
+    item.liquidityChangeType = typ;
     item.blockNumber = blockNumber;
     item.blockTimestamp = blockTimestamp;
     item.transactionHash = transactionHash;
@@ -479,7 +497,7 @@ export function createLiquidityV3Change(
 ): void {
     const id = transactionHash.concatI32(logIndex.toI32());
     const item = new LiquidityV3Change(id);
-    item.LiquidityChangeType = typ;
+    item.liquidityChangeType = typ;
     item.blockNumber = blockNumber;
     item.blockTimestamp = blockTimestamp;
     item.transactionHash = transactionHash;
@@ -487,7 +505,7 @@ export function createLiquidityV3Change(
     item.lpAddress = lpAddress;
     item.owner = owner;
     item.tokenId = tokenId;
-    if (typ === DEPOSIT) {
+    if (typ === DEPOSIT || typ === OUT_OF_RANGE_DEPOSIT) {
         item.depositedBalanceChange = value;
         item.liquidityChange = lquidity;
     } else {
