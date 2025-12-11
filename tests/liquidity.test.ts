@@ -122,6 +122,10 @@ describe("Liquidity Transfer Handling", () => {
       initialBalance.tokenId = BigInt.fromI32(1);
       initialBalance.depositBalance = BigInt.fromI32(100);
       initialBalance.tokenAddress = CY_TOKEN_ADDR;
+      initialBalance.poolAddress = transferEvent.params.to;
+      initialBalance.fee = 500;
+      initialBalance.lowerTick = -34864;
+      initialBalance.upperTick = -22593;
       initialBalance.save();
 
       // Call the handler
