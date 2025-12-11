@@ -521,6 +521,7 @@ describe("Transfer handling", () => {
     liquidityPosition.tokenId = tokenId;
     liquidityPosition.depositBalance = BigInt.fromI32(100);
     liquidityPosition.tokenAddress = CYSFLR_ADDRESS;
+    liquidityPosition.poolAddress = SparkdexV3LiquidityManager;
     liquidityPosition.fee = 300;
     liquidityPosition.lowerTick = -32733;
     liquidityPosition.upperTick = -14461;
