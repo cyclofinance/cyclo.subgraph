@@ -216,7 +216,7 @@ export function handleLiquidityV3Add(
             const currentTick = slot0Result.value.getTick();
             const isInRange =
                 liquidityV3OwnerBalance.lowerTick <= currentTick &&
-                currentTick <= liquidityV3OwnerBalance.upperTick;
+                liquidityV3OwnerBalance.upperTick >= currentTick;
 
             // create liquidity change entity for this deposit
             createLiquidityV3Change(
