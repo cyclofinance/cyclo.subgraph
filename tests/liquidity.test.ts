@@ -95,7 +95,7 @@ describe("Liquidity Transfer Handling", () => {
       vault.totalEligible = BigInt.fromI32(0);
       vault.save();
 
-      mockLiquidityV3Positions(CYSFLR_ADDRESS, BigInt.fromI32(1), CY_TOKEN_ADDR, Address.fromString("0x0000000000000000000000000000000000000002"));
+      mockLiquidityV3Positions(CYSFLR_ADDRESS, BigInt.fromI32(1), CY_TOKEN_ADDR, Address.fromString("0x0000000000000000000000000000000000000002"), 0, 0);
 
       // Create a V3 transfer event
       let transferEvent = createERC721TransferEvent(
@@ -122,6 +122,10 @@ describe("Liquidity Transfer Handling", () => {
       initialBalance.tokenId = BigInt.fromI32(1);
       initialBalance.depositBalance = BigInt.fromI32(100);
       initialBalance.tokenAddress = CY_TOKEN_ADDR;
+      initialBalance.poolAddress = transferEvent.params.to;
+      initialBalance.fee = 500;
+      initialBalance.lowerTick = -34864;
+      initialBalance.upperTick = -22593;
       initialBalance.save();
 
       // Call the handler

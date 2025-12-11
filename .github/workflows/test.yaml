@@ -32,4 +32,4 @@ jobs:
         run: nix develop -c graph build
 
       - name: Run Matchstick tests
-        run: nix develop -c offchain-assets-subgraph-test
+        run: nix develop -c subgraph-test
