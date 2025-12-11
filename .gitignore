@@ -2,4 +2,4 @@ cyclo.sol
 generated
 node_modules
 build
-test/.bin
+tests/.bin
