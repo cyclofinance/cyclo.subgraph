@@ -647,7 +647,7 @@ describe("Transfer handling with in/out of range V3 liquidity", () => {
     );
   });
 
-  test("Updates account balance with liquidity add v3 in range", () => {
+  test("Updates account balance with liquidity add v3 out of range", () => {
     mockLiquidityV3Positions(
       SparkdexV3LiquidityManager,
       BigInt.fromI32(123456),
