@@ -621,7 +621,7 @@ describe("Transfer handling with in/out of range V3 liquidity", () => {
       "100" // should have 100 tokens
     );
 
-    // User 1 performs a liquidty add that is in range
+    // User 1 performs liquidty add that is in range
     const transferEventWithLiqAdd = createTransferEvent(
       USER_1,
       APPROVED_DEX_POOL,
@@ -673,7 +673,7 @@ describe("Transfer handling with in/out of range V3 liquidity", () => {
       "100" // should have 100 tokens
     );
 
-    // User 1 perfomr s aliquidity add that is out of range
+    // User 1 performs liquidity add that is out of range
     const transferEventWithLiqAdd = createTransferEvent(
       USER_1,
       APPROVED_DEX_POOL,
