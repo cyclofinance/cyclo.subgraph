@@ -186,7 +186,7 @@ export function handleLiquidityV3Add(
         const id = getLiquidityV3OwnerBalanceId(log_.address, owner, cyToken, tokenId);
         let liquidityV3OwnerBalance = LiquidityV3OwnerBalance.load(id);
         if (!liquidityV3OwnerBalance) {
-            const positionResult = LiquidityV3.bind(event.address).try_positions(tokenId);
+            const positionResult = LiquidityV3.bind(log_.address).try_positions(tokenId);
             if (!positionResult.reverted) {
                 const fee = positionResult.value.getFee();
                 const lowerTick = positionResult.value.getTickLower();
