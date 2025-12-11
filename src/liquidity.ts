@@ -207,30 +207,34 @@ export function handleLiquidityV3Add(
             liquidityV3OwnerBalance.liquidity = liquidityV3OwnerBalance.liquidity.plus(liquidity);
             liquidityV3OwnerBalance.depositBalance = liquidityV3OwnerBalance.depositBalance.plus(event.params.value);
         }
-        if (liquidityV3OwnerBalance) liquidityV3OwnerBalance.save();
+        if (liquidityV3OwnerBalance) {
+            liquidityV3OwnerBalance.save();
 
-        // check if the current market price is within lp position rangeshit
-        const slot0Result = factory.bind(event.params.to).try_slot0();
-        if (slot0Result.reverted || !liquidityV3OwnerBalance) return false;
-        const currentTick = slot0Result.value.getTick();
-        const isInRange = liquidityV3OwnerBalance.lowerTick <= currentTick && currentTick <= liquidityV3OwnerBalance.upperTick;
+            // check if the current market price is within lp position rangeshit
+            const slot0Result = factory.bind(event.params.to).try_slot0();
+            if (slot0Result.reverted) return false;
+            const currentTick = slot0Result.value.getTick();
+            const isInRange =
+                liquidityV3OwnerBalance.lowerTick <= currentTick &&
+                currentTick <= liquidityV3OwnerBalance.upperTick;
 
-        // create liquidity change entity for this deposit
-        createLiquidityV3Change(
-            log_.address,
-            owner,
-            cyToken,
-            liquidity,
-            event.params.value,
-            event.block.number,
-            event.block.timestamp,
-            event.transaction.hash,
-            log_.logIndex,
-            isInRange ? DEPOSIT : OUT_OF_RANGE_DEPOSIT,
-            tokenId,
-        )
+            // create liquidity change entity for this deposit
+            createLiquidityV3Change(
+                log_.address,
+                owner,
+                cyToken,
+                liquidity,
+                event.params.value,
+                event.block.number,
+                event.block.timestamp,
+                event.transaction.hash,
+                log_.logIndex,
+                isInRange ? DEPOSIT : OUT_OF_RANGE_DEPOSIT,
+                tokenId,
+            )
 
-        return isInRange;
+            return isInRange;
+        }
     }
 
     return false;
