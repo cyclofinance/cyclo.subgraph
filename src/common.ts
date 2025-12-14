@@ -2,7 +2,6 @@ import { Account, AccountsMetadata, TimeState } from "../generated/schema";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
 import { Address, BigInt, BigDecimal, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { REWARDS_SOURCES, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
-import { log } from "matchstick-as";
 
 // day in timestamp in seconds
 export const DAY = BigInt.fromI32(24 * 60 * 60);
