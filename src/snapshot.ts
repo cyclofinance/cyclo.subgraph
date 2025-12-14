@@ -13,6 +13,8 @@ export class Epoch {
 }
 export class Epochs {
     constructor() {};
+
+    // from: https://flare.network/news/a-guide-to-rflr-rewards
     list: Array<Epoch> = [
         // 2024
         new Epoch("2024-07-06T12:00:00Z", BigInt.fromI32(1720267200), 30),
