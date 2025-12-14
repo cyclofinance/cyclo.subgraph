@@ -8,7 +8,7 @@ export class Epoch {
     constructor(
         public date: string,
         public timestamp: BigInt,
-        public length: number
+        public length: i32,
     ) {}
 }
 export class Epochs {
@@ -65,7 +65,7 @@ export class Epochs {
         return this.getCurrentEpoch(currentTimestamp).timestamp;
     }
 
-    getCurrentEpochLength(currentTimestamp: BigInt): number {
+    getCurrentEpochLength(currentTimestamp: BigInt): i32 {
         return this.getCurrentEpoch(currentTimestamp).length;
     }
 }
