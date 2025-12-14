@@ -160,5 +160,6 @@ type TimeState @entity {
   originBlock: BigInt! # The first ever event block number
   currentTimestamp: BigInt! # Timestamp of the latest triggered event (current working state)
   currentBlock: BigInt! # Block number of the latest triggered event (current working state)
-  daysElapsedBeforeCurrent: BigInt! # The number of days elapsed before the current block/timestamp
+  prevTimestamp: BigInt! # Timestamp of the previous triggered event
+  prevBlock: BigInt! # Block number of the previous triggered event
 }

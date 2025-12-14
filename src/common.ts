@@ -101,12 +101,12 @@ export function updateTimeState(event: ethereum.Event): TimeState {
     timeState.originTimestamp = event.block.timestamp;
     timeState.currentBlock = event.block.number;
     timeState.currentTimestamp = event.block.timestamp;
+    timeState.prevBlock = event.block.number;
+    timeState.prevTimestamp = event.block.timestamp;
   }
 
-  // calculate the days count for prev event before updating the current block/timestamp
-  timeState.daysElapsedBeforeCurrent = timeState.currentTimestamp
-    .minus(timeState.originTimestamp)
-    .div(DAY);
+  timeState.prevBlock = timeState.currentBlock;
+  timeState.prevTimestamp = timeState.currentTimestamp;
   timeState.currentBlock = event.block.number;
   timeState.currentTimestamp = event.block.timestamp;
   timeState.save();
@@ -127,12 +127,14 @@ export function currentTimestamp(): BigInt {
  * Returns the days passed (since origin event) before the latest
  * triggered event (ie the event prior to the latest triggered event)
  */
-export function lastDay(): BigInt {
+export function prevDay(): BigInt {
   let timeState = TimeState.load(Bytes.fromI32(0));
   if (!timeState) {
     return BigInt.zero();
   }
-  return timeState.daysElapsedBeforeCurrent;
+  return timeState.prevTimestamp
+    .minus(timeState.originTimestamp)
+    .div(DAY);
 }
 
 /** Returns the days passed (since origin event) until the latest triggered event */

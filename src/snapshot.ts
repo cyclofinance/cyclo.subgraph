@@ -1,5 +1,5 @@
 import { getOrCreateTotals } from "./cys-flr";
-import { currentDay, currentTimestamp, getAccountsMetadata, lastDay } from "./common";
+import { currentDay, currentTimestamp, getAccountsMetadata, prevDay } from "./common";
 import { factory, factory__slot0Result } from "../generated/templates/CycloVaultTemplate/factory";
 import { Address, BigInt, BigDecimal, store, TypedMap, ethereum, log } from "@graphprotocol/graph-ts";
 import { Account, CycloVault, LiquidityV3OwnerBalance, VaultBalanceLoader } from "../generated/schema";
@@ -73,7 +73,7 @@ export class Epochs {
 export const EPOCHS = new Epochs();
 
 export function maybeTakeSnapshot(): void {
-    const last = lastDay();
+    const last = prevDay();
     const current = currentDay();
     const daysElapsedSinceLastSnapshot = current.minus(last).toI32();
 

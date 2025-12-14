@@ -1,7 +1,7 @@
 import { createTransferEvent } from "./utils";
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { assert, describe, test } from "matchstick-as/assembly/index";
-import { currentDay, DAY, getAccountsMetadata, lastDay, updateTimeState } from "../src/common";
+import { currentDay, DAY, getAccountsMetadata, prevDay, updateTimeState } from "../src/common";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -86,38 +86,38 @@ describe("Test TimeState", () => {
 
         let timeState = updateTimeState(mockEvent1);
 
-        assert.assertTrue(timeState.originTimestamp.equals(originTimestamp));
-        assert.assertTrue(timeState.currentTimestamp.equals(originTimestamp));
-        assert.assertTrue(timeState.daysElapsedBeforeCurrent.equals(BigInt.fromI32(0)));
-        assert.assertTrue(lastDay().equals(BigInt.fromI32(0)));
-        assert.assertTrue(currentDay().equals(BigInt.fromI32(0)));
+        assert.bigIntEquals(timeState.originTimestamp, originTimestamp);
+        assert.bigIntEquals(timeState.currentTimestamp, originTimestamp);
+        assert.bigIntEquals(timeState.prevTimestamp, originTimestamp);
+        assert.bigIntEquals(prevDay(), BigInt.fromI32(0));
+        assert.bigIntEquals(currentDay(), BigInt.fromI32(0));
 
         // update with second event
         timeState = updateTimeState(mockEvent2);
 
-        assert.assertTrue(timeState.originTimestamp.equals(originTimestamp));
-        assert.assertTrue(timeState.currentTimestamp.equals(nextTimestamp));
-        assert.assertTrue(timeState.daysElapsedBeforeCurrent.equals(BigInt.fromI32(0)));
-        assert.assertTrue(lastDay().equals(BigInt.fromI32(0)));
-        assert.assertTrue(currentDay().equals(BigInt.fromI32(0)));
+        assert.bigIntEquals(timeState.originTimestamp, originTimestamp);
+        assert.bigIntEquals(timeState.currentTimestamp, nextTimestamp);
+        assert.bigIntEquals(timeState.prevTimestamp, originTimestamp);
+        assert.bigIntEquals(prevDay(), BigInt.fromI32(0));
+        assert.bigIntEquals(currentDay(), BigInt.fromI32(0));
 
         // update with third event (day passed)
         timeState = updateTimeState(mockEvent3);
 
-        assert.assertTrue(timeState.originTimestamp.equals(originTimestamp));
-        assert.assertTrue(timeState.currentTimestamp.equals(dayPassedTimestamp));
-        assert.assertTrue(timeState.daysElapsedBeforeCurrent.equals(BigInt.fromI32(0)));
-        assert.assertTrue(lastDay().equals(BigInt.fromI32(0)));
-        assert.assertTrue(currentDay().equals(BigInt.fromI32(1))); // current should be 1, ie 1 day passed since origin
+        assert.bigIntEquals(timeState.originTimestamp, originTimestamp);
+        assert.bigIntEquals(timeState.currentTimestamp, dayPassedTimestamp);
+        assert.bigIntEquals(timeState.prevTimestamp, nextTimestamp);
+        assert.bigIntEquals(prevDay(), BigInt.fromI32(0));
+        assert.bigIntEquals(currentDay(), BigInt.fromI32(1)); // current should be 1, ie 1 day passed since origin
 
         // update with 4th event (2 days passed)
         timeState = updateTimeState(mockEvent4);
 
-        assert.assertTrue(timeState.originTimestamp.equals(originTimestamp));
-        assert.assertTrue(timeState.currentTimestamp.equals(anotherDayPassedTimestamp));
-        assert.assertTrue(timeState.daysElapsedBeforeCurrent.equals(BigInt.fromI32(1))); // 1 day has passed before current
-        assert.assertTrue(lastDay().equals(BigInt.fromI32(1))); // last should be 1, ie 1 day was passed before the current (up to prev event)
-        assert.assertTrue(currentDay().equals(BigInt.fromI32(2))); // current should be 2, ie 2 days passed since origin (up to the current event)
+        assert.bigIntEquals(timeState.originTimestamp, originTimestamp);
+        assert.bigIntEquals(timeState.currentTimestamp, anotherDayPassedTimestamp);
+        assert.bigIntEquals(timeState.prevTimestamp, dayPassedTimestamp); // 1 day has passed before current
+        assert.bigIntEquals(prevDay(), BigInt.fromI32(1)); // last should be 1, ie 1 day was passed before the current (up to prev event)
+        assert.bigIntEquals(currentDay(), BigInt.fromI32(2)); // current should be 2, ie 2 days passed since origin (up to the current event)
         
     });
 })
