@@ -70,12 +70,17 @@ export class Epochs {
     }
 }
 
+// global epochs instance
 export const EPOCHS = new Epochs();
 
+/**
+ * determines if it should take a snapshot or not by checking
+ * if we are in a new day compared to the previous event timestamp
+ */
 export function maybeTakeSnapshot(): void {
-    const last = prevDay();
+    const prev = prevDay();
     const current = currentDay();
-    const daysElapsedSinceLastSnapshot = current.minus(last).toI32();
+    const daysElapsedSinceLastSnapshot = current.minus(prev).toI32();
 
     // skip if still in same day
     if (daysElapsedSinceLastSnapshot <= 0) return;
@@ -84,6 +89,11 @@ export function maybeTakeSnapshot(): void {
     takeSnapshot(daysElapsedSinceLastSnapshot);
 }
 
+/**
+ * Takes snapshot at the current point in time for all the accounts, each cyclo token eligible amount and
+ * total eligible amount and updates the entities snapshot fields accordingly.
+ * @param count - Snapshot count (might need more than 1 if more than a day is passed since prev snapshot)
+ */
 export function takeSnapshot(count: number): void {
     // log the start and end of this proccess
     const currentTime = currentTimestamp();
@@ -114,7 +124,7 @@ export function takeSnapshot(count: number): void {
             }
         }
 
-        // load all vaults of the account and caculate each token snapshot for the account
+        // load all vault balances of the account and calculate each token snapshot for the account
         let accountBalanceSnapshot = BigInt.zero();
         const vaultBalances = new VaultBalanceLoader("Account", addressHex, "vaultBalances").load();
         for (let j = 0; j < vaultBalances.length; j++) {
