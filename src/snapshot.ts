@@ -82,13 +82,13 @@ export const EPOCHS = new Epochs();
 export function maybeTakeSnapshot(): void {
     const prev = prevDay();
     const current = currentDay();
-    const daysElapsedSinceLastSnapshot = current.minus(prev).toI32();
+    const daysElapsedSincePrev = current.minus(prev).toI32();
 
     // skip if still in same day
-    if (daysElapsedSinceLastSnapshot <= 0) return;
+    if (daysElapsedSincePrev <= 0) return;
 
     // take new snapshot if we are in a new day
-    takeSnapshot(daysElapsedSinceLastSnapshot);
+    takeSnapshot(daysElapsedSincePrev);
 }
 
 /**
