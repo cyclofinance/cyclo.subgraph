@@ -1,5 +1,5 @@
 import { getOrCreateTotals } from "./cys-flr";
-import { currentDay, currentTimestamp, getAccountsMetadata, prevDay } from "./common";
+import { currentDay, currentTimestamp, DAY, getAccountsMetadata, prevDay } from "./common";
 import { factory, factory__slot0Result } from "../generated/templates/CycloVaultTemplate/factory";
 import { Address, BigInt, BigDecimal, store, TypedMap, ethereum, log } from "@graphprotocol/graph-ts";
 import { Account, CycloVault, LiquidityV3OwnerBalance, VaultBalanceLoader } from "../generated/schema";
@@ -12,7 +12,7 @@ export class Epoch {
     ) {}
 }
 export class Epochs {
-    constructor() {};
+    constructor() {}
 
     // from: https://flare.network/news/a-guide-to-rflr-rewards
     list: Array<Epoch> = [
@@ -45,7 +45,7 @@ export class Epochs {
         new Epoch("2026-03-28T12:00:00Z", BigInt.fromI32(1774699200), 30),
         new Epoch("2026-04-27T12:00:00Z", BigInt.fromI32(1777291200), 30),
         new Epoch("2026-05-27T12:00:00Z", BigInt.fromI32(1779883200), 30),
-    ];
+    ]
 
     getCurrentEpoch(currentTimestamp: BigInt): Epoch {
         if (currentTimestamp <= this.list[0].timestamp) {
@@ -99,8 +99,12 @@ export function maybeTakeSnapshot(): void {
 export function takeSnapshot(count: number): void {
     // log the start and end of this proccess
     const currentTime = currentTimestamp();
-    const currentEpoch = EPOCHS.getCurrentEpoch(currentTime).date;
-    log.debug("Daily snapshot taking process started for epoch: {}", [currentEpoch]);
+    const currentEpoch = EPOCHS.getCurrentEpoch(currentTime);
+    const dayOfEpoch = currentEpoch.length - currentEpoch.timestamp.minus(currentTime).div(DAY).toI32();
+    log.info(
+        "Daily snapshot taking process started for day {} of epoch: {}",
+        [dayOfEpoch.toString(), currentEpoch.date]
+    );
 
     // cache to store solt0 call results for pools
     const poolsSlot0Cache = new TypedMap<string, ethereum.CallResult<factory__slot0Result>>();
@@ -157,7 +161,7 @@ export function takeSnapshot(count: number): void {
 
             // store the new snapshot in the snapshot list and get the avg snapshot
             let vaultSnapshotsList = vaultBalance.balanceSnapshots;
-            if (vaultSnapshotsList.length >= EPOCHS.getCurrentEpochLength(currentTime)) {
+            if (vaultSnapshotsList.length >= currentEpoch.length) {
                 // clear the list if have reached the prev epoch length (prev epoch has passed)
                 // that means start with a clear list for the current epoch
                 vaultSnapshotsList = [];
@@ -242,5 +246,8 @@ export function takeSnapshot(count: number): void {
         account.save();
     }
 
-    log.debug("Daily snapshot taking process ended for epoch: {}", [currentEpoch]);
+    log.info(
+        "Daily snapshot taking process ended for day {} of epoch: {}",
+        [dayOfEpoch.toString(), currentEpoch.date]
+    );
 }

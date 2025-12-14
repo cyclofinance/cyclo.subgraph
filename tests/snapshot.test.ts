@@ -19,6 +19,9 @@ const CYWETH_ADDRESS = Address.fromString("0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B
 // Pool address for V3 liquidity
 const V3_POOL = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
 
+// equals to day 27 of first epoch
+const now = BigInt.fromI32(1720267200 - (24 * 60 * 60 * 3));
+
 describe("Snapshot handling", () => {
   beforeAll(() => {
     dataSourceMock.setNetwork("flare");
@@ -26,6 +29,16 @@ describe("Snapshot handling", () => {
 
   beforeEach(() => {
     clearStore();
+    updateTimeState(createTransferEvent(
+      Address.zero(),
+      Address.zero(),
+      BigInt.zero(),
+      Address.zero(),
+      null,
+      null,
+      null,
+      now,
+    ));
   });
 
   afterEach(() => {
@@ -128,9 +141,9 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
       );
       // Pre-fill with epoch length snapshot values
-      const length = EPOCHS.getCurrentEpochLength(BigInt.zero());
-      let snapshots = new Array<BigInt>();
-      for (let i = 0; i < length; i++) {
+      const epochLength = EPOCHS.getCurrentEpochLength(now);
+      const snapshots = new Array<BigInt>();
+      for (let i = 0; i < epochLength; i++) {
         snapshots.push(BigInt.fromI32(500 + i));
       }
       createMockVaultBalance(
