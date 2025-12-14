@@ -16,10 +16,12 @@ export function getOrCreateAccount(address: Address): Account {
     account.totalCyBalanceSnapshot = BigInt.fromI32(0);
     account.eligibleShareSnapshot = BigDecimal.fromString("0");
     account.save();
-  }
 
-  // add new address to the address metadata entity
-  getAccountsMetadata(address.toHexString());
+    // add new address to the address metadata entity
+    // doing this here ensures no dups as we are inside the scope
+    // where an Account record doesnt exists for the address
+    getAccountsMetadata(address.toHexString());
+  }
 
   return account;
 }
@@ -56,30 +58,21 @@ export function bigintToBytes(value: BigInt): Bytes {
   return changetype<Bytes>(Bytes.fromHexString(hex));
 }
 
-export function isListed(list: Array<Bytes>, account: Address): boolean {
-  for (let i = 0; i < list.length; i++) {
-    if (Address.fromBytes(list[i]).equals(account)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 export function getAccountsMetadata(newAccount: string | null = null): AccountsMetadata {
   let accountsMetadata = AccountsMetadata.load(Bytes.fromI32(0));
   if (!accountsMetadata) {
     accountsMetadata = new AccountsMetadata(Bytes.fromI32(0));
     accountsMetadata.accounts = new Array<Bytes>();
   }
-  const list = accountsMetadata.accounts;
 
-  // push the new account to the list of not already present
+  // push the new account
+  // dont need to check for dups as we only call this with new address
+  // inside getOrCreateAccount() that already has guard against dups
   if (newAccount != null) {
+    const list = accountsMetadata.accounts;
     const address = Address.fromString(newAccount!)
-    if (!isListed(list, address)) {
-      list.push(address);
-      accountsMetadata.accounts = list;
-    }
+    list.push(address);
+    accountsMetadata.accounts = list;
   }
 
   accountsMetadata.save();
