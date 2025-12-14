@@ -166,14 +166,18 @@ export function takeSnapshot(count: number): void {
                 vaultSnapshotsList.push(vaultSnapshotBalance); // add the new snapshot to end of the list
             }
             vaultBalance.balanceSnapshots = vaultSnapshotsList;
-            const snapshot = vaultBalance.balanceSnapshots
+
+            // calculate current avg and store for vault
+            const currentAvgSnapshot = vaultBalance.balanceSnapshots
                 .reduce((acc, val) => acc.plus(val), BigInt.zero())
                 .div(BigInt.fromI32(vaultBalance.balanceSnapshots.length));
-            vaultBalance.balanceAvgSnapshot = snapshot;
+            vaultBalance.balanceAvgSnapshot = currentAvgSnapshot;
             vaultBalance.save();
 
-            // only positives are valid
-            const normalizedSnapshot = snapshot.gt(BigInt.zero()) ? snapshot : BigInt.zero();
+            // only positives are valid for account and token
+            const normalizedSnapshot = currentAvgSnapshot.gt(BigInt.zero())
+                ? currentAvgSnapshot
+                : BigInt.zero();
 
             // sum up all positive token snapshots for account's total snapshot balance
             accountBalanceSnapshot = accountBalanceSnapshot.plus(normalizedSnapshot);
