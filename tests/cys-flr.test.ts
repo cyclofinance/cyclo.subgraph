@@ -5,16 +5,14 @@ import {
   clearStore,
   beforeAll,
   afterAll,
-  beforeEach,
-  afterEach,
 } from "matchstick-as/assembly/index";
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
-import { Transfer, LiquidityV3OwnerBalance } from "../generated/schema";
+import { LiquidityV3OwnerBalance } from "../generated/schema";
 import { handleTransfer } from "../src/cys-flr";
 import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { dataSourceMock } from "matchstick-as";
-import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType, mockSlot0, mockLiquidityV3Positions, mockIncreaseLiquidityLog } from "./utils";
-import { SparkdexV3LiquidityManager, DecreaseLiquidityV3ABI, V3_POOL_FACTORIES } from "../src/constants";
+import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType } from "./utils";
+import { SparkdexV3LiquidityManager, DecreaseLiquidityV3ABI } from "../src/constants";
 import { ethereum, Wrapped } from "@graphprotocol/graph-ts";
 
 // Test addresses
@@ -573,129 +571,6 @@ describe("Transfer handling", () => {
       TOTALS_ID,
       "totalEligibleSum",
       "0"
-    );
-  });
-});
-
-describe("Transfer handling with in/out of range V3 liquidity", () => {
-  beforeEach(() => {
-    clearStore();
-    // Mock dataSource.network() to return "flare" for tests
-    dataSourceMock.setNetwork("flare");
-    
-    // Mock factory calls
-    mockFactoryRevert(USER_1);
-    mockFactoryRevert(USER_2);
-    mockFactoryRevert(ZERO_ADDRESS);
-    mockFactory(APPROVED_DEX_POOL, V3_POOL_FACTORIES[1]);
-    mockFactory(APPROVED_DEX_ROUTER, V3_POOL_FACTORIES[1]);
-  });
-
-  afterEach(() => {
-    clearStore();
-  });
-
-  test("Updates account balance with liquidity add v3 in range", () => {
-    mockLiquidityV3Positions(
-      SparkdexV3LiquidityManager,
-      BigInt.fromI32(123456),
-      CYSFLR_ADDRESS,
-      Address.fromString("0x0000000000000000000000000000000000000002"),
-      -5678, // lower tick
-      -1234, // upper tick
-    );
-    mockSlot0(APPROVED_DEX_POOL, -3456); // between lower and upper ticks (in range)
-
-    // User 1 buys 100 tokens
-    const transferEvent = createTransferEvent(
-      APPROVED_DEX_ROUTER,
-      USER_1,
-      BigInt.fromI32(100),
-      CYSFLR_ADDRESS
-    );
-    handleTransfer(transferEvent);
-    assert.fieldEquals(
-      "Account",
-      USER_1.toHexString(),
-      "totalCyBalance",
-      "100" // should have 100 tokens
-    );
-
-    // User 1 performs liquidty add that is in range
-    const transferEventWithLiqAdd = createTransferEvent(
-      USER_1,
-      APPROVED_DEX_POOL,
-      BigInt.fromI32(100),
-      CYSFLR_ADDRESS,
-      mockIncreaseLiquidityLog(
-        SparkdexV3LiquidityManager,
-        BigInt.fromI32(123456),
-        BigInt.fromI32(200),
-        BigInt.fromI32(100),
-        BigInt.fromI32(100),
-      ),
-      USER_1,
-      SparkdexV3LiquidityManager,
-    );
-    handleTransfer(transferEventWithLiqAdd);
-
-    assert.fieldEquals(
-      "Account",
-      USER_1.toHexString(),
-      "totalCyBalance",
-      "100" // should not deduct as the second the transfer was liq add
-    );
-  });
-
-  test("Updates account balance with liquidity add v3 out of range", () => {
-    mockLiquidityV3Positions(
-      SparkdexV3LiquidityManager,
-      BigInt.fromI32(123456),
-      CYSFLR_ADDRESS,
-      Address.fromString("0x0000000000000000000000000000000000000002"),
-      -5678, // lower tick
-      -1234, // upper tick
-    );
-    mockSlot0(APPROVED_DEX_POOL, -1111); // out of range
-
-    // User 1 buys 100 tokens
-    const transferEvent = createTransferEvent(
-      APPROVED_DEX_ROUTER,
-      USER_1,
-      BigInt.fromI32(100),
-      CYSFLR_ADDRESS
-    );
-    handleTransfer(transferEvent);
-    assert.fieldEquals(
-      "Account",
-      USER_1.toHexString(),
-      "totalCyBalance",
-      "100" // should have 100 tokens
-    );
-
-    // User 1 performs liquidity add that is out of range
-    const transferEventWithLiqAdd = createTransferEvent(
-      USER_1,
-      APPROVED_DEX_POOL,
-      BigInt.fromI32(100),
-      CYSFLR_ADDRESS,
-      mockIncreaseLiquidityLog(
-        SparkdexV3LiquidityManager,
-        BigInt.fromI32(123456),
-        BigInt.fromI32(200),
-        BigInt.fromI32(100),
-        BigInt.fromI32(100),
-      ),
-      USER_1,
-      SparkdexV3LiquidityManager,
-    );
-    handleTransfer(transferEventWithLiqAdd);
-
-    assert.fieldEquals(
-      "Account",
-      USER_1.toHexString(),
-      "totalCyBalance",
-      "0" // should be deucted as the liquidity was not in range
     );
   });
 });

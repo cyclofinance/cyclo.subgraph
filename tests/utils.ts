@@ -19,6 +19,7 @@ export function createTransferEvent(
   log: ethereum.Log | null = null,
   txFrom: Address | null = null,
   txTo: Address | null = null,
+  txTimestamp: BigInt | null = null,
 ): ERC20TransferEvent {
   let transferEvent = changetype<ERC20TransferEvent>(newMockEvent());
 
@@ -44,6 +45,10 @@ export function createTransferEvent(
   }
   if (txTo) {
     transferEvent.transaction.to = txTo;
+  }
+
+  if (txTimestamp) {
+    transferEvent.block.timestamp = txTimestamp;
   }
 
   return transferEvent;

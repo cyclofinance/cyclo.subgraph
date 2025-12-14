@@ -42,6 +42,7 @@ describe("Liquidity Transfer Handling", () => {
       vault.deployTimestamp = BigInt.fromI32(1);
       vault.deployer = USER_1;
       vault.totalEligible = BigInt.fromI32(0);
+      vault.totalEligibleSnapshot = BigInt.fromI32(0);
       vault.save();
 
       mockLiquidityV2Pairs(CYSFLR_ADDRESS, CY_TOKEN_ADDR, Address.fromString("0x0000000000000000000000000000000000000002"));
@@ -93,6 +94,7 @@ describe("Liquidity Transfer Handling", () => {
       vault.deployTimestamp = BigInt.fromI32(1);
       vault.deployer = USER_1;
       vault.totalEligible = BigInt.fromI32(0);
+      vault.totalEligibleSnapshot = BigInt.fromI32(0);
       vault.save();
 
       mockLiquidityV3Positions(CYSFLR_ADDRESS, BigInt.fromI32(1), CY_TOKEN_ADDR, Address.fromString("0x0000000000000000000000000000000000000002"), 0, 0);

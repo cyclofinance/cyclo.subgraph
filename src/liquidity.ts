@@ -1,9 +1,10 @@
+import { maybeTakeSnapshot } from "./snapshot";
 import { updateTotalsForAccount } from "./cys-flr";
 import { LiquidityV2 } from "../generated/templates";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
-import { bigintToBytes, isV2Pool, isV3Pool } from "./common";
+import { bigintToBytes, updateTimeState, isV2Pool, isV3Pool } from "./common";
 import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
-import { Address, BigInt, Bytes, ethereum, store, dataSource, BigDecimal } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, ethereum, store } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
 import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance, CycloVault, VaultBalance } from "../generated/schema";
 import {
@@ -19,7 +20,6 @@ import {
 export const DEPOSIT = "DEPOSIT";
 export const WITHDRAW = "WITHDRAW";
 export const TRANSFER = "TRANSFER";
-export const OUT_OF_RANGE_DEPOSIT = "OUT_OF_RANGE_DEPOSIT";
 
 export function getLiquidityV2OwnerBalanceId(
     address: Address,
@@ -210,14 +210,6 @@ export function handleLiquidityV3Add(
         if (liquidityV3OwnerBalance) {
             liquidityV3OwnerBalance.save();
 
-            // check if the current market price is within lp position rangeshit
-            const slot0Result = factory.bind(event.params.to).try_slot0();
-            if (slot0Result.reverted) return false;
-            const currentTick = slot0Result.value.getTick();
-            const isInRange =
-                liquidityV3OwnerBalance.lowerTick <= currentTick &&
-                liquidityV3OwnerBalance.upperTick >= currentTick;
-
             // create liquidity change entity for this deposit
             createLiquidityV3Change(
                 log_.address,
@@ -229,11 +221,11 @@ export function handleLiquidityV3Add(
                 event.block.timestamp,
                 event.transaction.hash,
                 log_.logIndex,
-                isInRange ? DEPOSIT : OUT_OF_RANGE_DEPOSIT,
+                DEPOSIT,
                 tokenId,
             )
 
-            return isInRange;
+            return true;
         }
     }
 
@@ -309,6 +301,8 @@ export function handleLiquidityV3Withdraw(
 
 // handles LP erc20 token transfers (v2) and updates account cy token balances accordingly
 export function handleLiquidityV2Transfer(event: ERC20TransferEvent): void {
+    const timeState = updateTimeState(event); // update time state
+
     const owner = event.params.from;
     if (owner.equals(Address.zero())) return; // skip if this is a mint, as mint are already handled in liquidity add
     if (owner.equals(event.params.to)) return; // skip no change event, ie same to/from
@@ -327,6 +321,9 @@ export function handleLiquidityV2Transfer(event: ERC20TransferEvent): void {
     if (CycloVault.load(token1)) {
         handleLiquidityV2TransferInner(event, owner, token1);
     }
+
+    // take snapshot if needed
+    maybeTakeSnapshot();
 }
 
 function handleLiquidityV2TransferInner(
@@ -387,6 +384,8 @@ function handleLiquidityV2TransferInner(
 
 // handles LP erc721 token transfers (v3) and updates account cy token balances accordingly
 export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
+    const timeState = updateTimeState(event); // update time state
+
     const owner = event.params.from;
     const tokenId = event.params.tokenId;
     if (owner.equals(Address.zero())) return; // skip if this is a mint, as mint are already handled in liquidity add
@@ -405,6 +404,9 @@ export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
     if (CycloVault.load(token1Address)) {
         handleLiquidityV3TransferInner(event, owner, token1Address, tokenId);
     }
+
+    // take snapshot if needed
+    maybeTakeSnapshot();
 }
 
 function handleLiquidityV3TransferInner(
@@ -509,7 +511,7 @@ export function createLiquidityV3Change(
     item.lpAddress = lpAddress;
     item.owner = owner;
     item.tokenId = tokenId;
-    if (typ === DEPOSIT || typ === OUT_OF_RANGE_DEPOSIT) {
+    if (typ === DEPOSIT) {
         item.depositedBalanceChange = value;
         item.liquidityChange = lquidity;
     } else {

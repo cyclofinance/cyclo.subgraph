@@ -1,9 +1,10 @@
 import { BigInt, BigDecimal, Address } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import { Account, Transfer, EligibleTotals, CycloVault, VaultBalance } from "../generated/schema";
-import { getOrCreateAccount, isApprovedSource } from "./common";
+import { getOrCreateAccount, updateTimeState, isApprovedSource } from "./common";
 import { TOTALS_ID } from "./constants";
 import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
+import { maybeTakeSnapshot } from "./snapshot";
 
 function calculateEligibleShare(
   account: Account,
@@ -25,11 +26,12 @@ function calculateEligibleShare(
     .div(totals.totalEligibleSum.toBigDecimal());
 }
 
-function getOrCreateTotals(): EligibleTotals {
+export function getOrCreateTotals(): EligibleTotals {
   let totals = EligibleTotals.load(TOTALS_ID);
   if (!totals) {
     totals = new EligibleTotals(TOTALS_ID);
     totals.totalEligibleSum = BigInt.fromI32(0);
+    totals.totalEligibleSumSnapshot = BigInt.fromI32(0);
     totals.save();
   }
   return totals;
@@ -80,6 +82,8 @@ function getOrCreateVaultBalance(vaultAddress: Address, account: Account): Vault
     vaultBalance.vault = vaultAddress;
     vaultBalance.owner = account.id;
     vaultBalance.balance = BigInt.fromI32(0);
+    vaultBalance.balanceSnapshots = new Array();
+    vaultBalance.balanceAvgSnapshot = BigInt.fromI32(0);
     vaultBalance.save();
   }
   
@@ -91,6 +95,8 @@ function getEligibleBalance(balance: BigInt): BigInt {
 }
 
 export function handleTransfer(event: TransferEvent): void {
+  const timeState = updateTimeState(event); // update time state
+
   const fromAccount = getOrCreateAccount(event.params.from);
   const toAccount = getOrCreateAccount(event.params.to);
   const vaultAddress = event.address;
@@ -157,4 +163,7 @@ export function handleTransfer(event: TransferEvent): void {
   // Update totals for both accounts
   updateTotalsForAccount(fromAccount, vaultAddress, oldFromBalance, fromVaultBalance.balance);
   updateTotalsForAccount(toAccount, vaultAddress, oldToBalance, toVaultBalance.balance);
+
+  // take snapshot if needed
+  maybeTakeSnapshot();
 }

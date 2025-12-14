@@ -1,0 +1,231 @@
+import { getOrCreateTotals } from "./cys-flr";
+import { currentDay, currentTimestamp, getAccountsMetadata, lastDay } from "./common";
+import { factory, factory__slot0Result } from "../generated/templates/CycloVaultTemplate/factory";
+import { Address, BigInt, BigDecimal, store, TypedMap, ethereum, log } from "@graphprotocol/graph-ts";
+import { Account, CycloVault, LiquidityV3OwnerBalance, VaultBalanceLoader } from "../generated/schema";
+
+export class Epoch {
+    constructor(
+        public date: string,
+        public timestamp: BigInt,
+        public length: number
+    ) {}
+}
+export class Epochs {
+    constructor() {};
+    list: Array<Epoch> = [
+        // 2024
+        new Epoch("2024-07-06T12:00:00Z", BigInt.fromI32(1720267200), 30),
+        new Epoch("2024-08-05T12:00:00Z", BigInt.fromI32(1722859200), 30),
+        new Epoch("2024-09-04T12:00:00Z", BigInt.fromI32(1725451200), 30),
+        new Epoch("2024-10-04T12:00:00Z", BigInt.fromI32(1728043200), 30),
+        new Epoch("2024-11-03T12:00:00Z", BigInt.fromI32(1730635200), 30),
+        new Epoch("2024-12-03T12:00:00Z", BigInt.fromI32(1733227200), 30),
+
+        // 2025
+        new Epoch("2025-01-02T12:00:00Z", BigInt.fromI32(1735819200), 30),
+        new Epoch("2025-02-01T12:00:00Z", BigInt.fromI32(1738411200), 30),
+        new Epoch("2025-03-03T12:00:00Z", BigInt.fromI32(1741003200), 30),
+        new Epoch("2025-04-02T12:00:00Z", BigInt.fromI32(1743595200), 30),
+        new Epoch("2025-05-02T12:00:00Z", BigInt.fromI32(1746187200), 30),
+        new Epoch("2025-06-01T12:00:00Z", BigInt.fromI32(1748779200), 30),
+        new Epoch("2025-07-01T12:00:00Z", BigInt.fromI32(1751371200), 30),
+        new Epoch("2025-07-31T12:00:00Z", BigInt.fromI32(1753963200), 30),
+        new Epoch("2025-08-30T12:00:00Z", BigInt.fromI32(1756555200), 30),
+        new Epoch("2025-09-29T12:00:00Z", BigInt.fromI32(1759147200), 30),
+        new Epoch("2025-10-29T12:00:00Z", BigInt.fromI32(1761739200), 30),
+        new Epoch("2025-11-28T12:00:00Z", BigInt.fromI32(1764331200), 30),
+        new Epoch("2025-12-28T12:00:00Z", BigInt.fromI32(1766923200), 30),
+
+        // 2026
+        new Epoch("2026-01-27T12:00:00Z", BigInt.fromI32(1769515200), 30),
+        new Epoch("2026-02-26T12:00:00Z", BigInt.fromI32(1772107200), 30),
+        new Epoch("2026-03-28T12:00:00Z", BigInt.fromI32(1774699200), 30),
+        new Epoch("2026-04-27T12:00:00Z", BigInt.fromI32(1777291200), 30),
+        new Epoch("2026-05-27T12:00:00Z", BigInt.fromI32(1779883200), 30),
+    ];
+
+    getCurrentEpoch(currentTimestamp: BigInt): Epoch {
+        if (currentTimestamp <= this.list[0].timestamp) {
+            return this.list[0];
+        }
+        if (currentTimestamp >= this.list[this.list.length - 1].timestamp) {
+            return this.list[this.list.length - 1];
+        }
+        for (let i = 0; i < this.list.length; i++) {
+            if (i + 1 >= this.list.length) break; // last item guard
+            if (currentTimestamp > this.list[0].timestamp && currentTimestamp <= this.list[i + 1].timestamp) {
+                return this.list[i + 1];
+            }
+        }
+        return this.list[this.list.length - 1];
+    }
+
+    getCurrentEpochTimestamp(currentTimestamp: BigInt): BigInt {
+        return this.getCurrentEpoch(currentTimestamp).timestamp;
+    }
+
+    getCurrentEpochLength(currentTimestamp: BigInt): number {
+        return this.getCurrentEpoch(currentTimestamp).length;
+    }
+}
+
+export const EPOCHS = new Epochs();
+
+export function maybeTakeSnapshot(): void {
+    const last = lastDay();
+    const current = currentDay();
+    const daysElapsedSinceLastSnapshot = current.minus(last).toI32();
+
+    // skip if still in same day
+    if (daysElapsedSinceLastSnapshot <= 0) return;
+
+    // take new snapshot if we are in a new day
+    takeSnapshot(daysElapsedSinceLastSnapshot);
+}
+
+export function takeSnapshot(count: number): void {
+    // log the start and end of this proccess
+    const currentTime = currentTimestamp();
+    const currentEpoch = EPOCHS.getCurrentEpoch(currentTime).date;
+    log.debug("Daily snapshot taking process started for epoch: {}", [currentEpoch]);
+
+    // cache to store solt0 call results for pools
+    const poolsSlot0Cache = new TypedMap<string, ethereum.CallResult<factory__slot0Result>>();
+
+    // a map: "token -> total eligible balance of the token (sum of all eligible account snapshot balances for the token)"
+    const tokenEligibleBalances = new TypedMap<string, BigInt>();
+
+    const accountsMetadata = getAccountsMetadata();
+    for (let i = 0; i < accountsMetadata.accounts.length; i++) {
+        const address = accountsMetadata.accounts[i];
+        const addressHex = address.toHexString().toLowerCase();
+        const account = Account.load(address);
+        if (!account) continue;
+
+        // get all active liquidity v3 positions of the account
+        const liquidtyV3OwnerBalances: LiquidityV3OwnerBalance[] = [];
+        const liquidityBalances = store.loadRelated("Account", addressHex, "liquidityBalances");
+        for (let j = 0; j < liquidityBalances.length; j++) {
+            const id = liquidityBalances[j].getBytes("id");
+            const lp3 = LiquidityV3OwnerBalance.load(id);
+            if (lp3) {
+                liquidtyV3OwnerBalances.push(lp3);
+            }
+        }
+
+        // load all vaults of the account and caculate each token snapshot for the account
+        let accountBalanceSnapshot = BigInt.zero();
+        const vaultBalances = new VaultBalanceLoader("Account", addressHex, "vaultBalances").load();
+        for (let j = 0; j < vaultBalances.length; j++) {
+            const vaultBalance = vaultBalances[j];
+
+            // factor in the v3 lp position for the snapshot balance
+            let vaultSnapshotBalance = vaultBalance.balance;
+            for (let k = 0; k < liquidtyV3OwnerBalances.length; k++) {
+                const lp = liquidtyV3OwnerBalances[k];
+                if (lp.tokenAddress.notEqual(vaultBalance.vault)) continue;
+
+                // check if the current market price is within lp position range
+                let slot0Result = poolsSlot0Cache.get(Address.fromBytes(lp.poolAddress).toHexString());
+                if (!slot0Result) {
+                    slot0Result = factory.bind(Address.fromBytes(lp.poolAddress)).try_slot0();
+                }
+                if (slot0Result.reverted) continue;
+                const currentTick = slot0Result.value.getTick();
+                const isInRange =
+                    lp.lowerTick <= currentTick &&
+                    lp.upperTick >= currentTick;
+
+                // deduct the deposit balance from accumulated balance if not in range
+                if (!isInRange) {
+                    vaultSnapshotBalance = vaultSnapshotBalance.minus(lp.depositBalance);
+                }
+            }
+
+            // store the new snapshot in the snapshot list and get the avg snapshot
+            let vaultSnapshotsList = vaultBalance.balanceSnapshots;
+            if (vaultSnapshotsList.length >= EPOCHS.getCurrentEpochLength(currentTime)) {
+                // clear the list if have reached the prev epoch length (prev epoch has passed)
+                // that means start with a clear list for the current epoch
+                vaultSnapshotsList = [];
+            }
+            for (let k = 0; k < count; k++) {
+                vaultSnapshotsList.push(vaultSnapshotBalance); // add the new snapshot to end of the list
+            }
+            vaultBalance.balanceSnapshots = vaultSnapshotsList;
+            const snapshot = vaultBalance.balanceSnapshots
+                .reduce((acc, val) => acc.plus(val), BigInt.zero())
+                .div(BigInt.fromI32(vaultBalance.balanceSnapshots.length));
+            vaultBalance.balanceAvgSnapshot = snapshot;
+            vaultBalance.save();
+
+            // only positives are valid
+            const normalizedSnapshot = snapshot.gt(BigInt.zero()) ? snapshot : BigInt.zero();
+
+            // sum up all positive token snapshots for account's total snapshot balance
+            accountBalanceSnapshot = accountBalanceSnapshot.plus(normalizedSnapshot);
+
+            // gather account snapshot of the token to update the token's total eligible balance snapshot
+            const tokenAddress = vaultBalance.vault.toHexString().toLowerCase();
+            let tokenTotalEligible = tokenEligibleBalances.get(tokenAddress);
+            if (!tokenTotalEligible) {
+                tokenTotalEligible = BigInt.zero();
+            }
+            tokenEligibleBalances.set(tokenAddress, tokenTotalEligible.plus(normalizedSnapshot))
+        }
+
+        account.totalCyBalanceSnapshot = accountBalanceSnapshot;
+        account.save();
+    }
+
+    // update each token total eligible with the taken snapshot
+    let totalEligibleSumSnapshot = BigInt.zero();
+    for (let i = 0; i < tokenEligibleBalances.entries.length; i++) {
+        const tokenAddress = Address.fromString(tokenEligibleBalances.entries[i].key);
+        const totalEligible = tokenEligibleBalances.entries[i].value;
+
+        const cycloVault = CycloVault.load(tokenAddress);
+        if (cycloVault) {
+            const normalizedSnapshot = totalEligible.gt(BigInt.zero()) ? totalEligible : BigInt.zero();
+            totalEligibleSumSnapshot = totalEligibleSumSnapshot.plus(normalizedSnapshot);
+            cycloVault.totalEligibleSnapshot = normalizedSnapshot;
+            cycloVault.save();
+        }
+    }
+
+    // update totals snapshot
+    const totals = getOrCreateTotals();
+    totals.totalEligibleSumSnapshot = totalEligibleSumSnapshot;
+    totals.save();
+
+    // update eligible share for each account after calculating the total eligible snapshot
+    for (let i = 0; i < accountsMetadata.accounts.length; i++) {
+        const address = accountsMetadata.accounts[i];
+        const account = Account.load(address);
+        if (!account) continue;
+
+        // If account has no positive balance, their share is 0
+        if (account.totalCyBalanceSnapshot.le(BigInt.fromI32(0))) {
+            account.eligibleShareSnapshot = BigDecimal.fromString("0");
+            account.save();
+            continue;
+        }
+
+        // If there's no eligible total, but account has positive balance, they have 100%
+        if (totalEligibleSumSnapshot.equals(BigInt.fromI32(0))) {
+            account.eligibleShareSnapshot = BigDecimal.fromString("1");
+            account.save();
+            continue;
+        }
+
+        // Calculate share as decimal percentage
+        account.eligibleShareSnapshot = account.totalCyBalanceSnapshot
+            .toBigDecimal()
+            .div(totalEligibleSumSnapshot.toBigDecimal());
+
+        account.save();
+    }
+
+    log.debug("Daily snapshot taking process ended for epoch: {}", [currentEpoch]);
+}

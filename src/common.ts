@@ -1,7 +1,11 @@
-import { Account } from "../generated/schema";
+import { Account, AccountsMetadata, TimeState } from "../generated/schema";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
-import { Address, BigInt, BigDecimal, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, BigDecimal, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { REWARDS_SOURCES, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
+import { log } from "matchstick-as";
+
+// day in timestamp in seconds
+export const DAY = BigInt.fromI32(24 * 60 * 60);
 
 export function getOrCreateAccount(address: Address): Account {
   let account = Account.load(address);
@@ -10,8 +14,14 @@ export function getOrCreateAccount(address: Address): Account {
     account.address = address;
     account.totalCyBalance = BigInt.fromI32(0);
     account.eligibleShare = BigDecimal.fromString("0");
+    account.totalCyBalanceSnapshot = BigInt.fromI32(0);
+    account.eligibleShareSnapshot = BigDecimal.fromString("0");
     account.save();
   }
+
+  // add new address to the address metadata entity
+  getAccountsMetadata(address.toHexString());
+
   return account;
 }
 
@@ -45,4 +55,94 @@ export function bigintToBytes(value: BigInt): Bytes {
   }
   hex = hex.padStart(64, "0");
   return changetype<Bytes>(Bytes.fromHexString(hex));
+}
+
+export function isListed(list: Array<Bytes>, account: Address): boolean {
+  for (let i = 0; i < list.length; i++) {
+    if (Address.fromBytes(list[i]).equals(account)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function getAccountsMetadata(newAccount: string | null = null): AccountsMetadata {
+  let accountsMetadata = AccountsMetadata.load(Bytes.fromI32(0));
+  if (!accountsMetadata) {
+    accountsMetadata = new AccountsMetadata(Bytes.fromI32(0));
+    accountsMetadata.accounts = new Array<Bytes>();
+  }
+  const list = accountsMetadata.accounts;
+
+  // push the new account to the list of not already present
+  if (newAccount != null) {
+    const address = Address.fromString(newAccount!)
+    if (!isListed(list, address)) {
+      list.push(address);
+      accountsMetadata.accounts = list;
+    }
+  }
+
+  accountsMetadata.save();
+
+  return accountsMetadata;
+}
+
+/**
+ * Get the time state or create it once at first call, the
+ * current timestamp and day passed are updated up on the call
+ * @param event - Current event
+ * @returns The TimeState instance
+ */
+export function updateTimeState(event: ethereum.Event): TimeState {
+  let timeState = TimeState.load(Bytes.fromI32(0));
+  if (!timeState) {
+    timeState = new TimeState(Bytes.fromI32(0));
+    timeState.originBlock = event.block.number;
+    timeState.originTimestamp = event.block.timestamp;
+    timeState.currentBlock = event.block.number;
+    timeState.currentTimestamp = event.block.timestamp;
+  }
+
+  // calculate the days count for prev event before updating the current block/timestamp
+  timeState.daysElapsedBeforeCurrent = timeState.currentTimestamp
+    .minus(timeState.originTimestamp)
+    .div(DAY);
+  timeState.currentBlock = event.block.number;
+  timeState.currentTimestamp = event.block.timestamp;
+  timeState.save();
+
+  return timeState;
+}
+
+/** Returns the current timestamp */
+export function currentTimestamp(): BigInt {
+  let timeState = TimeState.load(Bytes.fromI32(0));
+  if (!timeState) {
+    return BigInt.zero();
+  }
+  return timeState.currentTimestamp;
+}
+
+/**
+ * Returns the days passed (since origin event) before the latest
+ * triggered event (ie the event prior to the latest triggered event)
+ */
+export function lastDay(): BigInt {
+  let timeState = TimeState.load(Bytes.fromI32(0));
+  if (!timeState) {
+    return BigInt.zero();
+  }
+  return timeState.daysElapsedBeforeCurrent;
+}
+
+/** Returns the days passed (since origin event) until the latest triggered event */
+export function currentDay(): BigInt {
+  let timeState = TimeState.load(Bytes.fromI32(0));
+  if (!timeState) {
+    return BigInt.zero();
+  }
+  return timeState.currentTimestamp
+    .minus(timeState.originTimestamp)
+    .div(DAY);
 }

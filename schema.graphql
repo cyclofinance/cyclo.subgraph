@@ -9,6 +9,8 @@ type Account @entity {
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
   liquidityBalances: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
   liquidityChanges: [LiquidityChange!]! @derivedFrom(field: "owner")
+  totalCyBalanceSnapshot: BigInt!
+  eligibleShareSnapshot: BigDecimal!
 }
 
 type Transfer @entity(immutable: true) {
@@ -26,6 +28,7 @@ type Transfer @entity(immutable: true) {
 type EligibleTotals @entity {
   id: String!
   totalEligibleSum: BigInt! # Sum of all positive vault balances across all accounts
+  totalEligibleSumSnapshot: BigInt! # Total sum of token snapshots
 }
 
 type VaultBalance @entity {
@@ -33,6 +36,8 @@ type VaultBalance @entity {
   vault: CycloVault!
   owner: Account!
   balance: BigInt!
+  balanceSnapshots: [BigInt!]!
+  balanceAvgSnapshot: BigInt!
 }
 
 type ReceiptOwnerBalance @entity {
@@ -51,6 +56,7 @@ type CycloVault @entity {
   deployTimestamp: BigInt!
   deployer: Bytes!
   totalEligible: BigInt! # Sum of all positive balances for this vault across all accounts
+  totalEligibleSnapshot: BigInt! # Total sum of account snapshots for the token
 }
 
 type CycloReceipt @entity {
@@ -97,7 +103,6 @@ enum LiquidityChangeType {
   DEPOSIT
   WITHDRAW
   TRANSFER
-  OUT_OF_RANGE_DEPOSIT
 }
 
 interface LiquidityChange {
@@ -138,4 +143,22 @@ type LiquidityV3Change implements LiquidityChange @entity(immutable: true) {
   transactionHash: Bytes!
   liquidityChangeType: LiquidityChangeType!
   tokenId: BigInt!
+}
+
+type AccountsMetadata @entity {
+  id: Bytes! # only single entity would exist with id 0
+  accounts: [Bytes!]! # list of all accounts
+}
+
+# entity to keep the time state between event triggers
+# a single record of this entity gets created on origin
+# event (first ever event trigger) and then is updated
+# throughout the sync process
+type TimeState @entity {
+  id: Bytes! # only single entity would exist with id 0
+  originTimestamp: BigInt! # The first ever event block timestamp
+  originBlock: BigInt! # The first ever event block number
+  currentTimestamp: BigInt! # Timestamp of the latest triggered event (current working state)
+  currentBlock: BigInt! # Block number of the latest triggered event (current working state)
+  daysElapsedBeforeCurrent: BigInt! # The number of days elapsed before the current block/timestamp
 }

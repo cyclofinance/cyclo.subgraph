@@ -61,6 +61,7 @@ export function handleNewClone(event: NewClone): void {
     vault.deployTimestamp = event.block.timestamp;
     vault.deployer = event.params.sender;
     vault.totalEligible = BigInt.fromI32(0);
+    vault.totalEligibleSnapshot = BigInt.fromI32(0);
     vault.save();
   
     CycloVaultTemplate.create(event.params.clone);
