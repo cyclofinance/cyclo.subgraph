@@ -8,8 +8,6 @@ import { Address, BigDecimal, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { Account, VaultBalance, LiquidityV3OwnerBalance, CycloVault } from "../generated/schema";
 import { assert, describe, test, clearStore, beforeAll, beforeEach, afterEach } from "matchstick-as/assembly/index";
 
-const SNAPSHOT_LENGTH = 30; // all snpahots have 30 length
-
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
 const USER_2 = Address.fromString("0x0000000000000000000000000000000000000002");
@@ -120,7 +118,7 @@ describe("Snapshot handling", () => {
       );
     });
 
-    test("should handle multiple snapshots with SNAPSHOT_LENGTH limit", () => {
+    test("should handle multiple snapshots with epoch length limit", () => {
       // Setup account and vault
       createMockAccount(
         USER_1,
@@ -129,9 +127,10 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
         BigInt.zero().toBigDecimal(),
       );
-      // Pre-fill with SNAPSHOT_LENGTH snapshots
+      // Pre-fill with epoch length snapshot values
+      const length = EPOCHS.getCurrentEpochLength(BigInt.zero());
       let snapshots = new Array<BigInt>();
-      for (let i = 0; i < SNAPSHOT_LENGTH; i++) {
+      for (let i = 0; i < length; i++) {
         snapshots.push(BigInt.fromI32(500 + i));
       }
       createMockVaultBalance(
