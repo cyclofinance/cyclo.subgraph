@@ -176,7 +176,7 @@ export function takeSnapshot(count: number): void {
             // sum up all positive token snapshots for account's total snapshot balance
             accountBalanceSnapshot = accountBalanceSnapshot.plus(normalizedSnapshot);
 
-            // gather account snapshot of the token to update the token's total eligible balance snapshot
+            // gather account snapshot of the token to update the token's total eligible balance snapshot later on
             const tokenAddress = vaultBalance.vault.toHexString().toLowerCase();
             let tokenTotalEligible = tokenEligibleBalances.get(tokenAddress);
             if (!tokenTotalEligible) {
@@ -190,7 +190,7 @@ export function takeSnapshot(count: number): void {
     }
 
     // update each token total eligible with the taken snapshot
-    let totalEligibleSumSnapshot = BigInt.zero();
+    let totalEligibleSumSnapshot = BigInt.zero(); // to calculate eligible sum
     for (let i = 0; i < tokenEligibleBalances.entries.length; i++) {
         const tokenAddress = Address.fromString(tokenEligibleBalances.entries[i].key);
         const totalEligible = tokenEligibleBalances.entries[i].value;
@@ -216,14 +216,14 @@ export function takeSnapshot(count: number): void {
         if (!account) continue;
 
         // If account has no positive balance, their share is 0
-        if (account.totalCyBalanceSnapshot.le(BigInt.fromI32(0))) {
-            account.eligibleShareSnapshot = BigDecimal.fromString("0");
+        if (account.totalCyBalanceSnapshot.le(BigInt.zero())) {
+            account.eligibleShareSnapshot = BigDecimal.zero();
             account.save();
             continue;
         }
 
         // If there's no eligible total, but account has positive balance, they have 100%
-        if (totalEligibleSumSnapshot.equals(BigInt.fromI32(0))) {
+        if (totalEligibleSumSnapshot.equals(BigInt.zero())) {
             account.eligibleShareSnapshot = BigDecimal.fromString("1");
             account.save();
             continue;
@@ -233,7 +233,6 @@ export function takeSnapshot(count: number): void {
         account.eligibleShareSnapshot = account.totalCyBalanceSnapshot
             .toBigDecimal()
             .div(totalEligibleSumSnapshot.toBigDecimal());
-
         account.save();
     }
 
