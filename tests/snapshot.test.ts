@@ -4,7 +4,7 @@ import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { takeSnapshot, maybeTakeSnapshot, EPOCHS } from "../src/snapshot";
 import { SparkdexV3LiquidityManager, TOTALS_ID } from "../src/constants";
 import { getAccountsMetadata, updateTimeState, DAY } from "../src/common";
-import { Address, BigDecimal, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigDecimal, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts";
 import { Account, VaultBalance, LiquidityV3OwnerBalance, CycloVault } from "../generated/schema";
 import { assert, describe, test, clearStore, beforeAll, beforeEach, afterEach } from "matchstick-as/assembly/index";
 
@@ -140,11 +140,13 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
         BigInt.zero().toBigDecimal(),
       );
-      // Pre-fill with epoch length snapshot values
-      const epochLength = EPOCHS.getCurrentEpochLength(now);
+      // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
+      const preFilledSnapshotsLength = EPOCHS.getCurrentEpochLength(now) - 3;
       const snapshots = new Array<BigInt>();
-      for (let i = 0; i < epochLength; i++) {
+      const expectedSnapshotList = new Array<BigInt>();
+      for (let i = 0; i < preFilledSnapshotsLength; i++) {
         snapshots.push(BigInt.fromI32(500 + i));
+        expectedSnapshotList.push(BigInt.fromI32(500 + i));
       }
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -170,14 +172,26 @@ describe("Snapshot handling", () => {
 
       // Check that old snapshots were removed and new ones added
       let updatedVault = VaultBalance.load(CYSFLR_ADDRESS.concat(USER_1))!;
-      assert.i32Equals(updatedVault.balanceSnapshots.length, 2); // we took 2 snapshots
+      assert.i32Equals(updatedVault.balanceSnapshots.length, 29); // we took 2 snapshots + 27 prefilled
       
       // two entries should be the current balance (1000)
-      assert.bigIntEquals(updatedVault.balanceSnapshots[0], BigInt.fromI32(1000));
-      assert.bigIntEquals(updatedVault.balanceSnapshots[1], BigInt.fromI32(1000));
+      assert.bigIntEquals(updatedVault.balanceSnapshots[updatedVault.balanceSnapshots.length - 1], BigInt.fromI32(1000));
+      assert.bigIntEquals(updatedVault.balanceSnapshots[updatedVault.balanceSnapshots.length - 2], BigInt.fromI32(1000));
+
+      // add the 2 new snapshots to the expected snapshot lists
+      // and should be equal to the actual snapshot list
+      expectedSnapshotList.push(BigInt.fromI32(1000));
+      expectedSnapshotList.push(BigInt.fromI32(1000));
+      // covert the lists to array of ethereum.Value for comparison
+      assert.arrayEquals(
+        updatedVault.balanceSnapshots.map<ethereum.Value>((v) => ethereum.Value.fromSignedBigInt(v)), 
+        expectedSnapshotList.map<ethereum.Value>((v) => ethereum.Value.fromUnsignedBigInt(v))
+      );
 
       // check avg snapshot
-      const expectedAvgSnapshot = BigInt.fromI32(1000); // (1000 + 1000) / 2 
+      const expectedAvgSnapshot = expectedSnapshotList
+        .reduce((acc, val) => acc.plus(val), BigInt.zero())
+        .div(BigInt.fromI32(expectedSnapshotList.length));
       assert.bigIntEquals(updatedVault.balanceAvgSnapshot, expectedAvgSnapshot);
 
       // Check vault balance snapshot was added
