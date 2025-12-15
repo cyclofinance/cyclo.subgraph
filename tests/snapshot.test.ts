@@ -134,7 +134,7 @@ describe("Snapshot handling", () => {
     });
 
     test("should handle multiple snapshots with epoch length limit", () => {
-      // Setup account and vault
+      // Setup user 1 account and vault
       createMockAccount(
         USER_1,
         BigInt.fromI32(1000),
@@ -143,18 +143,18 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
       );
       // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
-      const preFilledSnapshotsLength = EPOCHS.getCurrentEpochLength(now) - 3;
-      const snapshots = new Array<BigInt>();
-      const expectedSnapshotList = new Array<BigInt>();
-      for (let i = 0; i < preFilledSnapshotsLength; i++) {
-        snapshots.push(BigInt.fromI32(500 + i));
-        expectedSnapshotList.push(BigInt.fromI32(500 + i));
+      const preFilledSnapshotsLength1 = EPOCHS.getCurrentEpochLength(now) - 3; // 30 - 3 = 27
+      const snapshotsUser1 = new Array<BigInt>();
+      const expectedSnapshotListUser1 = new Array<BigInt>();
+      for (let i = 0; i < preFilledSnapshotsLength1; i++) {
+        snapshotsUser1.push(BigInt.fromI32(500 + i));
+        expectedSnapshotListUser1.push(BigInt.fromI32(500 + i));
       }
       createMockVaultBalance(
         CYSFLR_ADDRESS,
         USER_1,
         BigInt.fromI32(1000),
-        snapshots,
+        snapshotsUser1,
         BigInt.zero(),
       );
       createMockCycloVault(
@@ -166,50 +166,133 @@ describe("Snapshot handling", () => {
         BigInt.fromI32(0),
       );
 
+      createMockAccount(
+        USER_2,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+      // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
+      const preFilledSnapshotsLength2 = EPOCHS.getCurrentEpochLength(now) - 3; // 30 - 3 = 27
+      const snapshotsUser2 = new Array<BigInt>();
+      const expectedSnapshotListUser2 = new Array<BigInt>();
+      for (let i = 0; i < preFilledSnapshotsLength2; i++) {
+        snapshotsUser2.push(BigInt.fromI32(1000 + i));
+        expectedSnapshotListUser2.push(BigInt.fromI32(1000 + i));
+      }
+      createMockVaultBalance(
+        CYSFLR_ADDRESS,
+        USER_2,
+        BigInt.fromI32(2000),
+        snapshotsUser2,
+        BigInt.zero(),
+      );
+      createMockCycloVault(
+        CYSFLR_ADDRESS,
+        USER_2,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
       // add address to meta list
       getAccountsMetadata(USER_1.toHexString());
+      getAccountsMetadata(USER_2.toHexString());
 
       // Take 2 snapshot (count = 2)
       takeSnapshot(2);
 
       // Check that old snapshots were removed and new ones added
-      let updatedVault = VaultBalance.load(CYSFLR_ADDRESS.concat(USER_1))!;
-      assert.i32Equals(updatedVault.balanceSnapshots.length, 29); // we took 2 snapshots + 27 prefilled
-      
-      // two entries should be the current balance (1000)
-      assert.bigIntEquals(updatedVault.balanceSnapshots[updatedVault.balanceSnapshots.length - 1], BigInt.fromI32(1000));
-      assert.bigIntEquals(updatedVault.balanceSnapshots[updatedVault.balanceSnapshots.length - 2], BigInt.fromI32(1000));
+      // user 1
+      let updatedVaultUser1 = VaultBalance.load(CYSFLR_ADDRESS.concat(USER_1))!;
+      assert.i32Equals(updatedVaultUser1.balanceSnapshots.length, 29); // we took 2 snapshots + 27 prefilled
+      // user 2
+      let updatedVaultUser2 = VaultBalance.load(CYSFLR_ADDRESS.concat(USER_2))!;
+      assert.i32Equals(updatedVaultUser2.balanceSnapshots.length, 29); // we took 2 snapshots + 27 prefilled
 
       // add the 2 new snapshots to the expected snapshot lists
       // and should be equal to the actual snapshot list
-      expectedSnapshotList.push(BigInt.fromI32(1000));
-      expectedSnapshotList.push(BigInt.fromI32(1000));
-      // covert the lists to array of ethereum.Value for comparison
+      // user 1
+      expectedSnapshotListUser1.push(BigInt.fromI32(1000));
+      expectedSnapshotListUser1.push(BigInt.fromI32(1000));
+      // convert the lists to array of ethereum.Value for comparison
       assert.arrayEquals(
-        updatedVault.balanceSnapshots.map<ethereum.Value>((v) => ethereum.Value.fromSignedBigInt(v)), 
-        expectedSnapshotList.map<ethereum.Value>((v) => ethereum.Value.fromUnsignedBigInt(v))
+        updatedVaultUser1.balanceSnapshots.map<ethereum.Value>((v) => ethereum.Value.fromSignedBigInt(v)), 
+        expectedSnapshotListUser1.map<ethereum.Value>((v) => ethereum.Value.fromUnsignedBigInt(v))
+      );
+      // user 2
+      expectedSnapshotListUser2.push(BigInt.fromI32(2000));
+      expectedSnapshotListUser2.push(BigInt.fromI32(2000));
+      // convert the lists to array of ethereum.Value for comparison
+      assert.arrayEquals(
+        updatedVaultUser2.balanceSnapshots.map<ethereum.Value>((v) => ethereum.Value.fromSignedBigInt(v)), 
+        expectedSnapshotListUser2.map<ethereum.Value>((v) => ethereum.Value.fromUnsignedBigInt(v))
       );
 
       // check avg snapshot
-      const expectedAvgSnapshot = expectedSnapshotList
+      // user 1
+      const expectedAvgSnapshotUser1 = expectedSnapshotListUser1
         .reduce((acc, val) => acc.plus(val), BigInt.zero())
-        .div(BigInt.fromI32(expectedSnapshotList.length));
-      assert.bigIntEquals(updatedVault.balanceAvgSnapshot, expectedAvgSnapshot);
+        .div(BigInt.fromI32(expectedSnapshotListUser1.length));
+      assert.bigIntEquals(updatedVaultUser1.balanceAvgSnapshot, expectedAvgSnapshotUser1);
+      // user 2
+      const expectedAvgSnapshotUser2 = expectedSnapshotListUser2
+        .reduce((acc, val) => acc.plus(val), BigInt.zero())
+        .div(BigInt.fromI32(expectedSnapshotListUser2.length));
+      assert.bigIntEquals(updatedVaultUser2.balanceAvgSnapshot, expectedAvgSnapshotUser2);
 
       // Check vault balance snapshot was added
+      // user 1
       assert.fieldEquals(
         "VaultBalance",
         CYSFLR_ADDRESS.concat(USER_1).toHexString(),
         "balanceAvgSnapshot",
-        expectedAvgSnapshot.toString()
+        expectedAvgSnapshotUser1.toString()
+      );
+      // user 2
+      assert.fieldEquals(
+        "VaultBalance",
+        CYSFLR_ADDRESS.concat(USER_2).toHexString(),
+        "balanceAvgSnapshot",
+        expectedAvgSnapshotUser2.toString()
       );
 
       // Check account total snapshot
+      // user 1
       assert.fieldEquals(
         "Account",
         USER_1.toHexString(),
         "totalCyBalanceSnapshot",
-        expectedAvgSnapshot.toString()
+        expectedAvgSnapshotUser1.toString()
+      );
+      // user 2
+      assert.fieldEquals(
+        "Account",
+        USER_2.toHexString(),
+        "totalCyBalanceSnapshot",
+        expectedAvgSnapshotUser2.toString()
+      );
+
+      // Check account eligible share
+      // user 1
+      assert.fieldEquals(
+        "Account",
+        USER_1.toHexString(),
+        "eligibleShareSnapshot",
+        expectedAvgSnapshotUser1.toBigDecimal()
+          .div(expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toBigDecimal())
+          .toString()
+      );
+      // user 2
+      assert.fieldEquals(
+        "Account",
+        USER_2.toHexString(),
+        "eligibleShareSnapshot",
+        expectedAvgSnapshotUser2.toBigDecimal()
+          .div(expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toBigDecimal())
+          .toString()
       );
 
       // Check vault total eligible
@@ -217,15 +300,7 @@ describe("Snapshot handling", () => {
         "CycloVault",
         CYSFLR_ADDRESS.toHexString(),
         "totalEligibleSnapshot",
-        expectedAvgSnapshot.toString()
-      );
-
-      // Check account eligible share
-      assert.fieldEquals(
-        "Account",
-        USER_1.toHexString(),
-        "eligibleShareSnapshot",
-        "1"
+        expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toString()
       );
 
       // check total sum
@@ -233,7 +308,7 @@ describe("Snapshot handling", () => {
         "EligibleTotals",
         TOTALS_ID,
         "totalEligibleSumSnapshot",
-        expectedAvgSnapshot.toString()
+        expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toString()
       );
     });
 
