@@ -102,7 +102,7 @@ export function takeSnapshot(count: number): void {
     const currentEpoch = EPOCHS.getCurrentEpoch(currentTime);
     const dayOfEpoch = currentEpoch.length - currentEpoch.timestamp.minus(currentTime).div(DAY).toI32();
     log.info(
-        "Daily snapshot taking process started for day {} of epoch: {}",
+        "Daily snapshot taking process started for day {} of epoch {}",
         [dayOfEpoch.toString(), currentEpoch.date]
     );
 
@@ -247,7 +247,7 @@ export function takeSnapshot(count: number): void {
     }
 
     log.info(
-        "Daily snapshot taking process ended for day {} of epoch: {}",
+        "Daily snapshot taking process ended for day {} of epoch {}",
         [dayOfEpoch.toString(), currentEpoch.date]
     );
 }
