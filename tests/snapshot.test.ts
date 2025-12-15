@@ -1,12 +1,12 @@
 import { dataSourceMock } from "matchstick-as";
 import { createTransferEvent, mockSlot0 } from "./utils";
-import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { takeSnapshot, maybeTakeSnapshot, EPOCHS } from "../src/snapshot";
-import { SparkdexV3LiquidityManager, TOTALS_ID } from "../src/constants";
 import { getAccountsMetadata, updateTimeState, DAY } from "../src/common";
-import { Address, BigDecimal, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts";
-import { Account, VaultBalance, LiquidityV3OwnerBalance, CycloVault } from "../generated/schema";
+import { Address, BigDecimal, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { getLiquidityV2OwnerBalanceId, getLiquidityV3OwnerBalanceId } from "../src/liquidity";
+import { SparkdexV2LiquidityManager, SparkdexV3LiquidityManager, TOTALS_ID } from "../src/constants";
 import { assert, describe, test, clearStore, beforeAll, beforeEach, afterEach } from "matchstick-as/assembly/index";
+import { Account, VaultBalance, LiquidityV3OwnerBalance, CycloVault, LiquidityV2OwnerBalance } from "../generated/schema";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -541,6 +541,16 @@ describe("Snapshot handling", () => {
       lp3.upperTick = -1000;
       lp3.fee = 3000;
       lp3.save();
+
+      // add lp v2 for user but it should be ineffective
+      let lp2Id = getLiquidityV2OwnerBalanceId(SparkdexV2LiquidityManager, USER_1, CYSFLR_ADDRESS);
+      let lp2 = new LiquidityV2OwnerBalance(lp2Id);
+      lp2.lpAddress = changetype<Bytes>(SparkdexV2LiquidityManager);
+      lp2.owner = changetype<Bytes>(USER_1);
+      lp2.tokenAddress = changetype<Bytes>(CYSFLR_ADDRESS);
+      lp2.liquidity = BigInt.fromI32(500);
+      lp2.depositBalance = BigInt.fromI32(500);
+      lp2.save();
 
       // add user 1 to meta list
       getAccountsMetadata(USER_1.toHexString());

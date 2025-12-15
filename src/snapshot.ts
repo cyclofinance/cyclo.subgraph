@@ -120,15 +120,7 @@ export function takeSnapshot(count: number): void {
         if (!account) continue;
 
         // get all active liquidity v3 positions of the account
-        const liquidtyV3OwnerBalances: LiquidityV3OwnerBalance[] = [];
         const liquidityBalances = store.loadRelated("Account", addressHex, "liquidityBalances");
-        for (let j = 0; j < liquidityBalances.length; j++) {
-            const id = liquidityBalances[j].getBytes("id");
-            const lp3 = LiquidityV3OwnerBalance.load(id);
-            if (lp3) {
-                liquidtyV3OwnerBalances.push(lp3);
-            }
-        }
 
         // load all vault balances of the account and calculate each token snapshot for the account
         let accountBalanceSnapshot = BigInt.zero();
@@ -136,26 +128,33 @@ export function takeSnapshot(count: number): void {
         for (let j = 0; j < vaultBalances.length; j++) {
             const vaultBalance = vaultBalances[j];
 
-            // factor in the v3 lp position for the snapshot balance
+            // factor in the v3 lp positions of the account for the account's vault snapshot balance
             let vaultSnapshotBalance = vaultBalance.balance;
-            for (let k = 0; k < liquidtyV3OwnerBalances.length; k++) {
-                const lp = liquidtyV3OwnerBalances[k];
-                if (lp.tokenAddress.notEqual(vaultBalance.vault)) continue;
+            for (let k = 0; k < liquidityBalances.length; k++) {
+                // if tokenId field exists, its v3 otherwise it v2
+                const tokenId = liquidityBalances[j].get("tokenId");
+                if (!tokenId) continue; // skip if v2
+
+                const lpv3 = changetype<LiquidityV3OwnerBalance>(liquidityBalances[j]);
+                if (lpv3.tokenAddress.notEqual(vaultBalance.vault)) continue; // skip if not same token as the vault
 
                 // check if the current market price is within lp position range
-                let slot0Result = poolsSlot0Cache.get(Address.fromBytes(lp.poolAddress).toHexString());
+                const poolAddressHex = Address.fromBytes(lpv3.poolAddress).toHexString().toLowerCase();
+                let slot0Result = poolsSlot0Cache.get(poolAddressHex); // first check the cache
                 if (!slot0Result) {
-                    slot0Result = factory.bind(Address.fromBytes(lp.poolAddress)).try_slot0();
+                    // get from onchain if not cached and cache it
+                    slot0Result = factory.bind(Address.fromBytes(lpv3.poolAddress)).try_slot0();
+                    poolsSlot0Cache.set(poolAddressHex, slot0Result);
                 }
                 if (slot0Result.reverted) continue;
                 const currentTick = slot0Result.value.getTick();
                 const isInRange =
-                    lp.lowerTick <= currentTick &&
-                    lp.upperTick >= currentTick;
+                    lpv3.lowerTick <= currentTick &&
+                    lpv3.upperTick >= currentTick;
 
                 // deduct the deposit balance from accumulated balance if not in range
                 if (!isInRange) {
-                    vaultSnapshotBalance = vaultSnapshotBalance.minus(lp.depositBalance);
+                    vaultSnapshotBalance = vaultSnapshotBalance.minus(lpv3.depositBalance);
                 }
             }
 
