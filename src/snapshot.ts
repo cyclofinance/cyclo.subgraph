@@ -131,7 +131,7 @@ export function takeSnapshot(count: number): void {
             // factor in the v3 lp positions of the account for the account's vault snapshot balance
             let vaultSnapshotBalance = vaultBalance.balance;
             for (let k = 0; k < liquidityBalances.length; k++) {
-                // if tokenId field exists, its v3 otherwise it v2
+                // if tokenId field exists, its v3 otherwise its v2
                 const tokenId = liquidityBalances[j].get("tokenId");
                 if (!tokenId) continue; // skip if v2
 
