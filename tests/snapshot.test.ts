@@ -364,19 +364,19 @@ describe("Snapshot handling", () => {
       );
 
       // Check vault total eligible
-      // cysflr - only user 1 and 2 have cysflr
+      // cysflr
       assert.fieldEquals(
         "CycloVault",
         CYSFLR_ADDRESS.toHexString(),
         "totalEligibleSnapshot",
-        expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toString()
+        expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toString() // only user 1 and 2 have cysflr
       );
-      // cyweth - only user 3 has cyweth
+      // cyweth
       assert.fieldEquals(
         "CycloVault",
         CYWETH_ADDRESS.toHexString(),
         "totalEligibleSnapshot",
-        expectedAvgSnapshotUser3.toString()
+        expectedAvgSnapshotUser3.toString() // only user 3 has cyweth
       );
 
       // check total sum
