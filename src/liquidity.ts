@@ -187,7 +187,8 @@ export function handleLiquidityV3Add(
         let liquidityV3OwnerBalance = LiquidityV3OwnerBalance.load(id);
         if (!liquidityV3OwnerBalance) {
             const positionResult = LiquidityV3.bind(log_.address).try_positions(tokenId);
-            if (!positionResult.reverted) {
+            const slot0Result = factory.bind(event.params.to).try_slot0();
+            if (!positionResult.reverted && !slot0Result.reverted) {
                 const fee = positionResult.value.getFee();
                 const lowerTick = positionResult.value.getTickLower();
                 const upperTick = positionResult.value.getTickUpper();
