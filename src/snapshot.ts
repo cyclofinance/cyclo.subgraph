@@ -172,9 +172,9 @@ export function takeSnapshot(count: number): void {
             vaultBalance.balanceSnapshots = vaultSnapshotsList;
 
             // calculate current avg and store for vault
-            const currentAvgSnapshot = vaultBalance.balanceSnapshots
+            const currentAvgSnapshot = vaultSnapshotsList
                 .reduce((acc, val) => acc.plus(val), BigInt.zero())
-                .div(BigInt.fromI32(vaultBalance.balanceSnapshots.length));
+                .div(BigInt.fromI32(vaultSnapshotsList.length));
             vaultBalance.balanceAvgSnapshot = currentAvgSnapshot;
             vaultBalance.save();
 
