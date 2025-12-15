@@ -81,7 +81,7 @@ export function getAccountsMetadata(newAccount: string | null = null): AccountsM
 
 /**
  * Get the time state or create it once at first call, the
- * current timestamp and day passed are updated up on the call
+ * current and prev timestamp are updated upon the call
  * @param event - Current event
  * @returns The TimeState instance
  */
