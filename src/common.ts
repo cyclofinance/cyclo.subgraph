@@ -68,10 +68,9 @@ export function getAccountsMetadata(newAccount: string | null = null): AccountsM
   // push the new account
   // dont need to check for dups as we only call this with new address
   // inside getOrCreateAccount() that already has guard against dups
-  if (newAccount != null) {
+  if (newAccount) {
     const list = accountsMetadata.accounts;
-    const address = Address.fromString(newAccount!)
-    list.push(address);
+    list.push(Address.fromString(newAccount));
     accountsMetadata.accounts = list;
   }
 
