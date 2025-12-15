@@ -94,8 +94,6 @@ export function updateTimeState(event: ethereum.Event): TimeState {
     timeState.originTimestamp = event.block.timestamp;
     timeState.currentBlock = event.block.number;
     timeState.currentTimestamp = event.block.timestamp;
-    timeState.prevBlock = event.block.number;
-    timeState.prevTimestamp = event.block.timestamp;
   }
 
   timeState.prevBlock = timeState.currentBlock;
