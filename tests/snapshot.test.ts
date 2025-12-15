@@ -11,6 +11,7 @@ import { Account, VaultBalance, LiquidityV3OwnerBalance, CycloVault, LiquidityV2
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
 const USER_2 = Address.fromString("0x0000000000000000000000000000000000000002");
+const USER_3 = Address.fromString("0x0000000000000000000000000000000000000003");
 
 // Token addresses
 const CYSFLR_ADDRESS = Address.fromString("0x19831cfB53A0dbeAD9866C43557C1D48DfF76567");
@@ -133,8 +134,8 @@ describe("Snapshot handling", () => {
       );
     });
 
-    test("should handle multiple snapshots with epoch length limit", () => {
-      // Setup user 1 account and vault
+    test("should handle multiple snapshots and accounts and tokens with existing prior snpashots", () => {
+      // Setup user 1 account and vault (with cysflr)
       createMockAccount(
         USER_1,
         BigInt.fromI32(1000),
@@ -166,7 +167,7 @@ describe("Snapshot handling", () => {
         BigInt.fromI32(0),
       );
 
-      // user 2
+      // user 2 (with cysflr)
       createMockAccount(
         USER_2,
         BigInt.fromI32(1000),
@@ -198,9 +199,42 @@ describe("Snapshot handling", () => {
         BigInt.fromI32(0),
       );
 
+      // user 3 (with cyweth)
+      createMockAccount(
+        USER_3,
+        BigInt.fromI32(5000),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+      // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
+      const preFilledSnapshotsLength3 = EPOCHS.getCurrentEpochLength(now) - 3; // 30 - 3 = 27
+      const snapshotsUser3 = new Array<BigInt>();
+      const expectedSnapshotListUser3 = new Array<BigInt>();
+      for (let i = 0; i < preFilledSnapshotsLength3; i++) {
+        snapshotsUser3.push(BigInt.fromI32(3000 + i));
+        expectedSnapshotListUser3.push(BigInt.fromI32(3000 + i));
+      }
+      createMockVaultBalance(
+        CYWETH_ADDRESS,
+        USER_3,
+        BigInt.fromI32(5000),
+        snapshotsUser3,
+        BigInt.zero(),
+      );
+      createMockCycloVault(
+        CYWETH_ADDRESS,
+        USER_3,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
       // add address to meta list
       getAccountsMetadata(USER_1.toHexString());
       getAccountsMetadata(USER_2.toHexString());
+      getAccountsMetadata(USER_3.toHexString());
 
       // Take 2 snapshot (count = 2)
       takeSnapshot(2);
@@ -212,6 +246,9 @@ describe("Snapshot handling", () => {
       // user 2
       let updatedVaultUser2 = VaultBalance.load(CYSFLR_ADDRESS.concat(USER_2))!;
       assert.i32Equals(updatedVaultUser2.balanceSnapshots.length, 29); // we took 2 snapshots + 27 prefilled
+      // user 3
+      let updatedVaultUser3 = VaultBalance.load(CYWETH_ADDRESS.concat(USER_3))!;
+      assert.i32Equals(updatedVaultUser3.balanceSnapshots.length, 29); // we took 2 snapshots + 27 prefilled
 
       // add the 2 new snapshots to the expected snapshot lists
       // and should be equal to the actual snapshot list
@@ -226,10 +263,16 @@ describe("Snapshot handling", () => {
       // user 2
       expectedSnapshotListUser2.push(BigInt.fromI32(2000));
       expectedSnapshotListUser2.push(BigInt.fromI32(2000));
-      // convert the lists to array of ethereum.Value for comparison
       assert.arrayEquals(
         updatedVaultUser2.balanceSnapshots.map<ethereum.Value>((v) => ethereum.Value.fromSignedBigInt(v)), 
         expectedSnapshotListUser2.map<ethereum.Value>((v) => ethereum.Value.fromUnsignedBigInt(v))
+      );
+      // user 3
+      expectedSnapshotListUser3.push(BigInt.fromI32(5000));
+      expectedSnapshotListUser3.push(BigInt.fromI32(5000));
+      assert.arrayEquals(
+        updatedVaultUser3.balanceSnapshots.map<ethereum.Value>((v) => ethereum.Value.fromSignedBigInt(v)), 
+        expectedSnapshotListUser3.map<ethereum.Value>((v) => ethereum.Value.fromUnsignedBigInt(v))
       );
 
       // check avg snapshot
@@ -243,6 +286,13 @@ describe("Snapshot handling", () => {
         .reduce((acc, val) => acc.plus(val), BigInt.zero())
         .div(BigInt.fromI32(expectedSnapshotListUser2.length));
       assert.bigIntEquals(updatedVaultUser2.balanceAvgSnapshot, expectedAvgSnapshotUser2);
+      // user 3
+      const expectedAvgSnapshotUser3 = expectedSnapshotListUser3
+        .reduce((acc, val) => acc.plus(val), BigInt.zero())
+        .div(BigInt.fromI32(expectedSnapshotListUser3.length));
+      assert.bigIntEquals(updatedVaultUser3.balanceAvgSnapshot, expectedAvgSnapshotUser3);
+
+      const totalSnapshot = expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).plus(expectedAvgSnapshotUser3);
 
       // Check vault balance snapshot was added
       // user 1
@@ -258,6 +308,13 @@ describe("Snapshot handling", () => {
         CYSFLR_ADDRESS.concat(USER_2).toHexString(),
         "balanceAvgSnapshot",
         expectedAvgSnapshotUser2.toString()
+      );
+      // user 3
+      assert.fieldEquals(
+        "VaultBalance",
+        CYWETH_ADDRESS.concat(USER_3).toHexString(),
+        "balanceAvgSnapshot",
+        expectedAvgSnapshotUser3.toString()
       );
 
       // Check account total snapshot
@@ -275,6 +332,13 @@ describe("Snapshot handling", () => {
         "totalCyBalanceSnapshot",
         expectedAvgSnapshotUser2.toString()
       );
+      // user 3
+      assert.fieldEquals(
+        "Account",
+        USER_3.toHexString(),
+        "totalCyBalanceSnapshot",
+        expectedAvgSnapshotUser3.toString()
+      );
 
       // Check account eligible share
       // user 1
@@ -282,26 +346,37 @@ describe("Snapshot handling", () => {
         "Account",
         USER_1.toHexString(),
         "eligibleShareSnapshot",
-        expectedAvgSnapshotUser1.toBigDecimal()
-          .div(expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toBigDecimal())
-          .toString()
+        expectedAvgSnapshotUser1.toBigDecimal().div(totalSnapshot.toBigDecimal()).toString()
       );
       // user 2
       assert.fieldEquals(
         "Account",
         USER_2.toHexString(),
         "eligibleShareSnapshot",
-        expectedAvgSnapshotUser2.toBigDecimal()
-          .div(expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toBigDecimal())
-          .toString()
+        expectedAvgSnapshotUser2.toBigDecimal().div(totalSnapshot.toBigDecimal()).toString()
+      );
+      // user 3
+      assert.fieldEquals(
+        "Account",
+        USER_3.toHexString(),
+        "eligibleShareSnapshot",
+        expectedAvgSnapshotUser3.toBigDecimal().div(totalSnapshot.toBigDecimal()).toString()
       );
 
       // Check vault total eligible
+      // cysflr - only user 1 and 2 have cysflr
       assert.fieldEquals(
         "CycloVault",
         CYSFLR_ADDRESS.toHexString(),
         "totalEligibleSnapshot",
         expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toString()
+      );
+      // cyweth - only user 3 has cyweth
+      assert.fieldEquals(
+        "CycloVault",
+        CYWETH_ADDRESS.toHexString(),
+        "totalEligibleSnapshot",
+        expectedAvgSnapshotUser3.toString()
       );
 
       // check total sum
@@ -309,7 +384,7 @@ describe("Snapshot handling", () => {
         "EligibleTotals",
         TOTALS_ID,
         "totalEligibleSumSnapshot",
-        expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toString()
+        totalSnapshot.toString()
       );
     });
 
