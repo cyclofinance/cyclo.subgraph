@@ -166,6 +166,7 @@ describe("Snapshot handling", () => {
         BigInt.fromI32(0),
       );
 
+      // user 2
       createMockAccount(
         USER_2,
         BigInt.fromI32(1000),
