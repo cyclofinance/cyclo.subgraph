@@ -19,8 +19,8 @@ const CYWETH_ADDRESS = Address.fromString("0xd8BF1d2720E9fFD01a2F9A2eFc3E101a05B
 // Pool address for V3 liquidity
 const V3_POOL = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89");
 
-// equals to day 27 of first epoch
-const now = EPOCHS.list[0].timestamp.minus(DAY.times(BigInt.fromI32(3)));
+// equals to day 27 of 3rd epoch
+const now = EPOCHS.list[2].timestamp.minus(DAY.times(BigInt.fromI32(3)));
 
 describe("Snapshot handling", () => {
   beforeAll(() => {
@@ -29,6 +29,8 @@ describe("Snapshot handling", () => {
 
   beforeEach(() => {
     clearStore();
+
+    // init the time state with an event at defined "now"
     updateTimeState(createTransferEvent(
       Address.zero(),
       Address.zero(),
