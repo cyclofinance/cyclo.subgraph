@@ -1,7 +1,7 @@
 import { Account, AccountsMetadata, TimeState } from "../generated/schema";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
 import { Address, BigInt, BigDecimal, Bytes, ethereum } from "@graphprotocol/graph-ts";
-import { REWARDS_SOURCES, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
+import { ACCOUNTS_METADATA_ID, REWARDS_SOURCES, TIME_STATE_ID, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
 
 // day in timestamp in seconds
 export const DAY = BigInt.fromI32(24 * 60 * 60);
@@ -59,9 +59,9 @@ export function bigintToBytes(value: BigInt): Bytes {
 }
 
 export function getAccountsMetadata(newAccount: string | null = null): AccountsMetadata {
-  let accountsMetadata = AccountsMetadata.load(Bytes.fromI32(0));
+  let accountsMetadata = AccountsMetadata.load(ACCOUNTS_METADATA_ID);
   if (!accountsMetadata) {
-    accountsMetadata = new AccountsMetadata(Bytes.fromI32(0));
+    accountsMetadata = new AccountsMetadata(ACCOUNTS_METADATA_ID);
     accountsMetadata.accounts = new Array<Bytes>();
   }
 
@@ -86,9 +86,9 @@ export function getAccountsMetadata(newAccount: string | null = null): AccountsM
  * @returns The TimeState instance
  */
 export function updateTimeState(event: ethereum.Event): TimeState {
-  let timeState = TimeState.load(Bytes.fromI32(0));
+  let timeState = TimeState.load(TIME_STATE_ID);
   if (!timeState) {
-    timeState = new TimeState(Bytes.fromI32(0));
+    timeState = new TimeState(TIME_STATE_ID);
     timeState.originBlock = event.block.number;
     timeState.originTimestamp = event.block.timestamp;
     timeState.currentBlock = event.block.number;
@@ -106,7 +106,7 @@ export function updateTimeState(event: ethereum.Event): TimeState {
 
 /** Returns the current timestamp */
 export function currentTimestamp(): BigInt {
-  let timeState = TimeState.load(Bytes.fromI32(0));
+  let timeState = TimeState.load(TIME_STATE_ID);
   if (!timeState) {
     return BigInt.zero();
   }
@@ -118,7 +118,7 @@ export function currentTimestamp(): BigInt {
  * triggered event (ie the event prior to the latest triggered event)
  */
 export function prevDay(): BigInt {
-  let timeState = TimeState.load(Bytes.fromI32(0));
+  let timeState = TimeState.load(TIME_STATE_ID);
   if (!timeState) {
     return BigInt.zero();
   }
@@ -129,7 +129,7 @@ export function prevDay(): BigInt {
 
 /** Returns the days passed (since origin event) until the latest triggered event */
 export function currentDay(): BigInt {
-  let timeState = TimeState.load(Bytes.fromI32(0));
+  let timeState = TimeState.load(TIME_STATE_ID);
   if (!timeState) {
     return BigInt.zero();
   }

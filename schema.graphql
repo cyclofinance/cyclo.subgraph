@@ -146,7 +146,7 @@ type LiquidityV3Change implements LiquidityChange @entity(immutable: true) {
 }
 
 type AccountsMetadata @entity {
-  id: Bytes! # only single entity would exist with id 0
+  id: String!
   accounts: [Bytes!]! # list of all accounts
 }
 
@@ -155,7 +155,7 @@ type AccountsMetadata @entity {
 # event (first ever event trigger) and then is updated
 # throughout the sync process
 type TimeState @entity {
-  id: Bytes! # only single entity would exist with id 0
+  id: String!
   originTimestamp: BigInt! # The first ever event block timestamp
   originBlock: BigInt! # The first ever event block number
   currentTimestamp: BigInt! # Timestamp of the latest triggered event (current working state)

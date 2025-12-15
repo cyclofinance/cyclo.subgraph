@@ -3,6 +3,8 @@ import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 export const ONE18 = BigInt.fromString(`1${"0".repeat(18)}`);
 
 export const TOTALS_ID = "SINGLETON";
+export const TIME_STATE_ID = "SINGLETON";
+export const ACCOUNTS_METADATA_ID = "SINGLETON";
 
 export const REWARDS_SOURCES = [
   Address.fromString("0xcee8cd002f151a536394e564b84076c41bbbcd4d"), // orderbook

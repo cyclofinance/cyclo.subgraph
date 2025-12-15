@@ -2,6 +2,8 @@ import { createTransferEvent } from "./utils";
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { assert, describe, test } from "matchstick-as/assembly/index";
 import { currentDay, DAY, getAccountsMetadata, prevDay, updateTimeState } from "../src/common";
+import { ACCOUNTS_METADATA_ID, TIME_STATE_ID } from "../src/constants";
+import { AccountsMetadata, TimeState } from "../generated/schema";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -19,7 +21,7 @@ describe("Test AccountsMetadata", () => {
         assert.assertTrue(accountsMetadata.accounts.length == 1);
         assert.fieldEquals(
             "AccountsMetadata",
-            Bytes.fromI32(0).toHexString(),
+            ACCOUNTS_METADATA_ID,
             "accounts",
             `[${USER_1.toHexString()}]`
         );
@@ -30,7 +32,7 @@ describe("Test AccountsMetadata", () => {
         assert.assertTrue(accountsMetadata.accounts.length == 2);
         assert.fieldEquals(
             "AccountsMetadata",
-            Bytes.fromI32(0).toHexString(),
+            ACCOUNTS_METADATA_ID,
             "accounts",
             `[${USER_1.toHexString()}, ${USER_2.toHexString()}]`
         );
@@ -84,7 +86,8 @@ describe("Test TimeState", () => {
             anotherDayPassedTimestamp,
         );
 
-        let timeState = updateTimeState(mockEvent1);
+        updateTimeState(mockEvent1);
+        let timeState = TimeState.load(TIME_STATE_ID)!;
 
         assert.bigIntEquals(timeState.originTimestamp, originTimestamp);
         assert.bigIntEquals(timeState.currentTimestamp, originTimestamp);
@@ -93,7 +96,8 @@ describe("Test TimeState", () => {
         assert.bigIntEquals(currentDay(), BigInt.fromI32(0));
 
         // update with second event
-        timeState = updateTimeState(mockEvent2);
+        updateTimeState(mockEvent2);
+        timeState = TimeState.load(TIME_STATE_ID)!;
 
         assert.bigIntEquals(timeState.originTimestamp, originTimestamp);
         assert.bigIntEquals(timeState.currentTimestamp, nextTimestamp);
@@ -102,7 +106,8 @@ describe("Test TimeState", () => {
         assert.bigIntEquals(currentDay(), BigInt.fromI32(0));
 
         // update with third event (day passed)
-        timeState = updateTimeState(mockEvent3);
+        updateTimeState(mockEvent3);
+        timeState = TimeState.load(TIME_STATE_ID)!;
 
         assert.bigIntEquals(timeState.originTimestamp, originTimestamp);
         assert.bigIntEquals(timeState.currentTimestamp, dayPassedTimestamp);
@@ -111,11 +116,12 @@ describe("Test TimeState", () => {
         assert.bigIntEquals(currentDay(), BigInt.fromI32(1)); // current should be 1, ie 1 day passed since origin
 
         // update with 4th event (2 days passed)
-        timeState = updateTimeState(mockEvent4);
+        updateTimeState(mockEvent4);
+        timeState = TimeState.load(TIME_STATE_ID)!;
 
         assert.bigIntEquals(timeState.originTimestamp, originTimestamp);
         assert.bigIntEquals(timeState.currentTimestamp, anotherDayPassedTimestamp);
-        assert.bigIntEquals(timeState.prevTimestamp, dayPassedTimestamp); // 1 day has passed before current
+        assert.bigIntEquals(timeState.prevTimestamp, dayPassedTimestamp); // prev day
         assert.bigIntEquals(prevDay(), BigInt.fromI32(1)); // last should be 1, ie 1 day was passed before the current (up to prev event)
         assert.bigIntEquals(currentDay(), BigInt.fromI32(2)); // current should be 2, ie 2 days passed since origin (up to the current event)
         
