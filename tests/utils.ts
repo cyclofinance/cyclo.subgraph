@@ -225,10 +225,19 @@ export function mockIncreaseLiquidityLog(
     tupleValues.push(ethereum.Value.fromUnsignedBigInt(amount0));
     tupleValues.push(ethereum.Value.fromUnsignedBigInt(amount1));
     let encodedTuple = ethereum.Value.fromTuple(tupleValues);
-    return new ethereum.Log(address, logTopics,
-    ethereum.encode(encodedTuple)!,
-    defaultAddressBytes, defaultIntBytes, defaultAddressBytes, defaultBigInt,
-    defaultBigInt, defaultBigInt, defaultEventDataLogType, new Wrapped(false));
+    return new ethereum.Log(
+      address,
+      logTopics,
+      ethereum.encode(encodedTuple)!,
+      defaultAddressBytes,
+      defaultIntBytes,
+      defaultAddressBytes,
+      defaultBigInt,
+      defaultBigInt,
+      defaultBigInt,
+      defaultEventDataLogType,
+      new Wrapped(false)
+    );
 }
 
 export function mockSlot0(contractAddress: Address, tick: i32): void {
