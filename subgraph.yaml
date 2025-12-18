@@ -23,6 +23,7 @@ dataSources:
         - event: NewClone(address,address,address)
           handler: handleNewClone
       file: ./src/cloneFactory.ts
+
   - kind: ethereum
     name: LiquidityV3
     network: flare
@@ -47,6 +48,7 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleLiquidityV3Transfer
+
 templates:
   - kind: ethereum/contract
     name: CycloVaultTemplate
@@ -60,6 +62,10 @@ templates:
       entities:
         - Account
         - Transfer
+        - LiquidityV2OwnerBalance
+        - LiquidityV3OwnerBalance
+        - LiquidityV2Change
+        - LiquidityV3Change
       abis:
         - name: CycloVault
           file: ./lib/cyclo.sol/out/CycloVault.sol/CycloVault.json
@@ -69,6 +75,7 @@ templates:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/cys-flr.ts
+
   - kind: ethereum/contract
     name: CycloReceiptTemplate
     network: flare
@@ -80,18 +87,17 @@ templates:
       language: wasm/assemblyscript
       entities:
         - Account
-        - Transfer
+        - CysFlrReceiptOwnerBalance
       abis:
         - name: CycloReceipt
           file: ./lib/cyclo.sol/out/CycloReceipt.sol/CycloReceipt.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed
-            address,uint256,uint256)
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed
-            address,uint256[],uint256[])
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
+
   - kind: ethereum/contract
     name: LiquidityV2
     network: flare
