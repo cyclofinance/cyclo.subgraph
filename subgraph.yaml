@@ -74,6 +74,7 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+          receipt: true
       file: ./src/cys-flr.ts
 
   - kind: ethereum/contract
