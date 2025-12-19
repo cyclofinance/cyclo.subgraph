@@ -86,10 +86,6 @@ function getOrCreateVaultBalance(vaultAddress: Address, account: Account): Vault
   return vaultBalance;
 }
 
-function getEligibleBalance(balance: BigInt): BigInt {
-    return balance.gt(BigInt.fromI32(0)) ? balance : BigInt.fromI32(0);
-}
-
 export function handleTransfer(event: TransferEvent): void {
   const fromAccount = getOrCreateAccount(event.params.from);
   const toAccount = getOrCreateAccount(event.params.to);
