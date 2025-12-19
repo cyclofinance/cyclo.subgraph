@@ -43,11 +43,11 @@ dataSources:
         - LiquidityV2OwnerBalance
         - LiquidityV3OwnerBalance
         - LiquidityV3Change
-        - TimeState
-        - AccountsMetadata
         - EligibleTotals
         - VaultBalance
         - CycloVault
+        - TimeState
+        - AccountsMetadata
       abis:
         - name: LiquidityV3
           file: ./abis/LiquidityV3Manager.json
@@ -74,11 +74,11 @@ templates:
         - LiquidityV3OwnerBalance
         - LiquidityV2Change
         - LiquidityV3Change
-        - TimeState
-        - AccountsMetadata
         - EligibleTotals
         - VaultBalance
         - CycloVault
+        - TimeState
+        - AccountsMetadata
       abis:
         - name: CycloVault
           file: ./lib/cyclo.sol/out/CycloVault.sol/CycloVault.json
@@ -108,11 +108,9 @@ templates:
         - name: CycloReceipt
           file: ./lib/cyclo.sol/out/CycloReceipt.sol/CycloReceipt.json
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed
-            address,uint256,uint256)
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleReceiptTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed
-            address,uint256[],uint256[])
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
 
@@ -131,11 +129,11 @@ templates:
         - LiquidityV2OwnerBalance
         - LiquidityV3OwnerBalance
         - LiquidityV2Change
-        - TimeState
-        - AccountsMetadata
         - EligibleTotals
         - VaultBalance
         - CycloVault
+        - TimeState
+        - AccountsMetadata
       abis:
         - name: LiquidityV2
           file: ./abis/cysFLR.json
