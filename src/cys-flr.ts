@@ -1,10 +1,10 @@
+import { TOTALS_ID } from "./constants";
+import { takeSnapshot } from "./snapshot";
+import { getOrCreateAccount, isApprovedSource } from "./common";
 import { BigInt, BigDecimal, Address } from "@graphprotocol/graph-ts";
+import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
 import { Transfer as TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import { Account, Transfer, EligibleTotals, CycloVault, VaultBalance } from "../generated/schema";
-import { getOrCreateAccount, updateTimeState, isApprovedSource } from "./common";
-import { TOTALS_ID } from "./constants";
-import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
-import { takeSnapshot } from "./snapshot";
 
 function calculateEligibleShare(
   account: Account,
