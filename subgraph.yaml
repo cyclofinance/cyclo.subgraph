@@ -15,7 +15,9 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
-      entities: []
+      entities:
+        - CycloVault
+        - CycloReceipt
       abis:
         - name: CloneFactory
           file: ./lib/rain.factory/out/CloneFactory.sol/CloneFactory.json
@@ -23,6 +25,7 @@ dataSources:
         - event: NewClone(address,address,address)
           handler: handleNewClone
       file: ./src/cloneFactory.ts
+
   - kind: ethereum
     name: LiquidityV3
     network: flare
@@ -37,8 +40,14 @@ dataSources:
       file: ./src/liquidity.ts
       entities:
         - Account
+        - LiquidityV2OwnerBalance
         - LiquidityV3OwnerBalance
         - LiquidityV3Change
+        - TimeState
+        - AccountsMetadata
+        - EligibleTotals
+        - VaultBalance
+        - CycloVault
       abis:
         - name: LiquidityV3
           file: ./abis/LiquidityV3Manager.json
@@ -47,6 +56,7 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleLiquidityV3Transfer
+
 templates:
   - kind: ethereum/contract
     name: CycloVaultTemplate
@@ -60,6 +70,15 @@ templates:
       entities:
         - Account
         - Transfer
+        - LiquidityV2OwnerBalance
+        - LiquidityV3OwnerBalance
+        - LiquidityV2Change
+        - LiquidityV3Change
+        - TimeState
+        - AccountsMetadata
+        - EligibleTotals
+        - VaultBalance
+        - CycloVault
       abis:
         - name: CycloVault
           file: ./lib/cyclo.sol/out/CycloVault.sol/CycloVault.json
@@ -68,7 +87,9 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+          receipt: true
       file: ./src/cys-flr.ts
+
   - kind: ethereum/contract
     name: CycloReceiptTemplate
     network: flare
@@ -80,7 +101,7 @@ templates:
       language: wasm/assemblyscript
       entities:
         - Account
-        - Transfer
+        - ReceiptOwnerBalance
       abis:
         - name: CycloReceipt
           file: ./lib/cyclo.sol/out/CycloReceipt.sol/CycloReceipt.json
@@ -92,6 +113,7 @@ templates:
             address,uint256[],uint256[])
           handler: handleReceiptTransferBatch
       file: ./src/receipt.ts
+
   - kind: ethereum/contract
     name: LiquidityV2
     network: flare
@@ -105,7 +127,13 @@ templates:
       entities:
         - Account
         - LiquidityV2OwnerBalance
+        - LiquidityV3OwnerBalance
         - LiquidityV2Change
+        - TimeState
+        - AccountsMetadata
+        - EligibleTotals
+        - VaultBalance
+        - CycloVault
       abis:
         - name: LiquidityV2
           file: ./abis/cysFLR.json

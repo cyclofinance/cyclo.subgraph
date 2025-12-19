@@ -1,8 +1,8 @@
 import { getOrCreateTotals } from "./cys-flr";
-import { currentDay, currentTimestamp, DAY, getAccountsMetadata, prevDay } from "./common";
+import { DAY, getAccountsMetadata, updateTimeState } from "./common";
+import { Address, BigInt, BigDecimal, TypedMap, ethereum, log } from "@graphprotocol/graph-ts";
 import { factory, factory__slot0Result } from "../generated/templates/CycloVaultTemplate/factory";
-import { Address, BigInt, BigDecimal, store, TypedMap, ethereum, log } from "@graphprotocol/graph-ts";
-import { Account, CycloVault, LiquidityV3OwnerBalance, VaultBalanceLoader } from "../generated/schema";
+import { Account, CycloVault, LiquidityV3OwnerBalanceLoader, VaultBalanceLoader } from "../generated/schema";
 
 export class Epoch {
     constructor(
@@ -47,20 +47,24 @@ export class Epochs {
         new Epoch("2026-05-27T12:00:00Z", BigInt.fromI32(1779883200), 30),
     ]
 
-    getCurrentEpoch(currentTimestamp: BigInt): Epoch {
+    getCurrentEpochIndex(currentTimestamp: BigInt): i32 {
         if (currentTimestamp <= this.list[0].timestamp) {
-            return this.list[0];
+            return 0;
         }
         if (currentTimestamp >= this.list[this.list.length - 1].timestamp) {
-            return this.list[this.list.length - 1];
+            return this.list.length - 1;
         }
         for (let i = 0; i < this.list.length; i++) {
             if (i + 1 >= this.list.length) break; // last item guard
             if (currentTimestamp > this.list[0].timestamp && currentTimestamp <= this.list[i + 1].timestamp) {
-                return this.list[i + 1];
+                return i + 1;
             }
         }
-        return this.list[this.list.length - 1];
+        return this.list.length - 1;
+    }
+
+    getCurrentEpoch(currentTimestamp: BigInt): Epoch {
+        return this.list[this.getCurrentEpochIndex(currentTimestamp)];
     }
 
     getCurrentEpochTimestamp(currentTimestamp: BigInt): BigInt {
@@ -76,34 +80,49 @@ export class Epochs {
 export const EPOCHS = new Epochs();
 
 /**
- * determines if it should take a snapshot or not by checking
- * if we are in a new day compared to the previous event timestamp
- */
-export function maybeTakeSnapshot(): void {
-    const prev = prevDay();
-    const current = currentDay();
-    const daysElapsedSincePrev = current.minus(prev).toI32();
-
-    // skip if still in same day
-    if (daysElapsedSincePrev <= 0) return;
-
-    // take new snapshot if we are in a new day
-    takeSnapshot(daysElapsedSincePrev);
-}
-
-/**
  * Takes snapshot at the current point in time for all the accounts, each cyclo token eligible amount and
  * total eligible amount and updates the entities snapshot fields accordingly.
  * @param count - Snapshot count (might need more than 1 if more than a day is passed since prev snapshot)
  */
-export function takeSnapshot(count: number): void {
+export function takeSnapshot(event: ethereum.Event): void {    
+    const timeState = updateTimeState(event);
+    const currentTime = timeState.currentTimestamp;
+
+    const prevSnapshotEpochIndex = timeState.lastSnapshotEpoch;
+    const prevSnapshotDayOfEpoch = timeState.lastSnapshotDayOfEpoch;
+
     // log the start and end of this proccess
-    const currentTime = currentTimestamp();
-    const currentEpoch = EPOCHS.getCurrentEpoch(currentTime);
-    const dayOfEpoch = currentEpoch.length - currentEpoch.timestamp.minus(currentTime).div(DAY).toI32();
-    log.info(
-        "Daily snapshot taking process started for day {} of epoch {}",
-        [dayOfEpoch.toString(), currentEpoch.date]
+    const currentEpochIndex = EPOCHS.getCurrentEpochIndex(currentTime);
+    const currentEpoch = EPOCHS.list[currentEpochIndex];
+    const currentDayOfEpoch = currentEpoch.length - currentEpoch.timestamp.minus(currentTime).div(DAY).toI32();
+
+    // keep it defensive just in case, since it cannot be less than 1
+    if (currentDayOfEpoch < 1) return;
+
+    // skip if not a new day/epoch
+    if (prevSnapshotEpochIndex >= currentEpochIndex && prevSnapshotDayOfEpoch >= currentDayOfEpoch) return;
+
+    let count = 0; // number of snapshots to duplicate
+    let isNewEpoch = false; // clear the snapshot list if started a new epoch
+    if (prevSnapshotEpochIndex == currentEpochIndex) {
+        count = currentDayOfEpoch - prevSnapshotDayOfEpoch;
+    } else {
+        count = currentDayOfEpoch;
+        isNewEpoch = true;
+    }
+
+    // can not be 0, but just in case
+    if (count <= 0) return;
+
+    log.warning(
+        "Daily snapshot taking process started for day {} of epoch {}, last snapshot day of epoch: {}, last snapshot epoch: {}, snapshot count: {}",
+        [
+            currentDayOfEpoch.toString(),
+            currentEpoch.date,
+            prevSnapshotDayOfEpoch.toString(),
+            EPOCHS.list[prevSnapshotEpochIndex].date.toString(),
+            count.toString(),
+        ]
     );
 
     // cache to store solt0 call results for pools
@@ -120,7 +139,7 @@ export function takeSnapshot(count: number): void {
         if (!account) continue;
 
         // get all active liquidity v3 positions of the account
-        const liquidityBalances = store.loadRelated("Account", addressHex, "liquidityBalances");
+        const liquidityV3Balances = new LiquidityV3OwnerBalanceLoader("Account", addressHex, "liquidityV3Balances").load();
 
         // load all vault balances of the account and calculate each token snapshot for the account
         let accountBalanceSnapshot = BigInt.zero();
@@ -130,12 +149,8 @@ export function takeSnapshot(count: number): void {
 
             // factor in the v3 lp positions of the account for the account's vault snapshot balance
             let vaultSnapshotBalance = vaultBalance.balance;
-            for (let k = 0; k < liquidityBalances.length; k++) {
-                // if tokenId field exists, its v3 otherwise its v2
-                const tokenId = liquidityBalances[j].get("tokenId");
-                if (!tokenId) continue; // skip if v2
-
-                const lpv3 = changetype<LiquidityV3OwnerBalance>(liquidityBalances[j]);
+            for (let k = 0; k < liquidityV3Balances.length; k++) {
+                const lpv3 = liquidityV3Balances[k];
                 if (lpv3.tokenAddress.notEqual(vaultBalance.vault)) continue; // skip if not same token as the vault
 
                 // check if the current market price is within lp position range
@@ -160,20 +175,24 @@ export function takeSnapshot(count: number): void {
 
             // store the new snapshot in the snapshot list and get the avg snapshot
             let vaultSnapshotsList = vaultBalance.balanceSnapshots;
-            if (vaultSnapshotsList.length >= currentEpoch.length) {
-                // clear the list if have reached the prev epoch length (prev epoch has passed)
-                // that means start with a clear list for the current epoch
-                vaultSnapshotsList = [];
+            if (isNewEpoch) {
+                vaultSnapshotsList = []; // clear the list since we are on anew epoch
             }
             for (let k = 0; k < count; k++) {
                 vaultSnapshotsList.push(vaultSnapshotBalance); // add the new snapshot to end of the list
             }
+            const fills = currentDayOfEpoch - vaultSnapshotsList.length;
+            for (let k = 0; k < Math.abs(fills); k++) {
+                if (fills <= 0) vaultSnapshotsList.shift(); // empty from front if length is above current day of epoch
+                else vaultSnapshotsList.unshift(BigInt.zero()); // fill with zero if the current length is not met
+            }
+
             vaultBalance.balanceSnapshots = vaultSnapshotsList;
 
             // calculate current avg and store for vault
             const currentAvgSnapshot = vaultSnapshotsList
                 .reduce((acc, val) => acc.plus(val), BigInt.zero())
-                .div(BigInt.fromI32(vaultSnapshotsList.length));
+                .div(BigInt.fromI32(currentDayOfEpoch));
             vaultBalance.balanceAvgSnapshot = currentAvgSnapshot;
             vaultBalance.save();
 
@@ -245,8 +264,12 @@ export function takeSnapshot(count: number): void {
         account.save();
     }
 
-    log.info(
+    timeState.lastSnapshotEpoch = currentEpochIndex;
+    timeState.lastSnapshotDayOfEpoch = currentDayOfEpoch;
+    timeState.save();
+
+    log.warning(
         "Daily snapshot taking process ended for day {} of epoch {}",
-        [dayOfEpoch.toString(), currentEpoch.date]
+        [currentDayOfEpoch.toString(), currentEpoch.date]
     );
 }

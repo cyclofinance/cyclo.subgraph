@@ -1,9 +1,9 @@
 import { createTransferEvent } from "./utils";
-import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { TimeState } from "../generated/schema";
+import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { assert, describe, test } from "matchstick-as/assembly/index";
-import { currentDay, DAY, getAccountsMetadata, prevDay, updateTimeState } from "../src/common";
 import { ACCOUNTS_METADATA_ID, TIME_STATE_ID } from "../src/constants";
-import { AccountsMetadata, TimeState } from "../generated/schema";
+import { currentDay, DAY, getAccountsMetadata, prevDay, updateTimeState } from "../src/common";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -16,7 +16,7 @@ const CYSFLR_ADDRESS = Address.fromString(
 
 describe("Test AccountsMetadata", () => {
     test("should create and add new address to the list", () => {
-        let accountsMetadata = getAccountsMetadata(USER_1.toHexString());
+        let accountsMetadata = getAccountsMetadata(USER_1);
 
         assert.assertTrue(accountsMetadata.accounts.length == 1);
         assert.fieldEquals(
@@ -27,7 +27,7 @@ describe("Test AccountsMetadata", () => {
         );
 
         // add another address
-        accountsMetadata = getAccountsMetadata(USER_2.toHexString());
+        accountsMetadata = getAccountsMetadata(USER_2);
 
         assert.assertTrue(accountsMetadata.accounts.length == 2);
         assert.fieldEquals(

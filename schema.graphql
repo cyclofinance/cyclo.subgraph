@@ -8,6 +8,8 @@ type Account @entity {
   totalCyBalance: BigInt! # Sum of all token balances
   eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
   liquidityBalances: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
+  liquidityV3Balances: [LiquidityV3OwnerBalance!]! @derivedFrom(field: "owner")
+  liquidityV2Balances: [LiquidityV2OwnerBalance!]! @derivedFrom(field: "owner")
   liquidityChanges: [LiquidityChange!]! @derivedFrom(field: "owner")
   totalCyBalanceSnapshot: BigInt!
   eligibleShareSnapshot: BigDecimal!
@@ -162,4 +164,6 @@ type TimeState @entity {
   currentBlock: BigInt! # Block number of the latest triggered event (current working state)
   prevTimestamp: BigInt! # Timestamp of the previous triggered event
   prevBlock: BigInt! # Block number of the previous triggered event
+  lastSnapshotEpoch: Int!
+  lastSnapshotDayOfEpoch: Int!
 }

@@ -1,12 +1,12 @@
-import { dataSourceMock } from "matchstick-as";
+import { takeSnapshot, EPOCHS } from "../src/snapshot";
 import { createTransferEvent, mockSlot0 } from "./utils";
-import { takeSnapshot, maybeTakeSnapshot, EPOCHS } from "../src/snapshot";
+import { dataSourceMock, newMockEvent } from "matchstick-as";
 import { getAccountsMetadata, updateTimeState, DAY } from "../src/common";
 import { Address, BigDecimal, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { getLiquidityV2OwnerBalanceId, getLiquidityV3OwnerBalanceId } from "../src/liquidity";
-import { SparkdexV2LiquidityManager, SparkdexV3LiquidityManager, TOTALS_ID } from "../src/constants";
+import { SparkdexV2LiquidityManager, SparkdexV3LiquidityManager, TIME_STATE_ID, TOTALS_ID } from "../src/constants";
 import { assert, describe, test, clearStore, beforeAll, beforeEach, afterEach } from "matchstick-as/assembly/index";
-import { Account, VaultBalance, LiquidityV3OwnerBalance, CycloVault, LiquidityV2OwnerBalance } from "../generated/schema";
+import { Account, VaultBalance, LiquidityV3OwnerBalance, CycloVault, LiquidityV2OwnerBalance, TimeState } from "../generated/schema";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -23,6 +23,10 @@ const V3_POOL = Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89")
 // equals to day 27 of 3rd epoch
 const now = EPOCHS.list[2].timestamp.minus(DAY.times(BigInt.fromI32(3)));
 
+// mocked event
+const mockeEvent = newMockEvent();
+mockeEvent.block.timestamp = now;
+
 describe("Snapshot handling", () => {
   beforeAll(() => {
     dataSourceMock.setNetwork("flare");
@@ -32,6 +36,20 @@ describe("Snapshot handling", () => {
     clearStore();
 
     // init the time state with an event at defined "now"
+    updateTimeState(createTransferEvent(
+      Address.zero(),
+      Address.zero(),
+      BigInt.zero(),
+      Address.zero(),
+      null,
+      null,
+      null,
+      EPOCHS.list[2].timestamp.minus(DAY.times(BigInt.fromI32(5))),
+    ));
+    const timeState = TimeState.load(TIME_STATE_ID)!;
+    timeState.lastSnapshotEpoch = 2;
+    timeState.lastSnapshotDayOfEpoch = 25;
+    timeState.save();
     updateTimeState(createTransferEvent(
       Address.zero(),
       Address.zero(),
@@ -54,7 +72,7 @@ describe("Snapshot handling", () => {
       getAccountsMetadata();
       
       // Should not throw error with empty accounts
-      takeSnapshot(1);
+      takeSnapshot(mockeEvent);
       
       // No entities should be created
       assert.entityCount("Account", 0);
@@ -88,17 +106,21 @@ describe("Snapshot handling", () => {
       );
 
       // Add account to metadata
-      getAccountsMetadata(USER_1.toHexString());
+      getAccountsMetadata(USER_1);
 
       // Take snapshot
-      takeSnapshot(1);
+      takeSnapshot(mockeEvent);
+
+      const expectedSnapshot = BigInt.fromI32(1000) // current balance
+        .times(BigInt.fromI32(2)) // x2 because we take 2 snapshots since its from day 25 to 27
+        .div(BigInt.fromI32(27)); // /27 as we are at day 27
 
       // Check vault balance snapshot was added
       assert.fieldEquals(
         "VaultBalance",
         CYSFLR_ADDRESS.concat(USER_1).toHexString(),
         "balanceAvgSnapshot",
-        "1000"
+        expectedSnapshot.toString()
       );
 
       // Check account total snapshot
@@ -106,7 +128,7 @@ describe("Snapshot handling", () => {
         "Account",
         USER_1.toHexString(),
         "totalCyBalanceSnapshot",
-        "1000"
+        expectedSnapshot.toString()
       );
 
       // Check vault total eligible
@@ -114,7 +136,7 @@ describe("Snapshot handling", () => {
         "CycloVault",
         CYSFLR_ADDRESS.toHexString(),
         "totalEligibleSnapshot",
-        "1000"
+        expectedSnapshot.toString()
       );
 
       // Check account eligible share (should be 1.0 for single account)
@@ -130,7 +152,7 @@ describe("Snapshot handling", () => {
         "EligibleTotals",
         TOTALS_ID,
         "totalEligibleSumSnapshot",
-        "1000"
+        expectedSnapshot.toString()
       );
     });
 
@@ -144,7 +166,7 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
       );
       // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
-      const preFilledSnapshotsLength1 = EPOCHS.getCurrentEpochLength(now) - 3; // 30 - 3 = 27
+      const preFilledSnapshotsLength1 = EPOCHS.getCurrentEpochLength(now) - 5; // 30 - 3 = 27
       const snapshotsUser1 = new Array<BigInt>();
       const expectedSnapshotListUser1 = new Array<BigInt>();
       for (let i = 0; i < preFilledSnapshotsLength1; i++) {
@@ -176,7 +198,7 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
       );
       // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
-      const preFilledSnapshotsLength2 = EPOCHS.getCurrentEpochLength(now) - 3; // 30 - 3 = 27
+      const preFilledSnapshotsLength2 = EPOCHS.getCurrentEpochLength(now) - 5; // 30 - 3 = 27
       const snapshotsUser2 = new Array<BigInt>();
       const expectedSnapshotListUser2 = new Array<BigInt>();
       for (let i = 0; i < preFilledSnapshotsLength2; i++) {
@@ -208,7 +230,7 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
       );
       // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
-      const preFilledSnapshotsLength3 = EPOCHS.getCurrentEpochLength(now) - 3; // 30 - 3 = 27
+      const preFilledSnapshotsLength3 = EPOCHS.getCurrentEpochLength(now) - 5; // 30 - 3 = 27
       const snapshotsUser3 = new Array<BigInt>();
       const expectedSnapshotListUser3 = new Array<BigInt>();
       for (let i = 0; i < preFilledSnapshotsLength3; i++) {
@@ -232,23 +254,23 @@ describe("Snapshot handling", () => {
       );
 
       // add address to meta list
-      getAccountsMetadata(USER_1.toHexString());
-      getAccountsMetadata(USER_2.toHexString());
-      getAccountsMetadata(USER_3.toHexString());
+      getAccountsMetadata(USER_1);
+      getAccountsMetadata(USER_2);
+      getAccountsMetadata(USER_3);
 
-      // Take 2 snapshot (count = 2)
-      takeSnapshot(2);
+      // Take snapshot
+      takeSnapshot(mockeEvent);
 
       // Check that old snapshots were removed and new ones added
       // user 1
       let updatedVaultUser1 = VaultBalance.load(CYSFLR_ADDRESS.concat(USER_1))!;
-      assert.i32Equals(updatedVaultUser1.balanceSnapshots.length, 29); // we took 2 snapshots + 27 prefilled
+      assert.i32Equals(updatedVaultUser1.balanceSnapshots.length, 27); // we took 2 snapshots + 27 prefilled
       // user 2
       let updatedVaultUser2 = VaultBalance.load(CYSFLR_ADDRESS.concat(USER_2))!;
-      assert.i32Equals(updatedVaultUser2.balanceSnapshots.length, 29); // we took 2 snapshots + 27 prefilled
+      assert.i32Equals(updatedVaultUser2.balanceSnapshots.length, 27); // we took 2 snapshots + 27 prefilled
       // user 3
       let updatedVaultUser3 = VaultBalance.load(CYWETH_ADDRESS.concat(USER_3))!;
-      assert.i32Equals(updatedVaultUser3.balanceSnapshots.length, 29); // we took 2 snapshots + 27 prefilled
+      assert.i32Equals(updatedVaultUser3.balanceSnapshots.length, 27); // we took 2 snapshots + 27 prefilled
 
       // add the 2 new snapshots to the expected snapshot lists
       // and should be equal to the actual snapshot list
@@ -369,7 +391,7 @@ describe("Snapshot handling", () => {
         "CycloVault",
         CYSFLR_ADDRESS.toHexString(),
         "totalEligibleSnapshot",
-        expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toString() // only user 1 and 2 have cysflr
+        expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).toString() // 
       );
       // cyweth
       assert.fieldEquals(
@@ -438,27 +460,34 @@ describe("Snapshot handling", () => {
       );
 
       // Add accounts to metadata
-      getAccountsMetadata(USER_1.toHexString());
-      getAccountsMetadata(USER_2.toHexString());
+      getAccountsMetadata(USER_1);
+      getAccountsMetadata(USER_2);
 
       // Take snapshot
-      takeSnapshot(1);
+      takeSnapshot(mockeEvent);
+
+      const expectedSnapshot1 = BigInt.fromI32(2000) // user 1 current balance
+        .times(BigInt.fromI32(2)) // x2 because we take 2 snapshots since its from day 25 to 27
+        .div(BigInt.fromI32(27)); // /27 as we are at day 27
+
+      const expectedSnapshot2 = BigInt.fromI32(1000) // user 2 current balance
+        .times(BigInt.fromI32(2)) // x2 because we take 2 snapshots since its from day 25 to 27
+        .div(BigInt.fromI32(27)); // /27 as we are at day 27
+
+      const sum = expectedSnapshot1.plus(expectedSnapshot2)
 
       // Check account shares
-      // Total: 2000 + 1000 = 3000
-      // Account 1: 2000/3000 = 0.666...
-      // Account 2: 1000/3000 = 0.333...
       assert.fieldEquals(
         "Account",
         USER_1.toHexString(),
         "eligibleShareSnapshot",
-        "0.6666666666666666666666666666666667"
+        expectedSnapshot1.toBigDecimal().div(sum.toBigDecimal()).toString()
       );
       assert.fieldEquals(
         "Account",
         USER_2.toHexString(),
         "eligibleShareSnapshot",
-        "0.3333333333333333333333333333333333"
+        expectedSnapshot2.toBigDecimal().div(sum.toBigDecimal()).toString()
       );
 
       // Check accounts total snapshot
@@ -466,13 +495,13 @@ describe("Snapshot handling", () => {
         "Account",
         USER_1.toHexString(),
         "totalCyBalanceSnapshot",
-        "2000"
+        expectedSnapshot1.toString()
       );
       assert.fieldEquals(
         "Account",
         USER_2.toHexString(),
         "totalCyBalanceSnapshot",
-        "1000"
+        expectedSnapshot2.toString()
       );
 
       // Check vault balance snapshot for user 1 and 2
@@ -480,13 +509,13 @@ describe("Snapshot handling", () => {
         "VaultBalance",
         CYSFLR_ADDRESS.concat(USER_1).toHexString(),
         "balanceAvgSnapshot",
-        "2000"
+        expectedSnapshot1.toString()
       );
       assert.fieldEquals(
         "VaultBalance",
         CYWETH_ADDRESS.concat(USER_2).toHexString(),
         "balanceAvgSnapshot",
-        "1000"
+        expectedSnapshot2.toString()
       );
       
       // Check vault total eligible
@@ -494,13 +523,13 @@ describe("Snapshot handling", () => {
         "CycloVault",
         CYSFLR_ADDRESS.toHexString(),
         "totalEligibleSnapshot",
-        "2000"
+        expectedSnapshot1.toString()
       );
       assert.fieldEquals(
         "CycloVault",
         CYWETH_ADDRESS.toHexString(),
         "totalEligibleSnapshot",
-        "1000"
+        expectedSnapshot2.toString()
       );
 
       // check total sum
@@ -508,7 +537,7 @@ describe("Snapshot handling", () => {
         "EligibleTotals",
         TOTALS_ID,
         "totalEligibleSumSnapshot",
-        "3000"
+        sum.toString()
       );
     });
 
@@ -538,10 +567,10 @@ describe("Snapshot handling", () => {
       );
 
       // add account to meta list
-      getAccountsMetadata(USER_1.toHexString());
+      getAccountsMetadata(USER_1);
 
       // Take snapshot
-      takeSnapshot(1);
+      takeSnapshot(mockeEvent);
 
       // Check that negative balance is normalized to zero
       assert.fieldEquals(
@@ -628,10 +657,14 @@ describe("Snapshot handling", () => {
       lp2.save();
 
       // add user 1 to meta list
-      getAccountsMetadata(USER_1.toHexString());
+      getAccountsMetadata(USER_1);
 
       // Take snapshot
-      takeSnapshot(1);
+      takeSnapshot(mockeEvent);
+
+      const expectedSnapshot = BigInt.fromI32(1000) // user 1 current balance
+        .times(BigInt.fromI32(2)) // x2 because we take 2 snapshots since its from day 25 to 27
+        .div(BigInt.fromI32(27)); // /27 as we are at day 27
 
       // V3 position is in range, so deposit balance should NOT be deducted
       // Snapshot balance should be: 1000 (vault) - 0 (no deduction) = 1000
@@ -639,7 +672,7 @@ describe("Snapshot handling", () => {
         "Account",
         USER_1.toHexString(),
         "totalCyBalanceSnapshot",
-        "1000"
+        expectedSnapshot.toString()
       );
     });
 
@@ -687,10 +720,14 @@ describe("Snapshot handling", () => {
       lp3.save();
 
       // add user 1 to meta list
-      getAccountsMetadata(USER_1.toHexString());
+      getAccountsMetadata(USER_1);
 
       // Take snapshot
-      takeSnapshot(1);
+      takeSnapshot(mockeEvent);
+
+      const expectedSnapshot = BigInt.fromI32(1000).minus(BigInt.fromI32(500)) // user 1 current balance - minus out of range balance
+        .times(BigInt.fromI32(2)) // x2 because we take 2 snapshots since its from day 25 to 27
+        .div(BigInt.fromI32(27)); // /27 as we are at day 27
 
       // V3 position is out of range, so deposit balance should be deducted
       // Snapshot balance should be: 1000 (vault) - 500 (deposit) = 500
@@ -698,7 +735,7 @@ describe("Snapshot handling", () => {
         "Account",
         USER_1.toHexString(),
         "totalCyBalanceSnapshot",
-        "500"
+        expectedSnapshot.toString()
       );
     });
 
@@ -737,10 +774,10 @@ describe("Snapshot handling", () => {
       );
 
       // add accounts to meta list
-      getAccountsMetadata(USER_1.toHexString());
-      getAccountsMetadata(USER_2.toHexString());
+      getAccountsMetadata(USER_1);
+      getAccountsMetadata(USER_2);
 
-      takeSnapshot(1);
+      takeSnapshot(mockeEvent);
 
       // Account with zero balance should have 0 share
       assert.fieldEquals(
@@ -756,129 +793,6 @@ describe("Snapshot handling", () => {
         USER_2.toHexString(),
         "eligibleShareSnapshot",
         "1"
-      );
-    });
-  });
-
-  describe("maybeTakeSnapshot()", () => {
-    test("should take snapshot when day has elapsed", () => {
-      // Initialize TimeState
-      const originEventTimestamp = BigInt.fromI32(1000000);
-      const nextDayFirstEventTimestamp = originEventTimestamp.plus(DAY).plus(BigInt.fromI32(3600)); // +1 day + 1 hour
-      
-      let mockEvent1 = createTransferEvent(
-        USER_1,
-        USER_2,
-        BigInt.fromI32(100),
-        CYSFLR_ADDRESS,
-        null,
-        null,
-        null,
-        originEventTimestamp,
-      );
-      updateTimeState(mockEvent1);
-
-      let mockEvent2 = createTransferEvent(
-        USER_1,
-        USER_2,
-        BigInt.fromI32(100),
-        CYSFLR_ADDRESS,
-        null,
-        null,
-        null,
-        nextDayFirstEventTimestamp,
-      );
-      updateTimeState(mockEvent2);
-
-      // Setup test account and vault
-      createMockAccount(
-        USER_1,
-        BigInt.fromI32(1000),
-        BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
-      );
-      createMockVaultBalance(
-        CYSFLR_ADDRESS,
-        USER_1,
-        BigInt.fromI32(1000),
-        [],
-        BigInt.zero(),
-      );
-      createMockCycloVault(
-        CYSFLR_ADDRESS,
-        USER_1,
-        BigInt.fromI32(1),
-        BigInt.fromI32(1),
-        BigInt.fromI32(0),
-        BigInt.fromI32(0),
-      );
-
-      // add user 1 to the meta list
-      getAccountsMetadata(USER_1.toHexString());
-
-      // Should trigger snapshot
-      maybeTakeSnapshot();
-
-      // Verify snapshot was taken
-      assert.fieldEquals(
-        "Account",
-        USER_1.toHexString(),
-        "totalCyBalanceSnapshot",
-        "1000"
-      );
-    });
-
-    test("should not take snapshot when no day has elapsed", () => {
-      // Initialize TimeState with same day
-      const originEventTimestamp = BigInt.fromI32(1000000);
-      const sameDayEventtimestamp = originEventTimestamp.plus(BigInt.fromI32(3600)); // +1 hour (same day)
-      
-      let mockEvent1 = createTransferEvent(
-        USER_1,
-        USER_2,
-        BigInt.fromI32(100),
-        CYSFLR_ADDRESS,
-        null,
-        null,
-        null,
-        originEventTimestamp,
-      );
-      updateTimeState(mockEvent1);
-
-      let mockEvent2 = createTransferEvent(
-        USER_1,
-        USER_2,
-        BigInt.fromI32(100),
-        CYSFLR_ADDRESS,
-        null,
-        null,
-        null,
-        sameDayEventtimestamp,
-      );
-      updateTimeState(mockEvent2);
-
-      // Setup test account
-      createMockAccount(
-        USER_1,
-        BigInt.fromI32(1000),
-        BigInt.fromI32(500), // Pre-existing snapshot value
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
-      );
-      
-      // add user 1 to meta list
-      getAccountsMetadata(USER_1.toHexString());
-
-      // Should not trigger snapshot
-      maybeTakeSnapshot();
-
-      // Verify snapshot was not updated (should remain 500)
-      assert.fieldEquals(
-        "Account",
-        USER_1.toHexString(),
-        "totalCyBalanceSnapshot",
-        "500"
       );
     });
   });

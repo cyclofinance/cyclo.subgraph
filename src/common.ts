@@ -2,6 +2,7 @@ import { Account, AccountsMetadata, TimeState } from "../generated/schema";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
 import { Address, BigInt, BigDecimal, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { ACCOUNTS_METADATA_ID, REWARDS_SOURCES, TIME_STATE_ID, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
+import { log } from "matchstick-as";
 
 // day in timestamp in seconds
 export const DAY = BigInt.fromI32(24 * 60 * 60);
@@ -20,7 +21,7 @@ export function getOrCreateAccount(address: Address): Account {
     // add new address to the address metadata entity
     // doing this here ensures no dups as we are inside the scope
     // where an Account record doesnt exists for the address
-    getAccountsMetadata(address.toHexString());
+    getAccountsMetadata(address);
   }
 
   return account;
@@ -58,7 +59,7 @@ export function bigintToBytes(value: BigInt): Bytes {
   return changetype<Bytes>(Bytes.fromHexString(hex));
 }
 
-export function getAccountsMetadata(newAccount: string | null = null): AccountsMetadata {
+export function getAccountsMetadata(newAccount: Address | null = null): AccountsMetadata {
   let accountsMetadata = AccountsMetadata.load(ACCOUNTS_METADATA_ID);
   if (!accountsMetadata) {
     accountsMetadata = new AccountsMetadata(ACCOUNTS_METADATA_ID);
@@ -70,7 +71,7 @@ export function getAccountsMetadata(newAccount: string | null = null): AccountsM
   // inside getOrCreateAccount() that already has guard against dups
   if (newAccount) {
     const list = accountsMetadata.accounts;
-    list.push(Address.fromString(newAccount));
+    list.push(newAccount);
     accountsMetadata.accounts = list;
   }
 
@@ -93,13 +94,23 @@ export function updateTimeState(event: ethereum.Event): TimeState {
     timeState.originTimestamp = event.block.timestamp;
     timeState.currentBlock = event.block.number;
     timeState.currentTimestamp = event.block.timestamp;
+    timeState.prevBlock = event.block.number;
+    timeState.prevTimestamp = event.block.timestamp;
+    timeState.lastSnapshotEpoch = 0;
+    timeState.lastSnapshotDayOfEpoch = 0;
+    timeState.save();
+    return timeState;
   }
 
-  timeState.prevBlock = timeState.currentBlock;
-  timeState.prevTimestamp = timeState.currentTimestamp;
-  timeState.currentBlock = event.block.number;
-  timeState.currentTimestamp = event.block.timestamp;
-  timeState.save();
+  // keep it defensive by only updating if the new timestamp is greater than current
+  // this handles multiple events in the same block and potential reorgs
+  if (event.block.timestamp.gt(timeState.currentTimestamp)) {
+    timeState.prevBlock = timeState.currentBlock;
+    timeState.prevTimestamp = timeState.currentTimestamp;
+    timeState.currentBlock = event.block.number;
+    timeState.currentTimestamp = event.block.timestamp;
+    timeState.save();
+  }
 
   return timeState;
 }
@@ -122,9 +133,7 @@ export function prevDay(): BigInt {
   if (!timeState) {
     return BigInt.zero();
   }
-  return timeState.prevTimestamp
-    .minus(timeState.originTimestamp)
-    .div(DAY);
+  return timeState.prevTimestamp.minus(timeState.originTimestamp).div(DAY);
 }
 
 /** Returns the days passed (since origin event) until the latest triggered event */
@@ -133,7 +142,5 @@ export function currentDay(): BigInt {
   if (!timeState) {
     return BigInt.zero();
   }
-  return timeState.currentTimestamp
-    .minus(timeState.originTimestamp)
-    .div(DAY);
+  return timeState.currentTimestamp.minus(timeState.originTimestamp).div(DAY);
 }

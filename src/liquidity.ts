@@ -1,20 +1,28 @@
-import { maybeTakeSnapshot } from "./snapshot";
+import { takeSnapshot } from "./snapshot";
 import { updateTotalsForAccount } from "./cys-flr";
 import { LiquidityV2 } from "../generated/templates";
+import { bigintToBytes, isV2Pool, isV3Pool } from "./common";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
-import { bigintToBytes, updateTimeState, isV2Pool, isV3Pool } from "./common";
-import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import { Address, BigInt, Bytes, ethereum, store } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
-import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance, CycloVault, VaultBalance } from "../generated/schema";
+import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
+import {
+    Account,
+    CycloVault,
+    VaultBalance,
+    LiquidityV2Change,
+    LiquidityV3Change,
+    LiquidityV2OwnerBalance, 
+    LiquidityV3OwnerBalance,
+} from "../generated/schema";
 import {
     ONE18,
-    SparkdexV2LiquidityManager,
-    SparkdexV3LiquidityManager,
-    BlazeswapV2LiquidityManager,
     ERC20TransferEventABI,
     IncreaseLiquidityV3ABI,
     DecreaseLiquidityV3ABI,
+    SparkdexV2LiquidityManager,
+    SparkdexV3LiquidityManager,
+    BlazeswapV2LiquidityManager,
 } from "./constants";
 
 export const DEPOSIT = "DEPOSIT";
@@ -302,16 +310,23 @@ export function handleLiquidityV3Withdraw(
 
 // handles LP erc20 token transfers (v2) and updates account cy token balances accordingly
 export function handleLiquidityV2Transfer(event: ERC20TransferEvent): void {
-    const timeState = updateTimeState(event); // update time state
-
     const owner = event.params.from;
-    if (owner.equals(Address.zero())) return; // skip if this is a mint, as mint are already handled in liquidity add
-    if (owner.equals(event.params.to)) return; // skip no change event, ie same to/from
+    if (owner.equals(Address.zero())) {
+        takeSnapshot(event);
+        return; // skip if this is a mint, as mint are already handled in liquidity add
+    }
+    if (owner.equals(event.params.to)) {
+        takeSnapshot(event);
+        return; // skip no change event, ie same to/from
+    }
 
     // get pool tokens
     const token0Result = factory.bind(event.address).try_token0();
     const token1Result = factory.bind(event.address).try_token1();
-    if (token0Result.reverted || token1Result.reverted) return;
+    if (token0Result.reverted || token1Result.reverted) {
+        takeSnapshot(event);
+        return;
+    }
 
     const token0 = token0Result.value;
     const token1 = token1Result.value;
@@ -324,7 +339,7 @@ export function handleLiquidityV2Transfer(event: ERC20TransferEvent): void {
     }
 
     // take snapshot if needed
-    maybeTakeSnapshot();
+    takeSnapshot(event);
 }
 
 function handleLiquidityV2TransferInner(
@@ -385,16 +400,23 @@ function handleLiquidityV2TransferInner(
 
 // handles LP erc721 token transfers (v3) and updates account cy token balances accordingly
 export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
-    const timeState = updateTimeState(event); // update time state
-
     const owner = event.params.from;
     const tokenId = event.params.tokenId;
-    if (owner.equals(Address.zero())) return; // skip if this is a mint, as mint are already handled in liquidity add
-    if (owner.equals(event.params.to)) return; // skip no change event, ie same to/from
+    if (owner.equals(Address.zero())) {
+        takeSnapshot(event);
+        return; // skip if this is a mint, as mint are already handled in liquidity add
+    }
+    if (owner.equals(event.params.to)) {
+        takeSnapshot(event);
+        return; // skip no change event, ie same to/from
+    }
 
     // get pool tokens
     const result = LiquidityV3.bind(event.address).try_positions(tokenId);
-    if (result.reverted) return;
+    if (result.reverted) {
+        takeSnapshot(event);
+        return;
+    }
 
     const token0Address = result.value.getToken0();
     const token1Address = result.value.getToken1();
@@ -407,7 +429,7 @@ export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
     }
 
     // take snapshot if needed
-    maybeTakeSnapshot();
+    takeSnapshot(event);
 }
 
 function handleLiquidityV3TransferInner(

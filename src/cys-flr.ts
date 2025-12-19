@@ -4,7 +4,7 @@ import { Account, Transfer, EligibleTotals, CycloVault, VaultBalance } from "../
 import { getOrCreateAccount, updateTimeState, isApprovedSource } from "./common";
 import { TOTALS_ID } from "./constants";
 import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
-import { maybeTakeSnapshot } from "./snapshot";
+import { takeSnapshot } from "./snapshot";
 
 function calculateEligibleShare(
   account: Account,
@@ -95,8 +95,6 @@ function getEligibleBalance(balance: BigInt): BigInt {
 }
 
 export function handleTransfer(event: TransferEvent): void {
-  const timeState = updateTimeState(event); // update time state
-
   const fromAccount = getOrCreateAccount(event.params.from);
   const toAccount = getOrCreateAccount(event.params.to);
   const vaultAddress = event.address;
@@ -164,6 +162,6 @@ export function handleTransfer(event: TransferEvent): void {
   updateTotalsForAccount(fromAccount, vaultAddress, oldFromBalance, fromVaultBalance.balance);
   updateTotalsForAccount(toAccount, vaultAddress, oldToBalance, toVaultBalance.balance);
 
-  // take snapshot if needed
-  maybeTakeSnapshot();
+  // try to take snapshot
+  takeSnapshot(event);
 }
