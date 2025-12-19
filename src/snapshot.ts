@@ -173,25 +173,12 @@ export function takeSnapshot(event: ethereum.Event): void {
                 }
             }
 
-            // store the new snapshot in the snapshot list and get the avg snapshot
-            let vaultSnapshotsList = vaultBalance.balanceSnapshots;
-            if (isNewEpoch) {
-                vaultSnapshotsList = []; // clear the list since we are on anew epoch
-            }
-            for (let k = 0; k < count; k++) {
-                vaultSnapshotsList.push(vaultSnapshotBalance); // add the new snapshot to end of the list
-            }
-            const fills = currentDayOfEpoch - vaultSnapshotsList.length;
-            for (let k = 0; k < Math.abs(fills); k++) {
-                if (fills <= 0) vaultSnapshotsList.shift(); // empty from front if length is above current day of epoch
-                else vaultSnapshotsList.unshift(BigInt.zero()); // fill with zero if the current length is not met
-            }
-
-            vaultBalance.balanceSnapshots = vaultSnapshotsList;
-
             // calculate current avg and store for vault
-            const currentAvgSnapshot = vaultSnapshotsList
-                .reduce((acc, val) => acc.plus(val), BigInt.zero())
+            const prevSnapshotsSum = isNewEpoch
+                ? BigInt.zero()
+                : vaultBalance.balanceAvgSnapshot.times(BigInt.fromI32(prevSnapshotDayOfEpoch)) // old avg * old day of epoch
+            const currentAvgSnapshot = prevSnapshotsSum
+                .plus(vaultSnapshotBalance.times(BigInt.fromI32(count)))
                 .div(BigInt.fromI32(currentDayOfEpoch));
             vaultBalance.balanceAvgSnapshot = currentAvgSnapshot;
             vaultBalance.save();

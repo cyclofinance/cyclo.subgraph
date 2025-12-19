@@ -93,7 +93,6 @@ describe("Snapshot handling", () => {
         CYSFLR_ADDRESS,
         USER_1,
         BigInt.fromI32(1000),
-        [],
         BigInt.zero(),
       );
       createMockCycloVault(
@@ -165,20 +164,13 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
         BigInt.zero().toBigDecimal(),
       );
-      // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
-      const preFilledSnapshotsLength1 = EPOCHS.getCurrentEpochLength(now) - 5; // 30 - 3 = 27
-      const snapshotsUser1 = new Array<BigInt>();
-      const expectedSnapshotListUser1 = new Array<BigInt>();
-      for (let i = 0; i < preFilledSnapshotsLength1; i++) {
-        snapshotsUser1.push(BigInt.fromI32(500 + i));
-        expectedSnapshotListUser1.push(BigInt.fromI32(500 + i));
-      }
+      const user1Balance = BigInt.fromI32(5000);
+      const user1PrevAvg = BigInt.fromI32(700);
       createMockVaultBalance(
         CYSFLR_ADDRESS,
         USER_1,
-        BigInt.fromI32(1000),
-        snapshotsUser1,
-        BigInt.zero(),
+        user1Balance,
+        user1PrevAvg,
       );
       createMockCycloVault(
         CYSFLR_ADDRESS,
@@ -197,20 +189,13 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
         BigInt.zero().toBigDecimal(),
       );
-      // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
-      const preFilledSnapshotsLength2 = EPOCHS.getCurrentEpochLength(now) - 5; // 30 - 3 = 27
-      const snapshotsUser2 = new Array<BigInt>();
-      const expectedSnapshotListUser2 = new Array<BigInt>();
-      for (let i = 0; i < preFilledSnapshotsLength2; i++) {
-        snapshotsUser2.push(BigInt.fromI32(1000 + i));
-        expectedSnapshotListUser2.push(BigInt.fromI32(1000 + i));
-      }
+      const user2Balance = BigInt.fromI32(5000);
+      const user2PrevAvg = BigInt.fromI32(1650);
       createMockVaultBalance(
         CYSFLR_ADDRESS,
         USER_2,
-        BigInt.fromI32(2000),
-        snapshotsUser2,
-        BigInt.zero(),
+        user2Balance,
+        user2PrevAvg,
       );
       createMockCycloVault(
         CYSFLR_ADDRESS,
@@ -229,20 +214,13 @@ describe("Snapshot handling", () => {
         BigInt.zero().toBigDecimal(),
         BigInt.zero().toBigDecimal(),
       );
-      // Pre-fill with epoch length snapshot values (we are at day 27, so need 27 prefilled snapshots)
-      const preFilledSnapshotsLength3 = EPOCHS.getCurrentEpochLength(now) - 5; // 30 - 3 = 27
-      const snapshotsUser3 = new Array<BigInt>();
-      const expectedSnapshotListUser3 = new Array<BigInt>();
-      for (let i = 0; i < preFilledSnapshotsLength3; i++) {
-        snapshotsUser3.push(BigInt.fromI32(3000 + i));
-        expectedSnapshotListUser3.push(BigInt.fromI32(3000 + i));
-      }
+      const user3Balance = BigInt.fromI32(5000);
+      const user3PrevAvg = BigInt.fromI32(4800);
       createMockVaultBalance(
         CYWETH_ADDRESS,
         USER_3,
-        BigInt.fromI32(5000),
-        snapshotsUser3,
-        BigInt.zero(),
+        user3Balance,
+        user3PrevAvg,
       );
       createMockCycloVault(
         CYWETH_ADDRESS,
@@ -264,54 +242,29 @@ describe("Snapshot handling", () => {
       // Check that old snapshots were removed and new ones added
       // user 1
       let updatedVaultUser1 = VaultBalance.load(CYSFLR_ADDRESS.concat(USER_1))!;
-      assert.i32Equals(updatedVaultUser1.balanceSnapshots.length, 27); // we took 2 snapshots + 27 prefilled
       // user 2
       let updatedVaultUser2 = VaultBalance.load(CYSFLR_ADDRESS.concat(USER_2))!;
-      assert.i32Equals(updatedVaultUser2.balanceSnapshots.length, 27); // we took 2 snapshots + 27 prefilled
       // user 3
       let updatedVaultUser3 = VaultBalance.load(CYWETH_ADDRESS.concat(USER_3))!;
-      assert.i32Equals(updatedVaultUser3.balanceSnapshots.length, 27); // we took 2 snapshots + 27 prefilled
-
-      // add the 2 new snapshots to the expected snapshot lists
-      // and should be equal to the actual snapshot list
-      // user 1
-      expectedSnapshotListUser1.push(BigInt.fromI32(1000));
-      expectedSnapshotListUser1.push(BigInt.fromI32(1000));
-      // convert the lists to array of ethereum.Value for comparison
-      assert.arrayEquals(
-        updatedVaultUser1.balanceSnapshots.map<ethereum.Value>((v) => ethereum.Value.fromSignedBigInt(v)), 
-        expectedSnapshotListUser1.map<ethereum.Value>((v) => ethereum.Value.fromUnsignedBigInt(v))
-      );
-      // user 2
-      expectedSnapshotListUser2.push(BigInt.fromI32(2000));
-      expectedSnapshotListUser2.push(BigInt.fromI32(2000));
-      assert.arrayEquals(
-        updatedVaultUser2.balanceSnapshots.map<ethereum.Value>((v) => ethereum.Value.fromSignedBigInt(v)), 
-        expectedSnapshotListUser2.map<ethereum.Value>((v) => ethereum.Value.fromUnsignedBigInt(v))
-      );
-      // user 3
-      expectedSnapshotListUser3.push(BigInt.fromI32(5000));
-      expectedSnapshotListUser3.push(BigInt.fromI32(5000));
-      assert.arrayEquals(
-        updatedVaultUser3.balanceSnapshots.map<ethereum.Value>((v) => ethereum.Value.fromSignedBigInt(v)), 
-        expectedSnapshotListUser3.map<ethereum.Value>((v) => ethereum.Value.fromUnsignedBigInt(v))
-      );
 
       // check avg snapshot
       // user 1
-      const expectedAvgSnapshotUser1 = expectedSnapshotListUser1
-        .reduce((acc, val) => acc.plus(val), BigInt.zero())
-        .div(BigInt.fromI32(expectedSnapshotListUser1.length));
+      const expectedAvgSnapshotUser1 = user1Balance
+        .times(BigInt.fromI32(2)) // 2 snapshot taken, last snapshot was at day 25, not its 27, 27 - 25 = 2
+        .plus(user1PrevAvg.times(BigInt.fromI32(25))) // + (prev avg * prev snapshot day)
+        .div(BigInt.fromI32(27)) // div by current snapshot day which is 27
       assert.bigIntEquals(updatedVaultUser1.balanceAvgSnapshot, expectedAvgSnapshotUser1);
       // user 2
-      const expectedAvgSnapshotUser2 = expectedSnapshotListUser2
-        .reduce((acc, val) => acc.plus(val), BigInt.zero())
-        .div(BigInt.fromI32(expectedSnapshotListUser2.length));
+      const expectedAvgSnapshotUser2 = user2Balance
+        .times(BigInt.fromI32(2))
+        .plus(user2PrevAvg.times(BigInt.fromI32(25)))
+        .div(BigInt.fromI32(27))
       assert.bigIntEquals(updatedVaultUser2.balanceAvgSnapshot, expectedAvgSnapshotUser2);
       // user 3
-      const expectedAvgSnapshotUser3 = expectedSnapshotListUser3
-        .reduce((acc, val) => acc.plus(val), BigInt.zero())
-        .div(BigInt.fromI32(expectedSnapshotListUser3.length));
+      const expectedAvgSnapshotUser3 = user3Balance
+        .times(BigInt.fromI32(2))
+        .plus(user3PrevAvg.times(BigInt.fromI32(25)))
+        .div(BigInt.fromI32(27))
       assert.bigIntEquals(updatedVaultUser3.balanceAvgSnapshot, expectedAvgSnapshotUser3);
 
       const totalSnapshot = expectedAvgSnapshotUser1.plus(expectedAvgSnapshotUser2).plus(expectedAvgSnapshotUser3);
@@ -423,7 +376,6 @@ describe("Snapshot handling", () => {
         CYSFLR_ADDRESS,
         USER_1,
         BigInt.fromI32(2000),
-        [],
         BigInt.zero(),
       );
       createMockCycloVault(
@@ -447,7 +399,6 @@ describe("Snapshot handling", () => {
         CYWETH_ADDRESS,
         USER_2,
         BigInt.fromI32(1000),
-        [],
         BigInt.zero(),
       );
       createMockCycloVault(
@@ -554,7 +505,6 @@ describe("Snapshot handling", () => {
         CYSFLR_ADDRESS,
         USER_1,
         BigInt.fromI32(-500),
-        [],
         BigInt.zero(),
       );
       createMockCycloVault(
@@ -618,7 +568,6 @@ describe("Snapshot handling", () => {
         CYSFLR_ADDRESS,
         USER_1,
         BigInt.fromI32(1000),
-        [],
         BigInt.zero(),
       );
       createMockCycloVault(
@@ -691,7 +640,6 @@ describe("Snapshot handling", () => {
         CYSFLR_ADDRESS,
         USER_1,
         BigInt.fromI32(1000),
-        [],
         BigInt.zero(),
       );
       createMockCycloVault(
@@ -760,7 +708,6 @@ describe("Snapshot handling", () => {
         CYSFLR_ADDRESS,
         USER_2,
         BigInt.fromI32(1000),
-        [],
         BigInt.zero(),
       );
 
@@ -982,14 +929,12 @@ function createMockVaultBalance(
   tokenAddress: Address,
   owner: Address,
   balance: BigInt,
-  balanceSnapshots: BigInt[],
   balanceAvgSnapshot: BigInt,
 ): VaultBalance {
   let vaultBalance = new VaultBalance(tokenAddress.concat(owner));
   vaultBalance.vault = changetype<Bytes>(tokenAddress);
   vaultBalance.owner = changetype<Bytes>(owner);
   vaultBalance.balance = balance;
-  vaultBalance.balanceSnapshots = balanceSnapshots;
   vaultBalance.balanceAvgSnapshot = balanceAvgSnapshot;
   vaultBalance.save();
 

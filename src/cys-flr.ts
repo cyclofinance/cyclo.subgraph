@@ -82,7 +82,6 @@ function getOrCreateVaultBalance(vaultAddress: Address, account: Account): Vault
     vaultBalance.vault = vaultAddress;
     vaultBalance.owner = account.id;
     vaultBalance.balance = BigInt.fromI32(0);
-    vaultBalance.balanceSnapshots = new Array();
     vaultBalance.balanceAvgSnapshot = BigInt.fromI32(0);
     vaultBalance.save();
   }

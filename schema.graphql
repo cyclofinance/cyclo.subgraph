@@ -38,7 +38,6 @@ type VaultBalance @entity {
   vault: CycloVault!
   owner: Account!
   balance: BigInt!
-  balanceSnapshots: [BigInt!]!
   balanceAvgSnapshot: BigInt!
 }
 
