@@ -357,7 +357,13 @@ function handleLiquidityV2TransferInner(
     vaultBalance.balance = vaultBalance.balance.minus(depositDeduction);
     vaultBalance.save();
 
-    account.totalCyBalance = account.totalCyBalance.minus(depositDeduction);
+    // update account's total
+    if (oldBalance.gt(BigInt.zero())) {
+      account.totalCyBalance = account.totalCyBalance.minus(oldBalance);
+    }
+    if (vaultBalance.balance.gt(BigInt.zero())) {
+      account.totalCyBalance = account.totalCyBalance.plus(vaultBalance.balance);
+    }
     account.save();
 
     updateTotalsForAccount(account, cyToken, oldBalance, vaultBalance.balance);
@@ -427,7 +433,13 @@ function handleLiquidityV3TransferInner(
     vaultBalance.balance = vaultBalance.balance.minus(depositBalance);
     vaultBalance.save();
 
-    account.totalCyBalance = account.totalCyBalance.minus(depositBalance);
+    // update account's total
+    if (oldBalance.gt(BigInt.zero())) {
+      account.totalCyBalance = account.totalCyBalance.minus(oldBalance);
+    }
+    if (vaultBalance.balance.gt(BigInt.zero())) {
+      account.totalCyBalance = account.totalCyBalance.plus(vaultBalance.balance);
+    }
     account.save();
 
     updateTotalsForAccount(account, cyToken, oldBalance, vaultBalance.balance);

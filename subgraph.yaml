@@ -15,7 +15,9 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
-      entities: []
+      entities:
+        - CycloVault
+        - CycloReceipt
       abis:
         - name: CloneFactory
           file: ./lib/rain.factory/out/CloneFactory.sol/CloneFactory.json
@@ -38,8 +40,12 @@ dataSources:
       file: ./src/liquidity.ts
       entities:
         - Account
+        - LiquidityV2OwnerBalance
         - LiquidityV3OwnerBalance
         - LiquidityV3Change
+        - EligibleTotals
+        - VaultBalance
+        - CycloVault
       abis:
         - name: LiquidityV3
           file: ./abis/LiquidityV3Manager.json
@@ -66,6 +72,9 @@ templates:
         - LiquidityV3OwnerBalance
         - LiquidityV2Change
         - LiquidityV3Change
+        - EligibleTotals
+        - VaultBalance
+        - CycloVault
       abis:
         - name: CycloVault
           file: ./lib/cyclo.sol/out/CycloVault.sol/CycloVault.json
@@ -88,7 +97,7 @@ templates:
       language: wasm/assemblyscript
       entities:
         - Account
-        - CysFlrReceiptOwnerBalance
+        - ReceiptOwnerBalance
       abis:
         - name: CycloReceipt
           file: ./lib/cyclo.sol/out/CycloReceipt.sol/CycloReceipt.json
@@ -112,7 +121,11 @@ templates:
       entities:
         - Account
         - LiquidityV2OwnerBalance
+        - LiquidityV3OwnerBalance
         - LiquidityV2Change
+        - EligibleTotals
+        - VaultBalance
+        - CycloVault
       abis:
         - name: LiquidityV2
           file: ./abis/cysFLR.json
