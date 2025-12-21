@@ -82,7 +82,7 @@ export const EPOCHS = new Epochs();
 /**
  * Takes snapshot at the current point in time for all the accounts, each cyclo token eligible amount and
  * total eligible amount and updates the entities snapshot fields accordingly.
- * @param count - Snapshot count (might need more than 1 if more than a day is passed since prev snapshot)
+ * @param event - The event to determine if it needs a snapshot to take place at its timestamp
  */
 export function takeSnapshot(event: ethereum.Event): void {    
     const timeState = updateTimeState(event);
