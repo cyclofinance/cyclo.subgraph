@@ -99,19 +99,18 @@ export function takeSnapshot(event: ethereum.Event): void {
     // keep it defensive just in case, since it cannot be less than 1
     if (currentDayOfEpoch < 1) return;
 
-    // skip if not a new day/epoch
-    if (prevSnapshotEpochIndex >= currentEpochIndex && prevSnapshotDayOfEpoch >= currentDayOfEpoch) return;
-
     let count = 0; // number of snapshots to duplicate
-    let isNewEpoch = false; // clear the snapshot list if started a new epoch
-    if (prevSnapshotEpochIndex == currentEpochIndex) {
+    let isNewEpoch = false; // we should ignore prevouse avg if 
+    if (currentEpochIndex < prevSnapshotEpochIndex) {
+        return; // cant take snapshot for older epoch than current
+    } else if (prevSnapshotEpochIndex == currentEpochIndex) {
         count = currentDayOfEpoch - prevSnapshotDayOfEpoch;
     } else {
+        isNewEpoch = true; // we just started the new epoch
         count = currentDayOfEpoch;
-        isNewEpoch = true;
     }
 
-    // can not be 0 at this point, but just in case
+    // skip if on same or older day
     if (count <= 0) return;
 
     // from here on we know its definitely the time to take new
