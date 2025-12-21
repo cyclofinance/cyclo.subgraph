@@ -111,11 +111,17 @@ export function takeSnapshot(event: ethereum.Event): void {
         isNewEpoch = true;
     }
 
-    // can not be 0, but just in case
+    // can not be 0 at this point, but just in case
     if (count <= 0) return;
 
+    // from here on we know its definitely the time to take new
+    // snapshot, so save epoch day and index as last taken snapshot
+    timeState.lastSnapshotEpoch = currentEpochIndex;
+    timeState.lastSnapshotDayOfEpoch = currentDayOfEpoch;
+    timeState.save();
+
     log.info(
-        "Daily snapshot taking process started for day {} of epoch {}, last snapshot day of epoch: {}, last snapshot epoch: {}, snapshot count: {}",
+        "Daily snapshot taking process started for day {} of epoch {}, prev snapshot day of epoch: {}, prev snapshot epoch: {}, snapshot count: {}",
         [
             currentDayOfEpoch.toString(),
             currentEpoch.date,
@@ -246,10 +252,6 @@ export function takeSnapshot(event: ethereum.Event): void {
             .div(totalEligibleSumSnapshot.toBigDecimal());
         account.save();
     }
-
-    timeState.lastSnapshotEpoch = currentEpochIndex;
-    timeState.lastSnapshotDayOfEpoch = currentDayOfEpoch;
-    timeState.save();
 
     log.info(
         "Daily snapshot taking process ended for day {} of epoch {}",
