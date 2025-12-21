@@ -131,9 +131,10 @@ export function takeSnapshot(event: ethereum.Event): void {
     // a map: "token -> total eligible balance of the token (sum of all eligible account snapshot balances for the token)"
     const tokenEligibleBalances = new TypedMap<string, BigInt>();
 
-    const accountsMetadata = getAccountsMetadata().accounts.load();
-    for (let i = 0; i < accountsMetadata.length; i++) {
-        const account = accountsMetadata[i];
+    const accountsMetadata = getAccountsMetadata();
+    const accountsList = accountsMetadata.accounts.load();
+    for (let i = 0; i < accountsList.length; i++) {
+        const account = accountsList[i];
 
         // get all active liquidity v3 positions of the account
         const liquidityV3Balances = account.liquidityV3Balances.load();
@@ -222,8 +223,8 @@ export function takeSnapshot(event: ethereum.Event): void {
     totals.save();
 
     // update eligible share for each account after calculating the total eligible snapshot
-    for (let i = 0; i < accountsMetadata.length; i++) {
-        const account = accountsMetadata[i];
+    for (let i = 0; i < accountsList.length; i++) {
+        const account = accountsList[i];
 
         // If account has no positive balance, their share is 0
         if (account.totalCyBalanceSnapshot.le(BigInt.zero())) {
