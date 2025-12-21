@@ -1,8 +1,8 @@
 import { createTransferEvent } from "./utils";
 import { TimeState } from "../generated/schema";
+import { TIME_STATE_ID } from "../src/constants";
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { assert, describe, test } from "matchstick-as/assembly/index";
-import { ACCOUNTS_METADATA_ID, TIME_STATE_ID } from "../src/constants";
 import { currentDay, DAY, getAccountsMetadata, getOrCreateAccount, prevDay, updateTimeState } from "../src/common";
 
 // Test addresses
