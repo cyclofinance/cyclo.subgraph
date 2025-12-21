@@ -1,8 +1,8 @@
 import { getOrCreateTotals } from "./cys-flr";
+import { CycloVault } from "../generated/schema";
 import { DAY, getAccountsMetadata, updateTimeState } from "./common";
 import { Address, BigInt, BigDecimal, TypedMap, ethereum, log } from "@graphprotocol/graph-ts";
 import { factory, factory__slot0Result } from "../generated/templates/CycloVaultTemplate/factory";
-import { Account, CycloVault, LiquidityV3OwnerBalanceLoader, VaultBalanceLoader } from "../generated/schema";
 
 export class Epoch {
     constructor(
@@ -114,7 +114,7 @@ export function takeSnapshot(event: ethereum.Event): void {
     // can not be 0, but just in case
     if (count <= 0) return;
 
-    log.warning(
+    log.info(
         "Daily snapshot taking process started for day {} of epoch {}, last snapshot day of epoch: {}, last snapshot epoch: {}, snapshot count: {}",
         [
             currentDayOfEpoch.toString(),
@@ -131,19 +131,16 @@ export function takeSnapshot(event: ethereum.Event): void {
     // a map: "token -> total eligible balance of the token (sum of all eligible account snapshot balances for the token)"
     const tokenEligibleBalances = new TypedMap<string, BigInt>();
 
-    const accountsMetadata = getAccountsMetadata();
-    for (let i = 0; i < accountsMetadata.accounts.length; i++) {
-        const address = accountsMetadata.accounts[i];
-        const addressHex = address.toHexString().toLowerCase();
-        const account = Account.load(address);
-        if (!account) continue;
+    const accountsMetadata = getAccountsMetadata().accounts.load();
+    for (let i = 0; i < accountsMetadata.length; i++) {
+        const account = accountsMetadata[i];
 
         // get all active liquidity v3 positions of the account
-        const liquidityV3Balances = new LiquidityV3OwnerBalanceLoader("Account", addressHex, "liquidityV3Balances").load();
+        const liquidityV3Balances = account.liquidityV3Balances.load();
 
         // load all vault balances of the account and calculate each token snapshot for the account
         let accountBalanceSnapshot = BigInt.zero();
-        const vaultBalances = new VaultBalanceLoader("Account", addressHex, "vaultBalances").load();
+        const vaultBalances = account.vaultBalances.load();
         for (let j = 0; j < vaultBalances.length; j++) {
             const vaultBalance = vaultBalances[j];
 
@@ -225,10 +222,8 @@ export function takeSnapshot(event: ethereum.Event): void {
     totals.save();
 
     // update eligible share for each account after calculating the total eligible snapshot
-    for (let i = 0; i < accountsMetadata.accounts.length; i++) {
-        const address = accountsMetadata.accounts[i];
-        const account = Account.load(address);
-        if (!account) continue;
+    for (let i = 0; i < accountsMetadata.length; i++) {
+        const account = accountsMetadata[i];
 
         // If account has no positive balance, their share is 0
         if (account.totalCyBalanceSnapshot.le(BigInt.zero())) {
@@ -255,7 +250,7 @@ export function takeSnapshot(event: ethereum.Event): void {
     timeState.lastSnapshotDayOfEpoch = currentDayOfEpoch;
     timeState.save();
 
-    log.warning(
+    log.info(
         "Daily snapshot taking process ended for day {} of epoch {}",
         [currentDayOfEpoch.toString(), currentEpoch.date]
     );

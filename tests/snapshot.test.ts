@@ -2,11 +2,11 @@ import { takeSnapshot, EPOCHS } from "../src/snapshot";
 import { createTransferEvent, mockSlot0 } from "./utils";
 import { dataSourceMock, newMockEvent } from "matchstick-as";
 import { getAccountsMetadata, updateTimeState, DAY } from "../src/common";
-import { Address, BigDecimal, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigDecimal, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { getLiquidityV2OwnerBalanceId, getLiquidityV3OwnerBalanceId } from "../src/liquidity";
-import { SparkdexV2LiquidityManager, SparkdexV3LiquidityManager, TIME_STATE_ID, TOTALS_ID } from "../src/constants";
 import { assert, describe, test, clearStore, beforeAll, beforeEach, afterEach } from "matchstick-as/assembly/index";
 import { Account, VaultBalance, LiquidityV3OwnerBalance, CycloVault, LiquidityV2OwnerBalance, TimeState } from "../generated/schema";
+import { ACCOUNTS_METADATA_ID, SparkdexV2LiquidityManager, SparkdexV3LiquidityManager, TIME_STATE_ID, TOTALS_ID } from "../src/constants";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -103,9 +103,6 @@ describe("Snapshot handling", () => {
         BigInt.fromI32(0),
         BigInt.fromI32(0),
       );
-
-      // Add account to metadata
-      getAccountsMetadata(USER_1);
 
       // Take snapshot
       takeSnapshot(mockeEvent);
@@ -230,11 +227,6 @@ describe("Snapshot handling", () => {
         BigInt.fromI32(0),
         BigInt.fromI32(0),
       );
-
-      // add address to meta list
-      getAccountsMetadata(USER_1);
-      getAccountsMetadata(USER_2);
-      getAccountsMetadata(USER_3);
 
       // Take snapshot
       takeSnapshot(mockeEvent);
@@ -410,10 +402,6 @@ describe("Snapshot handling", () => {
         BigInt.fromI32(0),
       );
 
-      // Add accounts to metadata
-      getAccountsMetadata(USER_1);
-      getAccountsMetadata(USER_2);
-
       // Take snapshot
       takeSnapshot(mockeEvent);
 
@@ -516,9 +504,6 @@ describe("Snapshot handling", () => {
         BigInt.fromI32(0),
       );
 
-      // add account to meta list
-      getAccountsMetadata(USER_1);
-
       // Take snapshot
       takeSnapshot(mockeEvent);
 
@@ -605,9 +590,6 @@ describe("Snapshot handling", () => {
       lp2.depositBalance = BigInt.fromI32(500);
       lp2.save();
 
-      // add user 1 to meta list
-      getAccountsMetadata(USER_1);
-
       // Take snapshot
       takeSnapshot(mockeEvent);
 
@@ -667,9 +649,6 @@ describe("Snapshot handling", () => {
       lp3.fee = 3000;
       lp3.save();
 
-      // add user 1 to meta list
-      getAccountsMetadata(USER_1);
-
       // Take snapshot
       takeSnapshot(mockeEvent);
 
@@ -719,10 +698,6 @@ describe("Snapshot handling", () => {
         BigInt.fromI32(0),
         BigInt.fromI32(0),
       );
-
-      // add accounts to meta list
-      getAccountsMetadata(USER_1);
-      getAccountsMetadata(USER_2);
 
       takeSnapshot(mockeEvent);
 
@@ -920,6 +895,7 @@ function createMockAccount(
   account.totalCyBalanceSnapshot = totalCyBalanceSnapshot;
   account.eligibleShare = eligibleShare;
   account.eligibleShareSnapshot = eligibleShareSnapshot;
+  account.accountsMetadata = ACCOUNTS_METADATA_ID;
   account.save();
 
   return account;

@@ -13,6 +13,7 @@ type Account @entity {
   liquidityChanges: [LiquidityChange!]! @derivedFrom(field: "owner")
   totalCyBalanceSnapshot: BigInt!
   eligibleShareSnapshot: BigDecimal!
+  accountsMetadata: AccountsMetadata! # reference accounts metadat field to derive the accounts list from
 }
 
 type Transfer @entity(immutable: true) {
@@ -148,7 +149,7 @@ type LiquidityV3Change implements LiquidityChange @entity(immutable: true) {
 
 type AccountsMetadata @entity {
   id: String!
-  accounts: [Bytes!]! # list of all accounts
+  accounts: [Account!]! @derivedFrom(field: "accountsMetadata") # list of all accounts
 }
 
 # entity to keep the time state between event triggers

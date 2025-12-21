@@ -1,15 +1,13 @@
 import { takeSnapshot } from "./snapshot";
-import { updateTotalsForAccount } from "./cys-flr";
 import { LiquidityV2 } from "../generated/templates";
-import { bigintToBytes, isV2Pool, isV3Pool } from "./common";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
+import { getOrCreateVaultBalance, updateTotalsForAccount } from "./cys-flr";
+import { bigintToBytes, getOrCreateAccount, isV2Pool, isV3Pool } from "./common";
 import { Address, BigInt, Bytes, ethereum, store } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
 import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import {
-    Account,
     CycloVault,
-    VaultBalance,
     LiquidityV2Change,
     LiquidityV3Change,
     LiquidityV2OwnerBalance, 
@@ -380,12 +378,8 @@ function handleLiquidityV2TransferInner(
         store.remove("LiquidityV2OwnerBalance", id.toHexString().toLowerCase());
     }
 
-    const account = Account.load(owner);
-    if (!account) return;
-
-    const vaultId = cyToken.concat(owner);
-    let vaultBalance = VaultBalance.load(vaultId);
-    if (!vaultBalance) return; // Should exist if they have liquidity
+    const account = getOrCreateAccount(owner);
+    const vaultBalance = getOrCreateVaultBalance(cyToken, account);
 
     const oldBalance = vaultBalance.balance;
     
@@ -468,12 +462,8 @@ function handleLiquidityV3TransferInner(
     // remove the record as the owner has changed and there is no portional liquidity transfer like there is in v2
     store.remove("LiquidityV3OwnerBalance", id.toHexString().toLowerCase());
 
-    const account = Account.load(owner);
-    if (!account) return;
-
-    const vaultId = cyToken.concat(owner);
-    let vaultBalance = VaultBalance.load(vaultId);
-    if (!vaultBalance) return; // Should exist
+    const account = getOrCreateAccount(owner);
+    const vaultBalance = getOrCreateVaultBalance(cyToken, account);
 
     const oldBalance = vaultBalance.balance;
 

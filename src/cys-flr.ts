@@ -73,7 +73,7 @@ export function updateTotalsForAccount(
   account.save();
 }
 
-function getOrCreateVaultBalance(vaultAddress: Address, account: Account): VaultBalance {
+export function getOrCreateVaultBalance(vaultAddress: Address, account: Account): VaultBalance {
   let id = vaultAddress.concat(account.address);
   let vaultBalance = VaultBalance.load(id);
   

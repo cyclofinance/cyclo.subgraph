@@ -1,9 +1,9 @@
 import { createTransferEvent } from "./utils";
 import { TimeState } from "../generated/schema";
+import { TIME_STATE_ID } from "../src/constants";
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { assert, describe, test } from "matchstick-as/assembly/index";
-import { ACCOUNTS_METADATA_ID, TIME_STATE_ID } from "../src/constants";
-import { currentDay, DAY, getAccountsMetadata, prevDay, updateTimeState } from "../src/common";
+import { currentDay, DAY, prevDay, updateTimeState } from "../src/common";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -13,31 +13,6 @@ const USER_2 = Address.fromString("0x0000000000000000000000000000000000000002");
 const CYSFLR_ADDRESS = Address.fromString(
   "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567"
 );
-
-describe("Test AccountsMetadata", () => {
-    test("should create and add new address to the list", () => {
-        let accountsMetadata = getAccountsMetadata(USER_1);
-
-        assert.assertTrue(accountsMetadata.accounts.length == 1);
-        assert.fieldEquals(
-            "AccountsMetadata",
-            ACCOUNTS_METADATA_ID,
-            "accounts",
-            `[${USER_1.toHexString()}]`
-        );
-
-        // add another address
-        accountsMetadata = getAccountsMetadata(USER_2);
-
-        assert.assertTrue(accountsMetadata.accounts.length == 2);
-        assert.fieldEquals(
-            "AccountsMetadata",
-            ACCOUNTS_METADATA_ID,
-            "accounts",
-            `[${USER_1.toHexString()}, ${USER_2.toHexString()}]`
-        );
-    })
-});
 
 describe("Test TimeState", () => {
     test("should start TimeState and update it correctly", () => {

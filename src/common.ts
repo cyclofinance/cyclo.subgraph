@@ -2,12 +2,12 @@ import { Account, AccountsMetadata, TimeState } from "../generated/schema";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
 import { Address, BigInt, BigDecimal, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { ACCOUNTS_METADATA_ID, REWARDS_SOURCES, TIME_STATE_ID, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
-import { log } from "matchstick-as";
 
 // day in timestamp in seconds
 export const DAY = BigInt.fromI32(24 * 60 * 60);
 
 export function getOrCreateAccount(address: Address): Account {
+  getAccountsMetadata(); // init accounts metadata
   let account = Account.load(address);
   if (!account) {
     account = new Account(address);
@@ -16,12 +16,8 @@ export function getOrCreateAccount(address: Address): Account {
     account.eligibleShare = BigDecimal.fromString("0");
     account.totalCyBalanceSnapshot = BigInt.fromI32(0);
     account.eligibleShareSnapshot = BigDecimal.fromString("0");
+    account.accountsMetadata = ACCOUNTS_METADATA_ID;
     account.save();
-
-    // add new address to the address metadata entity
-    // doing this here ensures no dups as we are inside the scope
-    // where an Account record doesnt exists for the address
-    getAccountsMetadata(address);
   }
 
   return account;
@@ -59,24 +55,12 @@ export function bigintToBytes(value: BigInt): Bytes {
   return changetype<Bytes>(Bytes.fromHexString(hex));
 }
 
-export function getAccountsMetadata(newAccount: Address | null = null): AccountsMetadata {
+export function getAccountsMetadata(): AccountsMetadata {
   let accountsMetadata = AccountsMetadata.load(ACCOUNTS_METADATA_ID);
   if (!accountsMetadata) {
     accountsMetadata = new AccountsMetadata(ACCOUNTS_METADATA_ID);
-    accountsMetadata.accounts = new Array<Bytes>();
+    accountsMetadata.save();
   }
-
-  // push the new account
-  // dont need to check for dups as we only call this with new address
-  // inside getOrCreateAccount() that already has guard against dups
-  if (newAccount) {
-    const list = accountsMetadata.accounts;
-    list.push(newAccount);
-    accountsMetadata.accounts = list;
-  }
-
-  accountsMetadata.save();
-
   return accountsMetadata;
 }
 
