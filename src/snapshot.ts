@@ -103,7 +103,7 @@ export function takeSnapshot(event: ethereum.Event): void {
     let isNewEpoch = false; // we should ignore prevouse avg if 
     if (currentEpochIndex < prevSnapshotEpochIndex) {
         return; // cant take snapshot for older epoch than current
-    } else if (prevSnapshotEpochIndex == currentEpochIndex) {
+    } else if (currentEpochIndex == prevSnapshotEpochIndex) {
         count = currentDayOfEpoch - prevSnapshotDayOfEpoch;
     } else {
         isNewEpoch = true; // we just started the new epoch
