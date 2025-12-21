@@ -5,11 +5,10 @@ import { Address, BigInt, BigDecimal, TypedMap, ethereum, log } from "@graphprot
 import { factory, factory__slot0Result } from "../generated/templates/CycloVaultTemplate/factory";
 
 export class Epoch {
-    constructor(
-        public date: string,
-        public timestamp: BigInt,
-        public length: i32,
-    ) {}
+    public timestamp: BigInt
+    constructor(public date: string, public length: i32, timestamp: i32) {
+        this.timestamp = BigInt.fromI32(timestamp);
+    }
 }
 export class Epochs {
     constructor() {}
@@ -17,34 +16,34 @@ export class Epochs {
     // from: https://flare.network/news/a-guide-to-rflr-rewards
     list: Array<Epoch> = [
         // 2024
-        new Epoch("2024-07-06T12:00:00Z", BigInt.fromI32(1720267200), 30),
-        new Epoch("2024-08-05T12:00:00Z", BigInt.fromI32(1722859200), 30),
-        new Epoch("2024-09-04T12:00:00Z", BigInt.fromI32(1725451200), 30),
-        new Epoch("2024-10-04T12:00:00Z", BigInt.fromI32(1728043200), 30),
-        new Epoch("2024-11-03T12:00:00Z", BigInt.fromI32(1730635200), 30),
-        new Epoch("2024-12-03T12:00:00Z", BigInt.fromI32(1733227200), 30),
+        new Epoch("2024-07-06T12:00:00Z", 30, 1720267200),
+        new Epoch("2024-08-05T12:00:00Z", 30, 1722859200),
+        new Epoch("2024-09-04T12:00:00Z", 30, 1725451200),
+        new Epoch("2024-10-04T12:00:00Z", 30, 1728043200),
+        new Epoch("2024-11-03T12:00:00Z", 30, 1730635200),
+        new Epoch("2024-12-03T12:00:00Z", 30, 1733227200),
 
         // 2025
-        new Epoch("2025-01-02T12:00:00Z", BigInt.fromI32(1735819200), 30),
-        new Epoch("2025-02-01T12:00:00Z", BigInt.fromI32(1738411200), 30),
-        new Epoch("2025-03-03T12:00:00Z", BigInt.fromI32(1741003200), 30),
-        new Epoch("2025-04-02T12:00:00Z", BigInt.fromI32(1743595200), 30),
-        new Epoch("2025-05-02T12:00:00Z", BigInt.fromI32(1746187200), 30),
-        new Epoch("2025-06-01T12:00:00Z", BigInt.fromI32(1748779200), 30),
-        new Epoch("2025-07-01T12:00:00Z", BigInt.fromI32(1751371200), 30),
-        new Epoch("2025-07-31T12:00:00Z", BigInt.fromI32(1753963200), 30),
-        new Epoch("2025-08-30T12:00:00Z", BigInt.fromI32(1756555200), 30),
-        new Epoch("2025-09-29T12:00:00Z", BigInt.fromI32(1759147200), 30),
-        new Epoch("2025-10-29T12:00:00Z", BigInt.fromI32(1761739200), 30),
-        new Epoch("2025-11-28T12:00:00Z", BigInt.fromI32(1764331200), 30),
-        new Epoch("2025-12-28T12:00:00Z", BigInt.fromI32(1766923200), 30),
+        new Epoch("2025-01-02T12:00:00Z", 30, 1735819200),
+        new Epoch("2025-02-01T12:00:00Z", 30, 1738411200),
+        new Epoch("2025-03-03T12:00:00Z", 30, 1741003200),
+        new Epoch("2025-04-02T12:00:00Z", 30, 1743595200),
+        new Epoch("2025-05-02T12:00:00Z", 30, 1746187200),
+        new Epoch("2025-06-01T12:00:00Z", 30, 1748779200),
+        new Epoch("2025-07-01T12:00:00Z", 30, 1751371200),
+        new Epoch("2025-07-31T12:00:00Z", 30, 1753963200),
+        new Epoch("2025-08-30T12:00:00Z", 30, 1756555200),
+        new Epoch("2025-09-29T12:00:00Z", 30, 1759147200),
+        new Epoch("2025-10-29T12:00:00Z", 30, 1761739200),
+        new Epoch("2025-11-28T12:00:00Z", 30, 1764331200),
+        new Epoch("2025-12-28T12:00:00Z", 30, 1766923200),
 
         // 2026
-        new Epoch("2026-01-27T12:00:00Z", BigInt.fromI32(1769515200), 30),
-        new Epoch("2026-02-26T12:00:00Z", BigInt.fromI32(1772107200), 30),
-        new Epoch("2026-03-28T12:00:00Z", BigInt.fromI32(1774699200), 30),
-        new Epoch("2026-04-27T12:00:00Z", BigInt.fromI32(1777291200), 30),
-        new Epoch("2026-05-27T12:00:00Z", BigInt.fromI32(1779883200), 30),
+        new Epoch("2026-01-27T12:00:00Z", 30, 1769515200),
+        new Epoch("2026-02-26T12:00:00Z", 30, 1772107200),
+        new Epoch("2026-03-28T12:00:00Z", 30, 1774699200),
+        new Epoch("2026-04-27T12:00:00Z", 30, 1777291200),
+        new Epoch("2026-05-27T12:00:00Z", 30, 1779883200),
     ]
 
     getCurrentEpochIndex(currentTimestamp: BigInt): i32 {
