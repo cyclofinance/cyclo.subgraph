@@ -1,9 +1,9 @@
 import { createTransferEvent } from "./utils";
 import { TimeState } from "../generated/schema";
-import { TIME_STATE_ID } from "../src/constants";
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { assert, describe, test } from "matchstick-as/assembly/index";
-import { currentDay, DAY, prevDay, updateTimeState } from "../src/common";
+import { ACCOUNTS_METADATA_ID, TIME_STATE_ID } from "../src/constants";
+import { currentDay, DAY, getAccountsMetadata, getOrCreateAccount, prevDay, updateTimeState } from "../src/common";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -13,6 +13,23 @@ const USER_2 = Address.fromString("0x0000000000000000000000000000000000000002");
 const CYSFLR_ADDRESS = Address.fromString(
   "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567"
 );
+
+describe("Test AccountsMetadata", () => {
+    test("should derive accounts list correctly", () => {
+        getOrCreateAccount(USER_1);
+        let accountsMetadata = getAccountsMetadata();
+
+        let list = accountsMetadata.accounts.load();
+        assert.assertTrue(list.length == 1);
+
+        // add another address
+        getOrCreateAccount(USER_2);
+        accountsMetadata = getAccountsMetadata();
+
+        list = accountsMetadata.accounts.load();
+        assert.assertTrue(list.length == 2);
+    })
+});
 
 describe("Test TimeState", () => {
     test("should start TimeState and update it correctly", () => {
