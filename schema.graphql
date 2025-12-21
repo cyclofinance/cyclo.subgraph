@@ -13,7 +13,7 @@ type Account @entity {
   liquidityChanges: [LiquidityChange!]! @derivedFrom(field: "owner")
   totalCyBalanceSnapshot: BigInt!
   eligibleShareSnapshot: BigDecimal!
-  accountsMetadata: AccountsMetadata! # reference accounts metadat field to derive the accounts list from
+  accountsMetadata: AccountsMetadata! # reference AccountsMetadata singleton record to derive the accounts list from
 }
 
 type Transfer @entity(immutable: true) {
