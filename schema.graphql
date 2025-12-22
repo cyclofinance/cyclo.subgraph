@@ -145,6 +145,10 @@ type LiquidityV3Change implements LiquidityChange @entity(immutable: true) {
   transactionHash: Bytes!
   liquidityChangeType: LiquidityChangeType!
   tokenId: BigInt!
+  poolAddress: Bytes!
+  fee: Int!
+  lowerTick: Int!
+  upperTick: Int!
 }
 
 type AccountsMetadata @entity {

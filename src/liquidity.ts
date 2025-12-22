@@ -230,6 +230,10 @@ export function handleLiquidityV3Add(
                 log_.logIndex,
                 DEPOSIT,
                 tokenId,
+                liquidityV3OwnerBalance.poolAddress,
+                liquidityV3OwnerBalance.fee,
+                liquidityV3OwnerBalance.lowerTick,
+                liquidityV3OwnerBalance.upperTick,
             )
 
             return true;
@@ -288,6 +292,10 @@ export function handleLiquidityV3Withdraw(
                 log_.logIndex,
                 WITHDRAW,
                 tokenId,
+                liquidityV3OwnerBalance.poolAddress,
+                liquidityV3OwnerBalance.fee,
+                liquidityV3OwnerBalance.lowerTick,
+                liquidityV3OwnerBalance.upperTick,
             );
 
             liquidityV3OwnerBalance.depositBalance = liquidityV3OwnerBalance.depositBalance.minus(depositDeduction);
@@ -455,6 +463,10 @@ function handleLiquidityV3TransferInner(
         event.logIndex,
         TRANSFER,
         tokenId,
+        liquidityV3OwnerBalance.poolAddress,
+        liquidityV3OwnerBalance.fee,
+        liquidityV3OwnerBalance.lowerTick,
+        liquidityV3OwnerBalance.upperTick,
     )
 
     const depositBalance = liquidityV3OwnerBalance.depositBalance;
@@ -525,6 +537,10 @@ export function createLiquidityV3Change(
     logIndex: BigInt,
     typ: string,
     tokenId:  BigInt,
+    poolAddress: Bytes,
+    fee: i32,
+    lowerTick: i32,
+    upperTick: i32,
 ): void {
     const id = transactionHash.concatI32(logIndex.toI32());
     const item = new LiquidityV3Change(id);
@@ -536,6 +552,10 @@ export function createLiquidityV3Change(
     item.lpAddress = lpAddress;
     item.owner = owner;
     item.tokenId = tokenId;
+    item.poolAddress = poolAddress;
+    item.fee = fee;
+    item.lowerTick = lowerTick;
+    item.upperTick = upperTick;
     if (typ === DEPOSIT) {
         item.depositedBalanceChange = value;
         item.liquidityChange = lquidity;
