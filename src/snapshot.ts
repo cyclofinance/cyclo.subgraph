@@ -13,7 +13,7 @@ export class Epoch {
 export class Epochs {
     constructor() {}
 
-    // from: https://flare.network/news/a-guide-to-rflr-rewards
+    // sorted epoch list from: https://flare.network/news/a-guide-to-rflr-rewards
     list: Array<Epoch> = [
         // 2024
         new Epoch("2024-07-06T12:00:00Z", 30, 1720267200),
@@ -46,32 +46,29 @@ export class Epochs {
         new Epoch("2026-05-27T12:00:00Z", 30, 1779883200),
     ]
 
-    getCurrentEpochIndex(currentTimestamp: BigInt): i32 {
-        if (currentTimestamp <= this.list[0].timestamp) {
+    /**
+     * Returns the epoch index from the list based on the given timestamp,
+     * that means it determines which epoch the given timestamp is at
+     * @param timestamp - The timestamp to find its epoch index
+     */
+    getEpochIndexByTimestamp(timestamp: BigInt): i32 {
+        if (timestamp <= this.list[0].timestamp) {
             return 0;
         }
-        if (currentTimestamp >= this.list[this.list.length - 1].timestamp) {
+        if (timestamp >= this.list[this.list.length - 1].timestamp) {
             return this.list.length - 1;
         }
         for (let i = 0; i < this.list.length; i++) {
             if (i + 1 >= this.list.length) break; // last item guard
-            if (currentTimestamp > this.list[0].timestamp && currentTimestamp <= this.list[i + 1].timestamp) {
+            if (timestamp > this.list[0].timestamp && timestamp <= this.list[i + 1].timestamp) {
                 return i + 1;
             }
         }
         return this.list.length - 1;
     }
 
-    getCurrentEpoch(currentTimestamp: BigInt): Epoch {
-        return this.list[this.getCurrentEpochIndex(currentTimestamp)];
-    }
-
-    getCurrentEpochTimestamp(currentTimestamp: BigInt): BigInt {
-        return this.getCurrentEpoch(currentTimestamp).timestamp;
-    }
-
-    getCurrentEpochLength(currentTimestamp: BigInt): i32 {
-        return this.getCurrentEpoch(currentTimestamp).length;
+    getEpochByTimestamp(timestamp: BigInt): Epoch {
+        return this.list[this.getEpochIndexByTimestamp(timestamp)];
     }
 }
 
@@ -92,26 +89,26 @@ export function takeSnapshot(event: ethereum.Event): void {
     const prevSnapshotDayOfEpoch = timeState.lastSnapshotDayOfEpoch;
 
     // current possible snapshot time
-    const currentEpochIndex = EPOCHS.getCurrentEpochIndex(currentTime);
+    const currentEpochIndex = EPOCHS.getEpochIndexByTimestamp(currentTime);
     const currentEpoch = EPOCHS.list[currentEpochIndex];
     const currentDayOfEpoch = currentEpoch.length - currentEpoch.timestamp.minus(currentTime).div(DAY).toI32();
 
     // keep it defensive just in case, since it cannot be less than 1
     if (currentDayOfEpoch < 1) return;
 
-    let count = 0; // number of snapshots to duplicate
-    let isNewEpoch = false; // we should ignore prevouse avg if 
+    let isNewEpoch = false;
+    let daysElapsedSinceLastSnapshot = 0; // determines number of snapshots to duplicate
     if (currentEpochIndex < prevSnapshotEpochIndex) {
         return; // cant take snapshot for older epoch than current
     } else if (currentEpochIndex == prevSnapshotEpochIndex) {
-        count = currentDayOfEpoch - prevSnapshotDayOfEpoch;
+        daysElapsedSinceLastSnapshot = currentDayOfEpoch - prevSnapshotDayOfEpoch;
     } else {
         isNewEpoch = true; // we just started the new epoch
-        count = currentDayOfEpoch;
+        daysElapsedSinceLastSnapshot = currentDayOfEpoch;
     }
 
     // skip if on same or older day
-    if (count <= 0) return;
+    if (daysElapsedSinceLastSnapshot <= 0) return;
 
     // from here on we know its definitely the time to take new
     // snapshot, so save epoch day and index as last taken snapshot
@@ -120,13 +117,13 @@ export function takeSnapshot(event: ethereum.Event): void {
     timeState.save();
 
     log.info(
-        "Daily snapshot taking process started for day {} of epoch {}, prev snapshot day of epoch: {}, prev snapshot epoch: {}, snapshot count: {}",
+        "Daily snapshot taking process started for day {} of epoch {}, prev snapshot day of epoch: {}, prev snapshot epoch: {}, days elapsed since last snapshot: {}",
         [
             currentDayOfEpoch.toString(),
             currentEpoch.date,
             prevSnapshotDayOfEpoch.toString(),
             EPOCHS.list[prevSnapshotEpochIndex].date.toString(),
-            count.toString(),
+            daysElapsedSinceLastSnapshot.toString(),
         ]
     );
 
@@ -182,7 +179,7 @@ export function takeSnapshot(event: ethereum.Event): void {
                 ? BigInt.zero()
                 : vaultBalance.balanceAvgSnapshot.times(BigInt.fromI32(prevSnapshotDayOfEpoch)) // old avg * old day of epoch
             const currentAvgSnapshot = prevSnapshotsSum
-                .plus(vaultSnapshotBalance.times(BigInt.fromI32(count)))
+                .plus(vaultSnapshotBalance.times(BigInt.fromI32(daysElapsedSinceLastSnapshot)))
                 .div(BigInt.fromI32(currentDayOfEpoch));
             vaultBalance.balanceAvgSnapshot = currentAvgSnapshot;
             vaultBalance.save();

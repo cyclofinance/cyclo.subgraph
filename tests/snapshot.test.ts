@@ -726,7 +726,7 @@ describe("Test Epochs class", () => {
       // Timestamp before 2024-07-06T12:00:00Z (1720267200)
       const earlyTimestamp = BigInt.fromI32(1720267199); // 1 second before
       
-      const epoch = EPOCHS.getCurrentEpoch(earlyTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(earlyTimestamp);
       
       assert.stringEquals(epoch.date, "2024-07-06T12:00:00Z");
       assert.bigIntEquals(epoch.timestamp, BigInt.fromI32(1720267200));
@@ -737,7 +737,7 @@ describe("Test Epochs class", () => {
       // Timestamp exactly at first epoch: 2024-07-06T12:00:00Z
       const firstEpochTimestamp = BigInt.fromI32(1720267200);
       
-      const epoch = EPOCHS.getCurrentEpoch(firstEpochTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(firstEpochTimestamp);
       
       assert.stringEquals(epoch.date, "2024-07-06T12:00:00Z");
       assert.bigIntEquals(epoch.timestamp, BigInt.fromI32(1720267200));
@@ -748,7 +748,7 @@ describe("Test Epochs class", () => {
       // Timestamp between 2024-09-04T12:00:00Z and 2024-10-04T12:00:00Z
       const septemberTimestamp = BigInt.fromI32(1725451200 + 86400); // 1 day after 2024-09-04
       
-      const epoch = EPOCHS.getCurrentEpoch(septemberTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(septemberTimestamp);
       
       assert.stringEquals(epoch.date, "2024-10-04T12:00:00Z");
       assert.bigIntEquals(epoch.timestamp, BigInt.fromI32(1728043200));
@@ -759,7 +759,7 @@ describe("Test Epochs class", () => {
       // Timestamp between 2025-03-03T12:00:00Z and 2025-04-02T12:00:00Z
       const marchTimestamp = BigInt.fromI32(1741003200 + 604800); // 1 week after 2025-03-03
       
-      const epoch = EPOCHS.getCurrentEpoch(marchTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(marchTimestamp);
       
       assert.stringEquals(epoch.date, "2025-04-02T12:00:00Z");
       assert.bigIntEquals(epoch.timestamp, BigInt.fromI32(1743595200));
@@ -770,7 +770,7 @@ describe("Test Epochs class", () => {
       // Timestamp between 2026-02-26T12:00:00Z and 2026-03-28T12:00:00Z
       const februaryTimestamp = BigInt.fromI32(1772107200 + 1209600); // 2 weeks after 2026-02-26
       
-      const epoch = EPOCHS.getCurrentEpoch(februaryTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(februaryTimestamp);
       
       assert.stringEquals(epoch.date, "2026-03-28T12:00:00Z");
       assert.bigIntEquals(epoch.timestamp, BigInt.fromI32(1774699200));
@@ -781,7 +781,7 @@ describe("Test Epochs class", () => {
       // Timestamp after 2026-05-27T12:00:00Z (1779883200)
       const futureTimestamp = BigInt.fromI32(1779883200 + 86400000); // way in the future
       
-      const epoch = EPOCHS.getCurrentEpoch(futureTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(futureTimestamp);
       
       assert.stringEquals(epoch.date, "2026-05-27T12:00:00Z");
       assert.bigIntEquals(epoch.timestamp, BigInt.fromI32(1779883200));
@@ -792,7 +792,7 @@ describe("Test Epochs class", () => {
       // Timestamp exactly at last epoch: 2026-05-27T12:00:00Z
       const lastEpochTimestamp = BigInt.fromI32(1779883200);
       
-      const epoch = EPOCHS.getCurrentEpoch(lastEpochTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(lastEpochTimestamp);
       
       assert.stringEquals(epoch.date, "2026-05-27T12:00:00Z");
       assert.bigIntEquals(epoch.timestamp, BigInt.fromI32(1779883200));
@@ -804,7 +804,7 @@ describe("Test Epochs class", () => {
       // 2024-08-05T12:00:00Z (second epoch start)
       const boundaryTimestamp = BigInt.fromI32(1722859200);
       
-      const epoch = EPOCHS.getCurrentEpoch(boundaryTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(boundaryTimestamp);
       
       assert.stringEquals(epoch.date, "2024-08-05T12:00:00Z");
       assert.bigIntEquals(epoch.timestamp, BigInt.fromI32(1722859200));
@@ -815,7 +815,7 @@ describe("Test Epochs class", () => {
       // Timestamp 1 second before 2024-08-05T12:00:00Z
       const beforeBoundaryTimestamp = BigInt.fromI32(1722859199);
       
-      const epoch = EPOCHS.getCurrentEpoch(beforeBoundaryTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(beforeBoundaryTimestamp);
       
       // Should return the previous epoch (2024-07-06T12:00:00Z)
       assert.stringEquals(epoch.date, "2024-08-05T12:00:00Z");
@@ -827,7 +827,7 @@ describe("Test Epochs class", () => {
       // Approximate current timestamp (December 2024)
       const currentTimestamp = BigInt.fromI32(1733227200 + 86400 * 5); // 5 days after 2024-12-03
       
-      const epoch = EPOCHS.getCurrentEpoch(currentTimestamp);
+      const epoch = EPOCHS.getEpochByTimestamp(currentTimestamp);
       
       assert.stringEquals(epoch.date, "2025-01-02T12:00:00Z");
       assert.bigIntEquals(epoch.timestamp, BigInt.fromI32(1735819200));
@@ -851,33 +851,10 @@ describe("Test Epochs class", () => {
       ];
       
       for (let i = 0; i < timestamps.length; i++) {
-        const epoch = EPOCHS.getCurrentEpoch(timestamps[i]);
+        const epoch = EPOCHS.getEpochByTimestamp(timestamps[i]);
         assert.stringEquals(epoch.date, expectedDates[i]);
         assert.i32Equals(epoch.length, 30); // All epochs have 30-day length
       }
-    });
-  });
-
-  describe("Test getCurrentEpochTimestamp() method", () => {
-    test("should return timestamp of current epoch", () => {
-      // Test with timestamp in middle of 2025
-      const testTimestamp = BigInt.fromI32(1741003200 + 86400 * 10); // 10 days after 2025-03-03
-      
-      const epochTimestamp = EPOCHS.getCurrentEpochTimestamp(testTimestamp);
-      
-      // Should return timestamp of 2025-04-02T12:00:00Z epoch
-      assert.bigIntEquals(epochTimestamp, BigInt.fromI32(1743595200));
-    });
-  });
-
-  describe("Test getCurrentEpochLength() method", () => {
-    test("should return length of current epoch", () => {
-      // Test with timestamp in any epoch (they all have 30-day length)
-      const testTimestamp = BigInt.fromI32(1741003200 + 86400 * 15);
-      
-      const epochLength = EPOCHS.getCurrentEpochLength(testTimestamp);
-      
-      assert.i32Equals(epochLength, 30);
     });
   });
 });
