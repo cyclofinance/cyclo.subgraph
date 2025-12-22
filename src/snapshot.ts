@@ -83,14 +83,15 @@ export const EPOCHS = new Epochs();
  * total eligible amount and updates the entities snapshot fields accordingly.
  * @param event - The event to determine if it needs a snapshot to take place at its timestamp
  */
-export function takeSnapshot(event: ethereum.Event): void {    
+export function takeSnapshot(event: ethereum.Event): void {
     const timeState = updateTimeState(event);
     const currentTime = timeState.currentTimestamp;
 
+    // previous snapshot time
     const prevSnapshotEpochIndex = timeState.lastSnapshotEpoch;
     const prevSnapshotDayOfEpoch = timeState.lastSnapshotDayOfEpoch;
 
-    // log the start and end of this proccess
+    // current possible snapshot time
     const currentEpochIndex = EPOCHS.getCurrentEpochIndex(currentTime);
     const currentEpoch = EPOCHS.list[currentEpochIndex];
     const currentDayOfEpoch = currentEpoch.length - currentEpoch.timestamp.minus(currentTime).div(DAY).toI32();
@@ -135,6 +136,7 @@ export function takeSnapshot(event: ethereum.Event): void {
     // a map: "token -> total eligible balance of the token (sum of all eligible account snapshot balances for the token)"
     const tokenEligibleBalances = new TypedMap<string, BigInt>();
 
+    // iter over all accounts and calculate their epoch avg snapshot by enforing price range for v3 liquidity positions
     const accountsMetadata = getAccountsMetadata();
     const accountsList = accountsMetadata.accounts.load();
     for (let i = 0; i < accountsList.length; i++) {
@@ -143,7 +145,7 @@ export function takeSnapshot(event: ethereum.Event): void {
         // get all active liquidity v3 positions of the account
         const liquidityV3Balances = account.liquidityV3Balances.load();
 
-        // load all vault balances of the account and calculate each token snapshot for the account
+        // calculate each token snapshot for the account
         let accountBalanceSnapshot = BigInt.zero();
         const vaultBalances = account.vaultBalances.load();
         for (let j = 0; j < vaultBalances.length; j++) {
@@ -175,7 +177,7 @@ export function takeSnapshot(event: ethereum.Event): void {
                 }
             }
 
-            // calculate current avg and store for vault
+            // calculate current avg and store for vaultBalance
             const prevSnapshotsSum = isNewEpoch
                 ? BigInt.zero()
                 : vaultBalance.balanceAvgSnapshot.times(BigInt.fromI32(prevSnapshotDayOfEpoch)) // old avg * old day of epoch
@@ -185,7 +187,7 @@ export function takeSnapshot(event: ethereum.Event): void {
             vaultBalance.balanceAvgSnapshot = currentAvgSnapshot;
             vaultBalance.save();
 
-            // only positives are valid for account and token
+            // only positives are valid for account and token for token and account
             const normalizedSnapshot = currentAvgSnapshot.gt(BigInt.zero())
                 ? currentAvgSnapshot
                 : BigInt.zero();
@@ -207,7 +209,7 @@ export function takeSnapshot(event: ethereum.Event): void {
     }
 
     // update each token total eligible with the taken snapshot
-    let totalEligibleSumSnapshot = BigInt.zero(); // to calculate eligible sum
+    let totalEligibleSumSnapshot = BigInt.zero(); // to calculate eligible total sum
     for (let i = 0; i < tokenEligibleBalances.entries.length; i++) {
         const tokenAddress = Address.fromString(tokenEligibleBalances.entries[i].key);
         const totalEligible = tokenEligibleBalances.entries[i].value;
