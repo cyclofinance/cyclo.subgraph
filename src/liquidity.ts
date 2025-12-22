@@ -1,19 +1,26 @@
-import { updateTotalsForAccount } from "./cys-flr";
+import { takeSnapshot } from "./snapshot";
 import { LiquidityV2 } from "../generated/templates";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
-import { bigintToBytes, isV2Pool, isV3Pool } from "./common";
-import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
-import { Address, BigInt, Bytes, ethereum, store, dataSource } from "@graphprotocol/graph-ts";
+import { getOrCreateVaultBalance, updateTotalsForAccount } from "./cys-flr";
+import { bigintToBytes, getOrCreateAccount, isV2Pool, isV3Pool } from "./common";
+import { Address, BigInt, Bytes, ethereum, store } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
-import { Account, LiquidityV2Change, LiquidityV2OwnerBalance, LiquidityV3Change, LiquidityV3OwnerBalance, CycloVault, VaultBalance } from "../generated/schema";
+import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
+import {
+    CycloVault,
+    LiquidityV2Change,
+    LiquidityV3Change,
+    LiquidityV2OwnerBalance, 
+    LiquidityV3OwnerBalance,
+} from "../generated/schema";
 import {
     ONE18,
-    SparkdexV2LiquidityManager,
-    SparkdexV3LiquidityManager,
-    BlazeswapV2LiquidityManager,
     ERC20TransferEventABI,
     IncreaseLiquidityV3ABI,
     DecreaseLiquidityV3ABI,
+    SparkdexV2LiquidityManager,
+    SparkdexV3LiquidityManager,
+    BlazeswapV2LiquidityManager,
 } from "./constants";
 
 export const DEPOSIT = "DEPOSIT";
@@ -185,34 +192,52 @@ export function handleLiquidityV3Add(
         const id = getLiquidityV3OwnerBalanceId(log_.address, owner, cyToken, tokenId);
         let liquidityV3OwnerBalance = LiquidityV3OwnerBalance.load(id);
         if (!liquidityV3OwnerBalance) {
-            liquidityV3OwnerBalance = new LiquidityV3OwnerBalance(id);
-            liquidityV3OwnerBalance.lpAddress = log_.address;
-            liquidityV3OwnerBalance.owner = owner;
-            liquidityV3OwnerBalance.liquidity = liquidity;
-            liquidityV3OwnerBalance.tokenId = tokenId;
-            liquidityV3OwnerBalance.depositBalance = event.params.value;
-            liquidityV3OwnerBalance.tokenAddress = cyToken;
+            const positionResult = LiquidityV3.bind(log_.address).try_positions(tokenId);
+            const slot0Result = factory.bind(event.params.to).try_slot0();
+            if (!positionResult.reverted && !slot0Result.reverted) {
+                const fee = positionResult.value.getFee();
+                const lowerTick = positionResult.value.getTickLower();
+                const upperTick = positionResult.value.getTickUpper();
+                liquidityV3OwnerBalance = new LiquidityV3OwnerBalance(id);
+                liquidityV3OwnerBalance.lpAddress = log_.address;
+                liquidityV3OwnerBalance.owner = owner;
+                liquidityV3OwnerBalance.liquidity = liquidity;
+                liquidityV3OwnerBalance.tokenId = tokenId;
+                liquidityV3OwnerBalance.depositBalance = event.params.value;
+                liquidityV3OwnerBalance.tokenAddress = cyToken;
+                liquidityV3OwnerBalance.poolAddress = event.params.to;
+                liquidityV3OwnerBalance.fee = fee;
+                liquidityV3OwnerBalance.lowerTick = lowerTick;
+                liquidityV3OwnerBalance.upperTick = upperTick;
+            }
         } else {
             liquidityV3OwnerBalance.liquidity = liquidityV3OwnerBalance.liquidity.plus(liquidity);
             liquidityV3OwnerBalance.depositBalance = liquidityV3OwnerBalance.depositBalance.plus(event.params.value);
         }
-        liquidityV3OwnerBalance.save();
+        if (liquidityV3OwnerBalance) {
+            liquidityV3OwnerBalance.save();
 
-        // create liquidity change entity for this deposit
-        createLiquidityV3Change(
-            log_.address,
-            owner,
-            cyToken,
-            liquidity,
-            event.params.value,
-            event.block.number,
-            event.block.timestamp,
-            event.transaction.hash,
-            log_.logIndex,
-            DEPOSIT,
-            tokenId,
-        )
-        return true;
+            // create liquidity change entity for this deposit
+            createLiquidityV3Change(
+                log_.address,
+                owner,
+                cyToken,
+                liquidity,
+                event.params.value,
+                event.block.number,
+                event.block.timestamp,
+                event.transaction.hash,
+                log_.logIndex,
+                DEPOSIT,
+                tokenId,
+                liquidityV3OwnerBalance.poolAddress,
+                liquidityV3OwnerBalance.fee,
+                liquidityV3OwnerBalance.lowerTick,
+                liquidityV3OwnerBalance.upperTick,
+            )
+
+            return true;
+        }
     }
 
     return false;
@@ -267,6 +292,10 @@ export function handleLiquidityV3Withdraw(
                 log_.logIndex,
                 WITHDRAW,
                 tokenId,
+                liquidityV3OwnerBalance.poolAddress,
+                liquidityV3OwnerBalance.fee,
+                liquidityV3OwnerBalance.lowerTick,
+                liquidityV3OwnerBalance.upperTick,
             );
 
             liquidityV3OwnerBalance.depositBalance = liquidityV3OwnerBalance.depositBalance.minus(depositDeduction);
@@ -288,13 +317,22 @@ export function handleLiquidityV3Withdraw(
 // handles LP erc20 token transfers (v2) and updates account cy token balances accordingly
 export function handleLiquidityV2Transfer(event: ERC20TransferEvent): void {
     const owner = event.params.from;
-    if (owner.equals(Address.zero())) return; // skip if this is a mint, as mint are already handled in liquidity add
-    if (owner.equals(event.params.to)) return; // skip no change event, ie same to/from
+    if (owner.equals(Address.zero())) {
+        takeSnapshot(event);
+        return; // skip if this is a mint, as mint are already handled in liquidity add
+    }
+    if (owner.equals(event.params.to)) {
+        takeSnapshot(event);
+        return; // skip no change event, ie same to/from
+    }
 
     // get pool tokens
     const token0Result = factory.bind(event.address).try_token0();
     const token1Result = factory.bind(event.address).try_token1();
-    if (token0Result.reverted || token1Result.reverted) return;
+    if (token0Result.reverted || token1Result.reverted) {
+        takeSnapshot(event);
+        return;
+    }
 
     const token0 = token0Result.value;
     const token1 = token1Result.value;
@@ -305,6 +343,9 @@ export function handleLiquidityV2Transfer(event: ERC20TransferEvent): void {
     if (CycloVault.load(token1)) {
         handleLiquidityV2TransferInner(event, owner, token1);
     }
+
+    // take snapshot if needed
+    takeSnapshot(event);
 }
 
 function handleLiquidityV2TransferInner(
@@ -345,12 +386,8 @@ function handleLiquidityV2TransferInner(
         store.remove("LiquidityV2OwnerBalance", id.toHexString().toLowerCase());
     }
 
-    const account = Account.load(owner);
-    if (!account) return;
-
-    const vaultId = cyToken.concat(owner);
-    let vaultBalance = VaultBalance.load(vaultId);
-    if (!vaultBalance) return; // Should exist if they have liquidity
+    const account = getOrCreateAccount(owner);
+    const vaultBalance = getOrCreateVaultBalance(cyToken, account);
 
     const oldBalance = vaultBalance.balance;
     
@@ -373,12 +410,21 @@ function handleLiquidityV2TransferInner(
 export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
     const owner = event.params.from;
     const tokenId = event.params.tokenId;
-    if (owner.equals(Address.zero())) return; // skip if this is a mint, as mint are already handled in liquidity add
-    if (owner.equals(event.params.to)) return; // skip no change event, ie same to/from
+    if (owner.equals(Address.zero())) {
+        takeSnapshot(event);
+        return; // skip if this is a mint, as mint are already handled in liquidity add
+    }
+    if (owner.equals(event.params.to)) {
+        takeSnapshot(event);
+        return; // skip no change event, ie same to/from
+    }
 
     // get pool tokens
     const result = LiquidityV3.bind(event.address).try_positions(tokenId);
-    if (result.reverted) return;
+    if (result.reverted) {
+        takeSnapshot(event);
+        return;
+    }
 
     const token0Address = result.value.getToken0();
     const token1Address = result.value.getToken1();
@@ -389,6 +435,9 @@ export function handleLiquidityV3Transfer(event: ERC721TransferEvent): void {
     if (CycloVault.load(token1Address)) {
         handleLiquidityV3TransferInner(event, owner, token1Address, tokenId);
     }
+
+    // take snapshot if needed
+    takeSnapshot(event);
 }
 
 function handleLiquidityV3TransferInner(
@@ -414,6 +463,10 @@ function handleLiquidityV3TransferInner(
         event.logIndex,
         TRANSFER,
         tokenId,
+        liquidityV3OwnerBalance.poolAddress,
+        liquidityV3OwnerBalance.fee,
+        liquidityV3OwnerBalance.lowerTick,
+        liquidityV3OwnerBalance.upperTick,
     )
 
     const depositBalance = liquidityV3OwnerBalance.depositBalance;
@@ -421,12 +474,8 @@ function handleLiquidityV3TransferInner(
     // remove the record as the owner has changed and there is no portional liquidity transfer like there is in v2
     store.remove("LiquidityV3OwnerBalance", id.toHexString().toLowerCase());
 
-    const account = Account.load(owner);
-    if (!account) return;
-
-    const vaultId = cyToken.concat(owner);
-    let vaultBalance = VaultBalance.load(vaultId);
-    if (!vaultBalance) return; // Should exist
+    const account = getOrCreateAccount(owner);
+    const vaultBalance = getOrCreateVaultBalance(cyToken, account);
 
     const oldBalance = vaultBalance.balance;
 
@@ -459,7 +508,7 @@ export function createLiquidityV2Change(
 ): void {
     const id = transactionHash.concatI32(logIndex.toI32());
     const item = new LiquidityV2Change(id);
-    item.LiquidityChangeType = typ;
+    item.liquidityChangeType = typ;
     item.blockNumber = blockNumber;
     item.blockTimestamp = blockTimestamp;
     item.transactionHash = transactionHash;
@@ -488,10 +537,14 @@ export function createLiquidityV3Change(
     logIndex: BigInt,
     typ: string,
     tokenId:  BigInt,
+    poolAddress: Bytes,
+    fee: i32,
+    lowerTick: i32,
+    upperTick: i32,
 ): void {
     const id = transactionHash.concatI32(logIndex.toI32());
     const item = new LiquidityV3Change(id);
-    item.LiquidityChangeType = typ;
+    item.liquidityChangeType = typ;
     item.blockNumber = blockNumber;
     item.blockTimestamp = blockTimestamp;
     item.transactionHash = transactionHash;
@@ -499,6 +552,10 @@ export function createLiquidityV3Change(
     item.lpAddress = lpAddress;
     item.owner = owner;
     item.tokenId = tokenId;
+    item.poolAddress = poolAddress;
+    item.fee = fee;
+    item.lowerTick = lowerTick;
+    item.upperTick = upperTick;
     if (typ === DEPOSIT) {
         item.depositedBalanceChange = value;
         item.liquidityChange = lquidity;

@@ -7,7 +7,7 @@ import {
   afterAll,
 } from "matchstick-as/assembly/index";
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
-import { Transfer, LiquidityV3OwnerBalance } from "../generated/schema";
+import { LiquidityV3OwnerBalance } from "../generated/schema";
 import { handleTransfer } from "../src/cys-flr";
 import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { dataSourceMock } from "matchstick-as";
@@ -521,6 +521,10 @@ describe("Transfer handling", () => {
     liquidityPosition.tokenId = tokenId;
     liquidityPosition.depositBalance = BigInt.fromI32(100);
     liquidityPosition.tokenAddress = CYSFLR_ADDRESS;
+    liquidityPosition.poolAddress = SparkdexV3LiquidityManager;
+    liquidityPosition.fee = 300;
+    liquidityPosition.lowerTick = -32733;
+    liquidityPosition.upperTick = -14461;
     liquidityPosition.save();
 
     // Now process the withdraw transfer

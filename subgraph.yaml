@@ -46,6 +46,8 @@ dataSources:
         - EligibleTotals
         - VaultBalance
         - CycloVault
+        - TimeState
+        - AccountsMetadata
       abis:
         - name: LiquidityV3
           file: ./abis/LiquidityV3Manager.json
@@ -75,11 +77,15 @@ templates:
         - EligibleTotals
         - VaultBalance
         - CycloVault
+        - TimeState
+        - AccountsMetadata
       abis:
         - name: CycloVault
           file: ./lib/cyclo.sol/out/CycloVault.sol/CycloVault.json
         - name: factory
           file: ./abis/factory.json
+        - name: LiquidityV3
+          file: ./abis/LiquidityV3Manager.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
@@ -126,6 +132,8 @@ templates:
         - EligibleTotals
         - VaultBalance
         - CycloVault
+        - TimeState
+        - AccountsMetadata
       abis:
         - name: LiquidityV2
           file: ./abis/cysFLR.json
