@@ -168,7 +168,7 @@ export function takeSnapshot(event: ethereum.Event): void {
                     lpv3.lowerTick <= currentTick &&
                     lpv3.upperTick >= currentTick;
 
-                // deduct the deposit balance from accumulated balance if not in range
+                // deduct the lp v3 position deposit balance from accumulated balance if not in range
                 if (!isInRange) {
                     vaultSnapshotBalance = vaultSnapshotBalance.minus(lpv3.depositBalance);
                 }
@@ -184,7 +184,7 @@ export function takeSnapshot(event: ethereum.Event): void {
             vaultBalance.balanceAvgSnapshot = currentAvgSnapshot;
             vaultBalance.save();
 
-            // only positives are valid for account and token for token and account
+            // only positives are valid for account's and token's total snapshot
             const normalizedSnapshot = currentAvgSnapshot.gt(BigInt.zero())
                 ? currentAvgSnapshot
                 : BigInt.zero();
@@ -201,12 +201,15 @@ export function takeSnapshot(event: ethereum.Event): void {
             tokenEligibleBalances.set(tokenAddress, tokenTotalEligible.plus(normalizedSnapshot))
         }
 
+        // save account's total snapshot
         account.totalCyBalanceSnapshot = accountBalanceSnapshot;
         account.save();
     }
 
-    // update each token total eligible with the taken snapshot
-    let totalEligibleSumSnapshot = BigInt.zero(); // to calculate eligible total sum
+    // to calculate eligible total sum
+    let totalEligibleSumSnapshot = BigInt.zero();
+
+    // update each token total eligible with the taken snapshots and also add to eligible total sum
     for (let i = 0; i < tokenEligibleBalances.entries.length; i++) {
         const tokenAddress = Address.fromString(tokenEligibleBalances.entries[i].key);
         const totalEligible = tokenEligibleBalances.entries[i].value;
