@@ -1,17 +1,25 @@
-import { Account } from "../generated/schema";
+import { Account, AccountsMetadata, TimeState } from "../generated/schema";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
-import { Address, BigInt, BigDecimal, Bytes } from "@graphprotocol/graph-ts";
-import { REWARDS_SOURCES, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
+import { Address, BigInt, BigDecimal, Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { ACCOUNTS_METADATA_ID, REWARDS_SOURCES, TIME_STATE_ID, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
+
+// day in timestamp in seconds
+export const DAY = BigInt.fromI32(24 * 60 * 60);
 
 export function getOrCreateAccount(address: Address): Account {
+  getAccountsMetadata(); // init accounts metadata
   let account = Account.load(address);
   if (!account) {
     account = new Account(address);
     account.address = address;
     account.totalCyBalance = BigInt.fromI32(0);
     account.eligibleShare = BigDecimal.fromString("0");
+    account.totalCyBalanceSnapshot = BigInt.fromI32(0);
+    account.eligibleShareSnapshot = BigDecimal.fromString("0");
+    account.accountsMetadata = ACCOUNTS_METADATA_ID;
     account.save();
   }
+
   return account;
 }
 
@@ -45,4 +53,78 @@ export function bigintToBytes(value: BigInt): Bytes {
   }
   hex = hex.padStart(64, "0");
   return changetype<Bytes>(Bytes.fromHexString(hex));
+}
+
+export function getAccountsMetadata(): AccountsMetadata {
+  let accountsMetadata = AccountsMetadata.load(ACCOUNTS_METADATA_ID);
+  if (!accountsMetadata) {
+    accountsMetadata = new AccountsMetadata(ACCOUNTS_METADATA_ID);
+    accountsMetadata.save();
+  }
+  return accountsMetadata;
+}
+
+/**
+ * Get the time state or create it once at first call, the
+ * current and prev timestamp are updated upon the call
+ * @param event - Current event
+ * @returns The TimeState instance
+ */
+export function updateTimeState(event: ethereum.Event): TimeState {
+  let timeState = TimeState.load(TIME_STATE_ID);
+  if (!timeState) {
+    timeState = new TimeState(TIME_STATE_ID);
+    timeState.originBlock = event.block.number;
+    timeState.originTimestamp = event.block.timestamp;
+    timeState.currentBlock = event.block.number;
+    timeState.currentTimestamp = event.block.timestamp;
+    timeState.prevBlock = event.block.number;
+    timeState.prevTimestamp = event.block.timestamp;
+    timeState.lastSnapshotEpoch = 0;
+    timeState.lastSnapshotDayOfEpoch = 0;
+    timeState.save();
+    return timeState;
+  }
+
+  // keep it defensive by only updating if the new timestamp is greater than current
+  // this handles multiple events in the same block and potential reorgs
+  if (event.block.timestamp.gt(timeState.currentTimestamp)) {
+    timeState.prevBlock = timeState.currentBlock;
+    timeState.prevTimestamp = timeState.currentTimestamp;
+    timeState.currentBlock = event.block.number;
+    timeState.currentTimestamp = event.block.timestamp;
+    timeState.save();
+  }
+
+  return timeState;
+}
+
+/** Returns the current timestamp */
+export function currentTimestamp(): BigInt {
+  let timeState = TimeState.load(TIME_STATE_ID);
+  if (!timeState) {
+    return BigInt.zero();
+  }
+  return timeState.currentTimestamp;
+}
+
+/**
+ * Returns the days passed (since origin event) before the latest
+ * triggered event (ie the event prior to the latest triggered event)
+ */
+export function prevDay(): BigInt {
+  let timeState = TimeState.load(TIME_STATE_ID);
+  if (!timeState) {
+    return BigInt.zero();
+  }
+  return timeState.prevTimestamp.minus(timeState.originTimestamp).div(DAY);
+}
+
+/** Returns the days passed (since origin event) until the latest triggered event */
+export function currentDay(): BigInt {
+  let timeState = TimeState.load(TIME_STATE_ID);
+  if (!timeState) {
+    return BigInt.zero();
+  }
+  return timeState.currentTimestamp.minus(timeState.originTimestamp).div(DAY);
 }

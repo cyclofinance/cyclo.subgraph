@@ -10,7 +10,7 @@ import { CycloVaultTemplate, CycloReceiptTemplate } from "../generated/templates
 import { cloneFactoryImplementation } from "./cloneFactoryImplementation";
 import { dataSource } from "@graphprotocol/graph-ts";
 
-export function handleNewClone(event: NewClone): void {  
+export function handleNewClone(event: NewClone): void {
   // Normalize the implementation address to lowercase for comparison
   let implementationAddress = event.params.implementation.toHex().toLowerCase();
   let cloneAddress = event.params.clone.toHex().toLowerCase();
@@ -61,6 +61,7 @@ export function handleNewClone(event: NewClone): void {
     vault.deployTimestamp = event.block.timestamp;
     vault.deployer = event.params.sender;
     vault.totalEligible = BigInt.fromI32(0);
+    vault.totalEligibleSnapshot = BigInt.fromI32(0);
     vault.save();
   
     CycloVaultTemplate.create(event.params.clone);

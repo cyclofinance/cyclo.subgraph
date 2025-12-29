@@ -3,6 +3,7 @@ import { ethereum, Address, BigInt, Bytes, Wrapped } from "@graphprotocol/graph-
 import { Transfer as ERC20TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import { TransferBatch, TransferSingle } from "../generated/templates/CycloReceiptTemplate/CycloReceipt";
 import { Transfer as ERC721TransferEvent } from "../generated/LiquidityV3/LiquidityV3";
+import { bigintToBytes } from "../src/common";
 
 export const defaultAddress = Address.fromString("0xA16081F360e3847006dB660bae1c6d1b2e17eC2A");
 export const defaultAddressBytes = defaultAddress as Bytes;
@@ -16,6 +17,9 @@ export function createTransferEvent(
   value: BigInt,
   tokenAddress: Address,
   log: ethereum.Log | null = null,
+  txFrom: Address | null = null,
+  txTo: Address | null = null,
+  txTimestamp: BigInt | null = null,
 ): ERC20TransferEvent {
   let transferEvent = changetype<ERC20TransferEvent>(newMockEvent());
 
@@ -34,6 +38,17 @@ export function createTransferEvent(
 
   if (log) {
     transferEvent.receipt!.logs = [log]
+  }
+
+  if (txFrom) {
+    transferEvent.transaction.from = txFrom;
+  }
+  if (txTo) {
+    transferEvent.transaction.to = txTo;
+  }
+
+  if (txTimestamp) {
+    transferEvent.block.timestamp = txTimestamp;
   }
 
   return transferEvent;
@@ -161,7 +176,9 @@ export function mockLiquidityV3Positions(
   contractAddress: Address,
   tokenId: BigInt,
   token0: Address,
-  token1: Address
+  token1: Address,
+  tcikLower: i32,
+  tcikUpper: i32,
 ): void {
   createMockedFunction(contractAddress, "positions", "positions(uint256):(uint96,address,address,address,uint24,int24,int24,uint128,uint256,uint256,uint128,uint128)")
     .withArgs([ethereum.Value.fromUnsignedBigInt(tokenId)])
@@ -171,8 +188,8 @@ export function mockLiquidityV3Positions(
       ethereum.Value.fromAddress(token0),
       ethereum.Value.fromAddress(token1),
       ethereum.Value.fromI32(0), // fee
-      ethereum.Value.fromI32(0), // tickLower
-      ethereum.Value.fromI32(0), // tickUpper
+      ethereum.Value.fromI32(tcikLower), // tickLower
+      ethereum.Value.fromI32(tcikUpper), // tickUpper
       ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(0)), // liquidity
       ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(0)), // feeGrowthInside0LastX128
       ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(0)), // feeGrowthInside1LastX128
@@ -190,4 +207,53 @@ export function mockLiquidityV2Pairs(
         .returns([ethereum.Value.fromAddress(token0)]);
     createMockedFunction(contractAddress, "token1", "token1():(address)")
         .returns([ethereum.Value.fromAddress(token1)]);
+}
+
+// mock increase liquidity log to put in receipt
+export function mockIncreaseLiquidityLog(
+  address: Address,
+  tokenId: BigInt,
+  liquidity: BigInt,
+  amount0: BigInt,
+  amount1: BigInt,
+): ethereum.Log {
+    let logTopics = new Array<Bytes>();
+    logTopics.push(Bytes.fromHexString("0x3067048beee31b25b2f1681f88dac838c8bba36af25bfb2b7cf7473a5847e35f"));
+    logTopics.push(bigintToBytes(tokenId));
+    let tupleValues = new ethereum.Tuple();
+    tupleValues.push(ethereum.Value.fromUnsignedBigInt(liquidity));
+    tupleValues.push(ethereum.Value.fromUnsignedBigInt(amount0));
+    tupleValues.push(ethereum.Value.fromUnsignedBigInt(amount1));
+    let encodedTuple = ethereum.Value.fromTuple(tupleValues);
+    return new ethereum.Log(
+      address,
+      logTopics,
+      ethereum.encode(encodedTuple)!,
+      defaultAddressBytes,
+      defaultIntBytes,
+      defaultAddressBytes,
+      defaultBigInt,
+      defaultBigInt,
+      defaultBigInt,
+      defaultEventDataLogType,
+      new Wrapped(false)
+    );
+}
+
+export function mockSlot0(contractAddress: Address, tick: i32): void {
+  createMockedFunction(contractAddress, "slot0", "slot0():(uint160,int24,uint16,uint16,uint16,uint8,bool)")
+    .returns([
+      ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(0)),
+      ethereum.Value.fromI32(tick),
+      ethereum.Value.fromI32(0),
+      ethereum.Value.fromI32(0),
+      ethereum.Value.fromI32(0),
+      ethereum.Value.fromI32(0),
+      ethereum.Value.fromBoolean(true),
+    ]);
+}
+
+export function mockSlot0Revert(contractAddress: Address): void {
+  createMockedFunction(contractAddress, "slot0", "slot0():(uint160,int24,uint16,uint16,uint16,uint8,bool)",)
+    .reverts();
 }
