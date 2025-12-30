@@ -148,7 +148,7 @@ export function handleLiquidityV2Add(
             event.block.number,
             event.block.timestamp,
             event.transaction.hash,
-            log_.logIndex,
+            event.logIndex,
             DEPOSIT,
         )
         return true;
