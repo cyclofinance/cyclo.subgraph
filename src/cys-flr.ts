@@ -123,17 +123,16 @@ export function handleTransfer(event: TransferEvent): void {
       toVaultBalance.balance = toVaultBalance.balance.minus(event.params.value);
     }
   } else {
+    // eligible since its a liq add
     fromVaultBalance.balance = fromVaultBalance.balance.plus(event.params.value);
   }
 
-  // Update to account's total eligible cy balance
+  // Update "to" account's total eligible cy balance
   if (oldToBalance.gt(BigInt.zero())) {
     toAccount.totalCyBalance = toAccount.totalCyBalance.minus(oldToBalance);
-    // oldToBalance = toAccount.totalCyBalance;
   }
   if (toVaultBalance.balance.gt(BigInt.zero())) {
     toAccount.totalCyBalance = toAccount.totalCyBalance.plus(toVaultBalance.balance);
-    // oldToBalance = toAccount.totalCyBalance;
   }
 
   // Update "from" account's total eligible cy balance
