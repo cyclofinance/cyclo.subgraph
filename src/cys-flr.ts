@@ -112,27 +112,36 @@ export function handleTransfer(event: TransferEvent): void {
     // Deduct LP position value if this transfer belongs to a LP withdraw
     const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
     toVaultBalance.balance = toVaultBalance.balance.minus(lpDeductionValue);
-    
-    // Update account's total eligible cy balance
-    if (oldToBalance.gt(BigInt.zero())) {
-      toAccount.totalCyBalance = toAccount.totalCyBalance.minus(oldToBalance);
-    }
-    if (toVaultBalance.balance.gt(BigInt.zero())) {
-      toAccount.totalCyBalance = toAccount.totalCyBalance.plus(toVaultBalance.balance);
-    }
   }
 
   // Deduct if not a liq add
   if (!handleLiquidityAdd(event, event.address)) {
     fromVaultBalance.balance = fromVaultBalance.balance.minus(event.params.value);
-    
-    // Update account's total eligible cy balance
-    if (oldFromBalance.gt(BigInt.zero())) {
-      fromAccount.totalCyBalance = fromAccount.totalCyBalance.minus(oldFromBalance);
+
+    // reverse "to" vault balance if not a liq add
+    if (fromIsApprovedSource) {
+      toVaultBalance.balance = toVaultBalance.balance.minus(event.params.value);
     }
-    if (fromVaultBalance.balance.gt(BigInt.zero())) {
-      fromAccount.totalCyBalance = fromAccount.totalCyBalance.plus(fromVaultBalance.balance);
-    }
+  } else {
+    fromVaultBalance.balance = fromVaultBalance.balance.plus(event.params.value);
+  }
+
+  // Update to account's total eligible cy balance
+  if (oldToBalance.gt(BigInt.zero())) {
+    toAccount.totalCyBalance = toAccount.totalCyBalance.minus(oldToBalance);
+    // oldToBalance = toAccount.totalCyBalance;
+  }
+  if (toVaultBalance.balance.gt(BigInt.zero())) {
+    toAccount.totalCyBalance = toAccount.totalCyBalance.plus(toVaultBalance.balance);
+    // oldToBalance = toAccount.totalCyBalance;
+  }
+
+  // Update "from" account's total eligible cy balance
+  if (oldFromBalance.gt(BigInt.zero())) {
+    fromAccount.totalCyBalance = fromAccount.totalCyBalance.minus(oldFromBalance);
+  }
+  if (fromVaultBalance.balance.gt(BigInt.zero())) {
+    fromAccount.totalCyBalance = fromAccount.totalCyBalance.plus(fromVaultBalance.balance);
   }
 
   // Save vault balances
