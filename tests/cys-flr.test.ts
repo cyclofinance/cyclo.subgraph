@@ -11,8 +11,8 @@ import { LiquidityV3OwnerBalance } from "../generated/schema";
 import { handleTransfer } from "../src/cys-flr";
 import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { dataSourceMock } from "matchstick-as";
-import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType } from "./utils";
-import { SparkdexV3LiquidityManager, DecreaseLiquidityV3ABI } from "../src/constants";
+import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType, mockIncreaseLiquidityLog, mockSlot0, mockLiquidityV3Positions } from "./utils";
+import { SparkdexV3LiquidityManager, DecreaseLiquidityV3ABI, V3_POOL_FACTORIES } from "../src/constants";
 import { ethereum, Wrapped } from "@graphprotocol/graph-ts";
 
 // Test addresses
@@ -52,7 +52,9 @@ describe("Transfer handling", () => {
     mockFactoryRevert(USER_2);
     mockFactoryRevert(ZERO_ADDRESS);
     mockFactory(APPROVED_DEX_ROUTER, Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89")); // Valid V2 factory
-    mockFactory(APPROVED_DEX_POOL, Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89")); // Valid V2 factory
+    mockFactory(APPROVED_DEX_POOL, V3_POOL_FACTORIES[0]); // Valid V3 factory
+    mockSlot0(APPROVED_DEX_POOL, -500);
+    mockLiquidityV3Positions(SparkdexV3LiquidityManager, BigInt.fromI32(1), Address.zero(), Address.zero(), -900, -100);
   });
 
   afterAll(() => {
@@ -74,6 +76,23 @@ describe("Transfer handling", () => {
     );
     handleTransfer(transferEvent);
 
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(100),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(100),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
+
     assert.fieldEquals(
       "VaultBalance",
       CYSFLR_ADDRESS.concat(USER_1).toHexString(),
@@ -91,6 +110,22 @@ describe("Transfer handling", () => {
       CYWETH_ADDRESS
     );
     handleTransfer(transferEvent);
+    depositEvent = createTransferEvent(
+      USER_2,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(150),
+      CYWETH_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(150),
+        BigInt.fromI32(500),
+      ),
+      USER_2,
+      SparkdexV3LiquidityManager,
+    );
+    handleTransfer(depositEvent);
 
     assert.fieldEquals(
       "VaultBalance",
@@ -121,12 +156,28 @@ describe("Transfer handling", () => {
 
     // 1. User 1 gets 1000 cysFLR and 500 cyWETH from DEX
     let transferEvent = createTransferEvent(
-      APPROVED_DEX_ROUTER,
+      APPROVED_DEX_POOL,
       USER_1,
       BigInt.fromI32(1000),
       CYSFLR_ADDRESS
     );
     handleTransfer(transferEvent);
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(1000),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(1000),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     transferEvent = createTransferEvent(
       APPROVED_DEX_POOL,
@@ -135,6 +186,22 @@ describe("Transfer handling", () => {
       CYWETH_ADDRESS
     );
     handleTransfer(transferEvent);
+    depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(500),
+      CYWETH_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(100),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     // Check initial totals
     assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "1500");
@@ -175,6 +242,22 @@ describe("Transfer handling", () => {
       CYSFLR_ADDRESS
     );
     handleTransfer(transferEvent);
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      largeValue,
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        largeValue,
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     transferEvent = createTransferEvent(
       APPROVED_DEX_ROUTER,
@@ -183,6 +266,22 @@ describe("Transfer handling", () => {
       CYWETH_ADDRESS
     );
     handleTransfer(transferEvent);
+    depositEvent = createTransferEvent(
+      USER_2,
+      APPROVED_DEX_POOL,
+      largeValue,
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        largeValue,
+        BigInt.fromI32(500),
+      ),
+      USER_2,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     // Check totals handle large numbers
     assert.fieldEquals(
@@ -218,6 +317,22 @@ describe("Transfer handling", () => {
       CYSFLR_ADDRESS
     );
     handleTransfer(transferEvent);
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(100),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(100),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     assert.fieldEquals(
       "Account",
@@ -235,6 +350,22 @@ describe("Transfer handling", () => {
       CYWETH_ADDRESS,
     );
     handleTransfer(transferEvent);
+    depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(50),
+      CYWETH_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(50),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     assert.fieldEquals(
       "Account",
@@ -256,6 +387,22 @@ describe("Transfer handling", () => {
       CYSFLR_ADDRESS
     );
     handleTransfer(transferEvent);
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(300),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(300),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     // User 2 gets 100 cyWETH
     transferEvent = createTransferEvent(
@@ -265,6 +412,22 @@ describe("Transfer handling", () => {
       CYWETH_ADDRESS
     );
     handleTransfer(transferEvent);
+    depositEvent = createTransferEvent(
+      USER_2,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(100),
+      CYWETH_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(100),
+        BigInt.fromI32(500),
+      ),
+      USER_2,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     // Refresh User 1's share by sending a 0 value transfer
     transferEvent = createTransferEvent(
@@ -338,6 +501,22 @@ describe("Transfer handling", () => {
       CYSFLR_ADDRESS
     );
     handleTransfer(transferEvent);
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(1000),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(1000),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     transferEvent = createTransferEvent(
       APPROVED_DEX_POOL,
@@ -346,6 +525,22 @@ describe("Transfer handling", () => {
       CYWETH_ADDRESS
     );
     handleTransfer(transferEvent);
+    depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(500),
+      CYWETH_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(100),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     // User 1 should have 100% share of 1500 total
     assert.fieldEquals(
@@ -364,6 +559,22 @@ describe("Transfer handling", () => {
       CYSFLR_ADDRESS
     );
     handleTransfer(transferEvent);
+    depositEvent = createTransferEvent(
+      USER_2,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(100),
+        BigInt.fromI32(500),
+      ),
+      USER_2,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     // Refresh User 1's share
     transferEvent = createTransferEvent(
@@ -402,6 +613,22 @@ describe("Transfer handling", () => {
       CYSFLR_ADDRESS
     );
     handleTransfer(transferEvent);
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      largeValue,
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        largeValue,
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     // User 2 gets 500K cyWETH
     transferEvent = createTransferEvent(
@@ -411,6 +638,22 @@ describe("Transfer handling", () => {
       CYWETH_ADDRESS
     );
     handleTransfer(transferEvent);
+    depositEvent = createTransferEvent(
+      USER_2,
+      APPROVED_DEX_POOL,
+      halfValue,
+      CYWETH_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        halfValue,
+        BigInt.fromI32(500),
+      ),
+      USER_2,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     // Refresh User 1's share
     transferEvent = createTransferEvent(
@@ -448,6 +691,22 @@ describe("Transfer handling", () => {
       CYWETH_ADDRESS
     );
     handleTransfer(transferEvent);
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(100),
+      CYWETH_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(100),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
 
     // User 1 transfers 150 cysFLR to User 2 (making User 1's cysFLR balance negative)
     transferEvent = createTransferEvent(
