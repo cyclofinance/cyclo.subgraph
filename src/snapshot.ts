@@ -60,7 +60,7 @@ export class Epochs {
         }
         for (let i = 0; i < this.list.length; i++) {
             if (i + 1 >= this.list.length) break; // last item guard
-            if (timestamp > this.list[0].timestamp && timestamp <= this.list[i + 1].timestamp) {
+            if (timestamp > this.list[i].timestamp && timestamp <= this.list[i + 1].timestamp) {
                 return i + 1;
             }
         }
