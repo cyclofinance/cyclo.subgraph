@@ -149,7 +149,8 @@ export function takeSnapshot(event: ethereum.Event): void {
             const vaultBalance = vaultBalances[j];
 
             // factor in the v3 lp positions of the account for the account's vault snapshot balance
-            let vaultSnapshotBalance = vaultBalance.balance;
+            // clamp to zero — negative balances represent transfers out exceeding approved in, not real holdings
+            let vaultSnapshotBalance = vaultBalance.balance.gt(BigInt.zero()) ? vaultBalance.balance : BigInt.zero();
             for (let k = 0; k < liquidityV3Balances.length; k++) {
                 const lpv3 = liquidityV3Balances[k];
                 if (lpv3.tokenAddress.notEqual(vaultBalance.vault)) continue; // skip if not same token as the vault
