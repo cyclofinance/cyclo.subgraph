@@ -1,7 +1,7 @@
 import { takeSnapshot } from "./snapshot";
 import { LiquidityV2 } from "../generated/templates";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
-import { getOrCreateVaultBalance, updateTotalsForAccount } from "./cys-flr";
+import { getOrCreateVaultBalance, updateTotalsForAccount, eligibleBalance } from "./cys-flr";
 import { bigintToBytes, getOrCreateAccount, isV2Pool, isV3Pool } from "./common";
 import { Address, BigInt, Bytes, ethereum, store } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
@@ -390,8 +390,10 @@ function handleLiquidityV2TransferInner(
     const vaultBalance = getOrCreateVaultBalance(cyToken, account);
 
     const oldBalance = vaultBalance.balance;
-    
-    vaultBalance.balance = vaultBalance.balance.minus(depositDeduction);
+
+    // LP transfer reduces lpBalance, not boughtCap
+    vaultBalance.lpBalance = vaultBalance.lpBalance.minus(depositDeduction);
+    vaultBalance.balance = eligibleBalance(vaultBalance.boughtCap, vaultBalance.lpBalance);
     vaultBalance.save();
 
     // update account's total
@@ -479,7 +481,9 @@ function handleLiquidityV3TransferInner(
 
     const oldBalance = vaultBalance.balance;
 
-    vaultBalance.balance = vaultBalance.balance.minus(depositBalance);
+    // LP transfer reduces lpBalance, not boughtCap
+    vaultBalance.lpBalance = vaultBalance.lpBalance.minus(depositBalance);
+    vaultBalance.balance = eligibleBalance(vaultBalance.boughtCap, vaultBalance.lpBalance);
     vaultBalance.save();
 
     // update account's total
