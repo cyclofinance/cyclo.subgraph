@@ -9,7 +9,11 @@ import { NewClone } from "../generated/CloneFactory/CloneFactory";
 import { handleNewClone } from "../src/cloneFactory";
 import {
   FLARE_TOKEN_IMPLEMENTATION_ADDRESS,
+  FLARE_TOKEN_IMPLEMENTATION_ADDRESS_2,
+  FLARE_TOKEN_IMPLEMENTATION_ADDRESS_3,
   FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS,
+  FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_2,
+  FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_3,
 } from "../src/cloneFactoryImplementation";
 
 const SENDER = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -80,5 +84,23 @@ describe("handleNewClone", () => {
 
     assert.entityCount("CycloVault", 0);
     assert.entityCount("CycloReceipt", 0);
+  });
+
+  test("Receipt and vault implementation addresses are disjoint", () => {
+    const vaultImpls: Address[] = [
+      FLARE_TOKEN_IMPLEMENTATION_ADDRESS,
+      FLARE_TOKEN_IMPLEMENTATION_ADDRESS_2,
+      FLARE_TOKEN_IMPLEMENTATION_ADDRESS_3,
+    ];
+    const receiptImpls: Address[] = [
+      FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS,
+      FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_2,
+      FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_3,
+    ];
+    for (let i = 0; i < vaultImpls.length; i++) {
+      for (let j = 0; j < receiptImpls.length; j++) {
+        assert.assertTrue(!vaultImpls[i].equals(receiptImpls[j]));
+      }
+    }
   });
 });
