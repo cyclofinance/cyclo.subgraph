@@ -270,7 +270,7 @@ describe("Transfer handling", () => {
       USER_2,
       APPROVED_DEX_POOL,
       largeValue,
-      CYSFLR_ADDRESS,
+      CYWETH_ADDRESS,
       mockIncreaseLiquidityLog(
         SparkdexV3LiquidityManager,
         BigInt.fromI32(1),
@@ -718,11 +718,18 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // Check User 1's balances
+    // boughtCap is -150 but balance (eligible) is clamped to 0
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "boughtCap",
+      "-150"
+    );
     assert.fieldEquals(
       "VaultBalance",
       CYSFLR_ADDRESS.concat(USER_1).toHexString(),
       "balance",
-      "-150"
+      "0"
     );
     assert.fieldEquals(
       "VaultBalance",

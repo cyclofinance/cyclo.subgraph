@@ -887,6 +887,8 @@ function createMockVaultBalance(
   let vaultBalance = new VaultBalance(tokenAddress.concat(owner));
   vaultBalance.vault = changetype<Bytes>(tokenAddress);
   vaultBalance.owner = changetype<Bytes>(owner);
+  vaultBalance.boughtCap = balance;
+  vaultBalance.lpBalance = balance;
   vaultBalance.balance = balance;
   vaultBalance.balanceAvgSnapshot = balanceAvgSnapshot;
   vaultBalance.save();
