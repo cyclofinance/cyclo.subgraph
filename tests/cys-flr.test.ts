@@ -8,7 +8,7 @@ import {
 } from "matchstick-as/assembly/index";
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { LiquidityV3OwnerBalance } from "../generated/schema";
-import { handleTransfer } from "../src/cys-flr";
+import { handleTransfer, clamp0, eligibleBalance } from "../src/cys-flr";
 import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { dataSourceMock } from "matchstick-as";
 import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType, mockIncreaseLiquidityLog, mockSlot0, mockLiquidityV3Positions } from "./utils";
@@ -837,6 +837,89 @@ describe("Transfer handling", () => {
       TOTALS_ID,
       "totalEligibleSum",
       "0"
+    );
+  });
+});
+
+describe("clamp0", () => {
+  test("returns value when positive", () => {
+    assert.bigIntEquals(clamp0(BigInt.fromI32(100)), BigInt.fromI32(100));
+  });
+
+  test("returns zero when negative", () => {
+    assert.bigIntEquals(clamp0(BigInt.fromI32(-50)), BigInt.zero());
+  });
+
+  test("returns zero when zero", () => {
+    assert.bigIntEquals(clamp0(BigInt.zero()), BigInt.zero());
+  });
+
+  test("handles large positive value", () => {
+    const large = BigInt.fromString("999999999999999999999999999");
+    assert.bigIntEquals(clamp0(large), large);
+  });
+
+  test("handles large negative value", () => {
+    const large = BigInt.fromString("-999999999999999999999999999");
+    assert.bigIntEquals(clamp0(large), BigInt.zero());
+  });
+});
+
+describe("eligibleBalance", () => {
+  test("returns min of both when both positive", () => {
+    assert.bigIntEquals(
+      eligibleBalance(BigInt.fromI32(100), BigInt.fromI32(200)),
+      BigInt.fromI32(100)
+    );
+    assert.bigIntEquals(
+      eligibleBalance(BigInt.fromI32(300), BigInt.fromI32(150)),
+      BigInt.fromI32(150)
+    );
+  });
+
+  test("returns zero when boughtCap negative", () => {
+    assert.bigIntEquals(
+      eligibleBalance(BigInt.fromI32(-100), BigInt.fromI32(200)),
+      BigInt.zero()
+    );
+  });
+
+  test("returns zero when lpBalance negative", () => {
+    assert.bigIntEquals(
+      eligibleBalance(BigInt.fromI32(100), BigInt.fromI32(-50)),
+      BigInt.zero()
+    );
+  });
+
+  test("returns zero when both negative", () => {
+    assert.bigIntEquals(
+      eligibleBalance(BigInt.fromI32(-100), BigInt.fromI32(-50)),
+      BigInt.zero()
+    );
+  });
+
+  test("returns zero when both zero", () => {
+    assert.bigIntEquals(
+      eligibleBalance(BigInt.zero(), BigInt.zero()),
+      BigInt.zero()
+    );
+  });
+
+  test("returns zero when one is zero", () => {
+    assert.bigIntEquals(
+      eligibleBalance(BigInt.fromI32(100), BigInt.zero()),
+      BigInt.zero()
+    );
+    assert.bigIntEquals(
+      eligibleBalance(BigInt.zero(), BigInt.fromI32(100)),
+      BigInt.zero()
+    );
+  });
+
+  test("returns equal value when both equal", () => {
+    assert.bigIntEquals(
+      eligibleBalance(BigInt.fromI32(500), BigInt.fromI32(500)),
+      BigInt.fromI32(500)
     );
   });
 });
