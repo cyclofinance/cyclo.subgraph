@@ -153,7 +153,6 @@ describe("Liquidity Transfer Handling", () => {
       // totals updated
       assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "250");
     });
-  });
 
     test("should remove entity on full V2 withdrawal (burn to zero address)", () => {
       clearStore();

@@ -2,7 +2,7 @@ import { createTransferEvent } from "./utils";
 import { TimeState } from "../generated/schema";
 import { TIME_STATE_ID } from "../src/constants";
 import { Address, BigInt } from "@graphprotocol/graph-ts";
-import { assert, describe, test } from "matchstick-as/assembly/index";
+import { assert, clearStore, describe, test } from "matchstick-as/assembly/index";
 import { bigintToBytes, currentDay, currentTimestamp, DAY, getAccountsMetadata, getOrCreateAccount, prevDay, updateTimeState } from "../src/common";
 
 // Test addresses
@@ -164,6 +164,45 @@ describe("Test TimeState", () => {
         assert.bigIntEquals(timeState.prevTimestamp, dayPassedTimestamp); // prev day
         assert.bigIntEquals(prevDay(), BigInt.fromI32(1)); // last should be 1, ie 1 day was passed before the current (up to prev event)
         assert.bigIntEquals(currentDay(), BigInt.fromI32(2)); // current should be 2, ie 2 days passed since origin (up to the current event)
-        
+
+    });
+
+    test("should not update prev/current when timestamp equals current", () => {
+        clearStore();
+        const ts = BigInt.fromI32(1720270000);
+        const event1 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, ts);
+        updateTimeState(event1);
+
+        const laterTs = BigInt.fromI32(1720280000);
+        const event2 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, laterTs);
+        updateTimeState(event2);
+
+        // Send same timestamp again — guard skips the update
+        const event3 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, laterTs);
+        updateTimeState(event3);
+
+        const timeState = TimeState.load(TIME_STATE_ID)!;
+        assert.bigIntEquals(timeState.currentTimestamp, laterTs);
+        assert.bigIntEquals(timeState.prevTimestamp, ts);
+    });
+
+    test("should not update prev/current when timestamp is earlier than current", () => {
+        clearStore();
+        const ts = BigInt.fromI32(1720290000);
+        const event1 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, ts);
+        updateTimeState(event1);
+
+        const laterTs = BigInt.fromI32(1720300000);
+        const event2 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, laterTs);
+        updateTimeState(event2);
+
+        // Send earlier timestamp — guard skips the update
+        const earlierTs = BigInt.fromI32(1720295000);
+        const event3 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, earlierTs);
+        updateTimeState(event3);
+
+        const timeState = TimeState.load(TIME_STATE_ID)!;
+        assert.bigIntEquals(timeState.currentTimestamp, laterTs);
+        assert.bigIntEquals(timeState.prevTimestamp, ts);
     });
 })
