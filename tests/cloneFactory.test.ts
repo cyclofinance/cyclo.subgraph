@@ -15,6 +15,7 @@ import {
   FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_2,
   FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_3,
 } from "../src/cloneFactoryImplementation";
+import { CycloVault, CycloReceipt } from "../generated/schema";
 
 const SENDER = Address.fromString("0x0000000000000000000000000000000000000001");
 const CLONE_ADDRESS = Address.fromString("0x0000000000000000000000000000000000000099");
@@ -84,6 +85,36 @@ describe("handleNewClone", () => {
 
     assert.entityCount("CycloVault", 0);
     assert.entityCount("CycloReceipt", 0);
+  });
+
+  test("All vault implementations create CycloVault", () => {
+    const vaultImpls: Address[] = [
+      FLARE_TOKEN_IMPLEMENTATION_ADDRESS,
+      FLARE_TOKEN_IMPLEMENTATION_ADDRESS_2,
+      FLARE_TOKEN_IMPLEMENTATION_ADDRESS_3,
+    ];
+    for (let i = 0; i < vaultImpls.length; i++) {
+      clearStore();
+      let event = createNewCloneEvent(SENDER, vaultImpls[i], CLONE_ADDRESS);
+      handleNewClone(event);
+      assert.assertTrue(CycloVault.load(CLONE_ADDRESS) !== null);
+      assert.assertTrue(CycloReceipt.load(CLONE_ADDRESS) === null);
+    }
+  });
+
+  test("All receipt implementations create CycloReceipt", () => {
+    const receiptImpls: Address[] = [
+      FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS,
+      FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_2,
+      FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS_3,
+    ];
+    for (let i = 0; i < receiptImpls.length; i++) {
+      clearStore();
+      let event = createNewCloneEvent(SENDER, receiptImpls[i], CLONE_ADDRESS);
+      handleNewClone(event);
+      assert.assertTrue(CycloReceipt.load(CLONE_ADDRESS) !== null);
+      assert.assertTrue(CycloVault.load(CLONE_ADDRESS) === null);
+    }
   });
 
   test("Receipt and vault implementation addresses are disjoint", () => {
