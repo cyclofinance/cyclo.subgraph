@@ -29,6 +29,7 @@ describe("getOrCreateReceiptOwnerBalance", () => {
     assert.bigIntEquals(item.balance, BigInt.zero());
     assert.bigIntEquals(item.tokenId, TOKEN_ID);
     assert.bytesEquals(item.receiptAddress, RECEIPT_ADDRESS);
+    assert.bytesEquals(item.receipt, RECEIPT_ADDRESS);
     assert.bytesEquals(item.owner, changetype<Bytes>(OWNER));
   });
 
