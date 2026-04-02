@@ -3,7 +3,7 @@ import { TimeState } from "../generated/schema";
 import { TIME_STATE_ID } from "../src/constants";
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { assert, describe, test } from "matchstick-as/assembly/index";
-import { bigintToBytes, currentDay, DAY, getAccountsMetadata, getOrCreateAccount, prevDay, updateTimeState } from "../src/common";
+import { bigintToBytes, currentDay, currentTimestamp, DAY, getAccountsMetadata, getOrCreateAccount, prevDay, updateTimeState } from "../src/common";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -57,6 +57,25 @@ describe("bigintToBytes", () => {
         const bytes1 = bigintToBytes(tokenId);
         const bytes2 = bigintToBytes(tokenId);
         assert.bytesEquals(bytes1, bytes2);
+    });
+});
+
+describe("currentTimestamp", () => {
+    test("should return zero when no TimeState exists", () => {
+        assert.bigIntEquals(currentTimestamp(), BigInt.zero());
+    });
+
+    test("should return current timestamp after TimeState is initialized", () => {
+        const ts = BigInt.fromI32(1720267123);
+        const mockEvent = createTransferEvent(
+            USER_1, USER_2,
+            BigInt.fromI32(100),
+            CYSFLR_ADDRESS,
+            null, null, null,
+            ts,
+        );
+        updateTimeState(mockEvent);
+        assert.bigIntEquals(currentTimestamp(), ts);
     });
 });
 
