@@ -845,6 +845,247 @@ describe("Transfer handling", () => {
   });
 });
 
+describe("boughtCap/lpBalance eligibility model", () => {
+  beforeAll(() => {
+    clearStore();
+    dataSourceMock.setNetwork("flare");
+    mockFactoryRevert(USER_1);
+    mockFactoryRevert(USER_2);
+    mockFactory(APPROVED_DEX_POOL, V3_POOL_FACTORIES[0]);
+    mockSlot0(APPROVED_DEX_POOL, -500);
+    mockLiquidityV3Positions(SparkdexV3LiquidityManager, BigInt.fromI32(1), Address.zero(), Address.zero(), -900, -100);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("Buy from approved source without LP deposit gives zero eligible balance", () => {
+    clearStore();
+
+    // User buys 500 from approved DEX — boughtCap increases, lpBalance stays 0
+    let transferEvent = createTransferEvent(
+      APPROVED_DEX_POOL,
+      USER_1,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(transferEvent);
+
+    // boughtCap = 500, lpBalance = 0, balance = min(500, 0) = 0
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "boughtCap",
+      "500"
+    );
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "lpBalance",
+      "0"
+    );
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "balance",
+      "0"
+    );
+    assert.fieldEquals("Account", USER_1.toHexString(), "totalCyBalance", "0");
+    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "0");
+  });
+
+  test("LP deposit of non-approved tokens gives zero eligible balance", () => {
+    clearStore();
+
+    // User receives tokens from non-approved source (peer transfer)
+    let transferEvent = createTransferEvent(
+      USER_2,
+      USER_1,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(transferEvent);
+
+    // Then deposits into LP
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(500),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
+
+    // boughtCap = 0 (non-approved source), lpBalance = 500
+    // balance = min(0, 500) = 0
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "boughtCap",
+      "0"
+    );
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "lpBalance",
+      "500"
+    );
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "balance",
+      "0"
+    );
+    assert.fieldEquals("Account", USER_1.toHexString(), "totalCyBalance", "0");
+  });
+
+  test("Buy from approved + LP deposit gives eligible balance equal to min", () => {
+    clearStore();
+
+    // Buy 300 from approved
+    let buyEvent = createTransferEvent(
+      APPROVED_DEX_POOL,
+      USER_1,
+      BigInt.fromI32(300),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(buyEvent);
+
+    // Deposit 300 into LP
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(300),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(300),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
+
+    // boughtCap = 300, lpBalance = 300, balance = min(300, 300) = 300
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "boughtCap",
+      "300"
+    );
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "lpBalance",
+      "300"
+    );
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "balance",
+      "300"
+    );
+    assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "300");
+  });
+
+  test("LP deposit is neutral to boughtCap", () => {
+    clearStore();
+
+    // Buy 500 from approved
+    let buyEvent = createTransferEvent(
+      APPROVED_DEX_POOL,
+      USER_1,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(buyEvent);
+
+    const vbId = CYSFLR_ADDRESS.concat(USER_1).toHexString();
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "500");
+
+    // LP deposit should NOT change boughtCap
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(500),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
+
+    // boughtCap unchanged at 500
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "500");
+    assert.fieldEquals("VaultBalance", vbId, "lpBalance", "500");
+  });
+
+  test("Non-LP transfer out decreases boughtCap but not lpBalance", () => {
+    clearStore();
+
+    // Buy 500 and LP 500
+    let buyEvent = createTransferEvent(
+      APPROVED_DEX_POOL,
+      USER_1,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(buyEvent);
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(500),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
+
+    const vbId = CYSFLR_ADDRESS.concat(USER_1).toHexString();
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "500");
+    assert.fieldEquals("VaultBalance", vbId, "lpBalance", "500");
+
+    // Transfer 200 to User 2 (non-LP) — decreases boughtCap, not lpBalance
+    let transferEvent = createTransferEvent(
+      USER_1,
+      USER_2,
+      BigInt.fromI32(200),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(transferEvent);
+
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "300");
+    assert.fieldEquals("VaultBalance", vbId, "lpBalance", "500");
+    // balance = min(300, 500) = 300
+    assert.fieldEquals("VaultBalance", vbId, "balance", "300");
+  });
+});
+
 describe("clamp0", () => {
   test("returns value when positive", () => {
     assert.bigIntEquals(clamp0(BigInt.fromI32(100)), BigInt.fromI32(100));
