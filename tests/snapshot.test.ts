@@ -826,6 +826,78 @@ describe("Snapshot handling", () => {
         "0"
       );
     });
+
+    test("should deduct only out-of-range V3 position when mixed with in-range", () => {
+      mockSlot0(V3_POOL, -2000); // Current tick: in range for pos1, out of range for pos2
+
+      createMockAccount(
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+      createMockVaultBalance(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+      );
+      createMockCycloVault(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
+      // Position 1: IN RANGE (-3000 <= -2000 <= -1000), deposit = 400
+      let tokenId1 = BigInt.fromI32(101);
+      let lp3Id1 = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId1);
+      let lp3_1 = new LiquidityV3OwnerBalance(lp3Id1);
+      lp3_1.lpAddress = changetype<Bytes>(SparkdexV3LiquidityManager);
+      lp3_1.owner = changetype<Bytes>(USER_1);
+      lp3_1.tokenAddress = changetype<Bytes>(CYSFLR_ADDRESS);
+      lp3_1.tokenId = tokenId1;
+      lp3_1.liquidity = BigInt.fromI32(400);
+      lp3_1.depositBalance = BigInt.fromI32(400);
+      lp3_1.poolAddress = changetype<Bytes>(V3_POOL);
+      lp3_1.lowerTick = -3000;
+      lp3_1.upperTick = -1000;
+      lp3_1.fee = 3000;
+      lp3_1.save();
+
+      // Position 2: OUT OF RANGE (-1500 to -500, tick is -2000), deposit = 300
+      let tokenId2 = BigInt.fromI32(102);
+      let lp3Id2 = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId2);
+      let lp3_2 = new LiquidityV3OwnerBalance(lp3Id2);
+      lp3_2.lpAddress = changetype<Bytes>(SparkdexV3LiquidityManager);
+      lp3_2.owner = changetype<Bytes>(USER_1);
+      lp3_2.tokenAddress = changetype<Bytes>(CYSFLR_ADDRESS);
+      lp3_2.tokenId = tokenId2;
+      lp3_2.liquidity = BigInt.fromI32(300);
+      lp3_2.depositBalance = BigInt.fromI32(300);
+      lp3_2.poolAddress = changetype<Bytes>(V3_POOL);
+      lp3_2.lowerTick = -1500;
+      lp3_2.upperTick = -500;
+      lp3_2.fee = 3000;
+      lp3_2.save();
+
+      takeSnapshot(mockeEvent);
+
+      // Only pos2 deducted: 1000 - 300 = 700
+      const expectedSnapshot = BigInt.fromI32(700)
+        .times(BigInt.fromI32(2))
+        .div(BigInt.fromI32(27));
+
+      assert.fieldEquals(
+        "Account",
+        USER_1.toHexString(),
+        "totalCyBalanceSnapshot",
+        expectedSnapshot.toString()
+      );
+    });
   });
 });
 
