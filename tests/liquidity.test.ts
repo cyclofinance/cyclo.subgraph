@@ -155,6 +155,70 @@ describe("Liquidity Transfer Handling", () => {
     });
   });
 
+    test("should remove entity on full V2 withdrawal (burn to zero address)", () => {
+      clearStore();
+      const CY_TOKEN_ADDR = Address.fromString("0x0000000000000000000000000000000000000003");
+
+      // Create vault
+      const vault = new CycloVault(CY_TOKEN_ADDR);
+      vault.address = CY_TOKEN_ADDR;
+      vault.deployBlock = BigInt.fromI32(1);
+      vault.deployTimestamp = BigInt.fromI32(1);
+      vault.deployer = USER_1;
+      vault.totalEligible = BigInt.fromI32(200);
+      vault.totalEligibleSnapshot = BigInt.fromI32(0);
+      vault.save();
+
+      const account = getOrCreateAccount(USER_1);
+      const vaultBalance = getOrCreateVaultBalance(CY_TOKEN_ADDR, account);
+      vaultBalance.boughtCap = BigInt.fromI32(200);
+      vaultBalance.lpBalance = BigInt.fromI32(200);
+      vaultBalance.balance = BigInt.fromI32(200);
+      vaultBalance.save();
+      account.totalCyBalance = BigInt.fromI32(200);
+      account.save();
+
+      const totals = getOrCreateTotals();
+      totals.totalEligibleSum = BigInt.fromI32(200);
+      totals.save();
+
+      mockLiquidityV2Pairs(CYSFLR_ADDRESS, CY_TOKEN_ADDR, Address.fromString("0x0000000000000000000000000000000000000002"));
+
+      // Create LP balance with liquidity = 500, deposit = 200
+      const lpId = getLiquidityV2OwnerBalanceId(CYSFLR_ADDRESS, USER_1, CY_TOKEN_ADDR);
+      const lpBalance = new LiquidityV2OwnerBalance(lpId);
+      lpBalance.lpAddress = POOL;
+      lpBalance.owner = USER_1;
+      lpBalance.liquidity = BigInt.fromI32(500);
+      lpBalance.depositBalance = BigInt.fromI32(200);
+      lpBalance.tokenAddress = CY_TOKEN_ADDR;
+      lpBalance.save();
+
+      // Burn ALL LP tokens to zero address
+      let transferEvent = createTransferEvent(
+        USER_1, Address.zero(),
+        BigInt.fromI32(500),
+        CYSFLR_ADDRESS,
+        mockLog(POOL,
+          "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+          [USER_1.toHexString(), Address.zero().toHexString()],
+          BigInt.fromI32(500)
+        ),
+      );
+      handleLiquidityV2Transfer(transferEvent);
+
+      // Entity should be removed
+      assert.notInStore("LiquidityV2OwnerBalance", lpId.toHexString());
+
+      // lpBalance zeroed, balance zeroed
+      const vbId = CY_TOKEN_ADDR.concat(USER_1).toHexString();
+      assert.fieldEquals("VaultBalance", vbId, "lpBalance", "0");
+      assert.fieldEquals("VaultBalance", vbId, "balance", "0");
+      assert.fieldEquals("Account", USER_1.toHexString(), "totalCyBalance", "0");
+      assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "0");
+    });
+  });
+
   describe("handleLiquidityV3Transfer", () => {
     test("should handle V3 liquidity token transfers and update balances", () => {
       const CY_TOKEN_ADDR = Address.fromString("0x0000000000000000000000000000000000000003");
