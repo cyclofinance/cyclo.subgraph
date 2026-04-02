@@ -1084,6 +1084,94 @@ describe("boughtCap/lpBalance eligibility model", () => {
     // balance = min(300, 500) = 300
     assert.fieldEquals("VaultBalance", vbId, "balance", "300");
   });
+
+  test("LP withdrawal is neutral to boughtCap", () => {
+    clearStore();
+    const V3_FACTORY = Address.fromString("0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652");
+    mockFactory(APPROVED_DEX_POOL, V3_FACTORY);
+
+    // Buy 500 and LP 500
+    let buyEvent = createTransferEvent(
+      APPROVED_DEX_POOL,
+      USER_1,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(buyEvent);
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(500),
+        BigInt.fromI32(500),
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
+
+    const vbId = CYSFLR_ADDRESS.concat(USER_1).toHexString();
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "500");
+    assert.fieldEquals("VaultBalance", vbId, "lpBalance", "500");
+
+    // Setup LP position entity for withdraw
+    const tokenId = BigInt.fromI32(1);
+    const id = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId);
+    const lp = new LiquidityV3OwnerBalance(id);
+    lp.lpAddress = SparkdexV3LiquidityManager;
+    lp.owner = USER_1;
+    lp.liquidity = BigInt.fromI32(100);
+    lp.tokenId = tokenId;
+    lp.depositBalance = BigInt.fromI32(500);
+    lp.tokenAddress = CYSFLR_ADDRESS;
+    lp.poolAddress = SparkdexV3LiquidityManager;
+    lp.fee = 300;
+    lp.lowerTick = -32733;
+    lp.upperTick = -14461;
+    lp.save();
+
+    // Construct DecreaseLiquidity log for full withdrawal
+    const tuple = new ethereum.Tuple();
+    tuple.push(ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(100)));
+    tuple.push(ethereum.Value.fromUnsignedBigInt(BigInt.zero()));
+    tuple.push(ethereum.Value.fromUnsignedBigInt(BigInt.zero()));
+
+    const logTopics = new Array<Bytes>();
+    logTopics.push(DecreaseLiquidityV3ABI.topic0);
+    const tokenIdHex = tokenId.toHexString().slice(2).padStart(64, "0");
+    logTopics.push(Bytes.fromHexString(tokenIdHex));
+
+    const withdrawLog = new ethereum.Log(
+      SparkdexV3LiquidityManager,
+      logTopics,
+      ethereum.encode(ethereum.Value.fromTuple(tuple))!,
+      defaultAddressBytes, defaultIntBytes, defaultAddressBytes, defaultBigInt,
+      defaultBigInt, defaultBigInt, defaultEventDataLogType, new Wrapped(false)
+    );
+
+    let withdrawEvent = createTransferEvent(
+      APPROVED_DEX_POOL,
+      USER_1,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS,
+      withdrawLog
+    );
+    withdrawEvent.transaction.to = SparkdexV3LiquidityManager;
+    withdrawEvent.transaction.from = USER_1;
+    handleTransfer(withdrawEvent);
+
+    // boughtCap should NOT have increased despite approved source
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "500");
+    // lpBalance should have decreased
+    assert.fieldEquals("VaultBalance", vbId, "lpBalance", "0");
+    // balance = min(500, 0) = 0
+    assert.fieldEquals("VaultBalance", vbId, "balance", "0");
+  });
 });
 
 describe("clamp0", () => {

@@ -899,6 +899,49 @@ describe("Snapshot handling", () => {
       );
     });
 
+    test("should use min(boughtCap, lpBalance) when they differ", () => {
+      createMockAccount(
+        USER_1,
+        BigInt.fromI32(800),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+
+      // boughtCap = 300, lpBalance = 800 → eligible = 300
+      let vaultBalance = new VaultBalance(CYSFLR_ADDRESS.concat(USER_1));
+      vaultBalance.vault = changetype<Bytes>(CYSFLR_ADDRESS);
+      vaultBalance.owner = changetype<Bytes>(USER_1);
+      vaultBalance.boughtCap = BigInt.fromI32(300);
+      vaultBalance.lpBalance = BigInt.fromI32(800);
+      vaultBalance.balance = BigInt.fromI32(300);
+      vaultBalance.balanceAvgSnapshot = BigInt.zero();
+      vaultBalance.save();
+
+      createMockCycloVault(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
+      takeSnapshot(mockeEvent);
+
+      // Snapshot should use 300 (min of boughtCap, lpBalance), not 800
+      const expectedSnapshot = BigInt.fromI32(300)
+        .times(BigInt.fromI32(2))
+        .div(BigInt.fromI32(27));
+
+      assert.fieldEquals(
+        "VaultBalance",
+        CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+        "balanceAvgSnapshot",
+        expectedSnapshot.toString()
+      );
+    });
+
     test("should skip V3 position with different token than vault", () => {
       mockSlot0(V3_POOL, 5000); // Out of range
 
