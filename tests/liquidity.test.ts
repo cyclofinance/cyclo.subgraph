@@ -216,6 +216,100 @@ describe("Liquidity Transfer Handling", () => {
       assert.fieldEquals("Account", USER_1.toHexString(), "totalCyBalance", "0");
       assert.fieldEquals("EligibleTotals", TOTALS_ID, "totalEligibleSum", "0");
     });
+
+    test("should be a no-op when LiquidityV2OwnerBalance does not exist", () => {
+      clearStore();
+      const CY_TOKEN_ADDR = Address.fromString("0x0000000000000000000000000000000000000003");
+
+      const vault = new CycloVault(CY_TOKEN_ADDR);
+      vault.address = CY_TOKEN_ADDR;
+      vault.deployBlock = BigInt.fromI32(1);
+      vault.deployTimestamp = BigInt.fromI32(1);
+      vault.deployer = USER_1;
+      vault.totalEligible = BigInt.fromI32(0);
+      vault.totalEligibleSnapshot = BigInt.fromI32(0);
+      vault.save();
+
+      mockLiquidityV2Pairs(CYSFLR_ADDRESS, CY_TOKEN_ADDR, Address.fromString("0x0000000000000000000000000000000000000002"));
+
+      // No LiquidityV2OwnerBalance created — handler should early-return
+      let transferEvent = createTransferEvent(
+        USER_1, USER_2,
+        BigInt.fromI32(100),
+        CYSFLR_ADDRESS,
+        mockLog(POOL,
+          "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+          [USER_1.toHexString(), USER_2.toHexString()],
+          BigInt.fromI32(100)
+        ),
+      );
+      handleLiquidityV2Transfer(transferEvent);
+
+      // No VaultBalance should be created for the user
+      assert.entityCount("VaultBalance", 0);
+    });
+
+    test("should handle non-trivial ratio rounding in V2 LP transfer", () => {
+      clearStore();
+      const CY_TOKEN_ADDR = Address.fromString("0x0000000000000000000000000000000000000003");
+
+      const vault = new CycloVault(CY_TOKEN_ADDR);
+      vault.address = CY_TOKEN_ADDR;
+      vault.deployBlock = BigInt.fromI32(1);
+      vault.deployTimestamp = BigInt.fromI32(1);
+      vault.deployer = USER_1;
+      vault.totalEligible = BigInt.fromI32(0);
+      vault.totalEligibleSnapshot = BigInt.fromI32(0);
+      vault.save();
+
+      mockLiquidityV2Pairs(CYSFLR_ADDRESS, CY_TOKEN_ADDR, Address.fromString("0x0000000000000000000000000000000000000002"));
+
+      // liquidity=3, deposit=10: transferring 1 LP token
+      // ratio = 1 * 1e18 / 3 = 333333333333333333
+      // deduction = 10 * 333333333333333333 / 1e18 = 3 (truncated)
+      const lpId = getLiquidityV2OwnerBalanceId(CYSFLR_ADDRESS, USER_1, CY_TOKEN_ADDR);
+      const lpBal = new LiquidityV2OwnerBalance(lpId);
+      lpBal.lpAddress = POOL;
+      lpBal.owner = USER_1;
+      lpBal.liquidity = BigInt.fromI32(3);
+      lpBal.depositBalance = BigInt.fromI32(10);
+      lpBal.tokenAddress = CY_TOKEN_ADDR;
+      lpBal.save();
+
+      const account = getOrCreateAccount(USER_1);
+      const vaultBalance = getOrCreateVaultBalance(CY_TOKEN_ADDR, account);
+      vaultBalance.boughtCap = BigInt.fromI32(10);
+      vaultBalance.lpBalance = BigInt.fromI32(10);
+      vaultBalance.balance = BigInt.fromI32(10);
+      vaultBalance.save();
+      account.totalCyBalance = BigInt.fromI32(10);
+      account.save();
+
+      const totals = getOrCreateTotals();
+      totals.totalEligibleSum = BigInt.fromI32(10);
+      totals.save();
+
+      let transferEvent = createTransferEvent(
+        USER_1, USER_2,
+        BigInt.fromI32(1),
+        CYSFLR_ADDRESS,
+        mockLog(POOL,
+          "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+          [USER_1.toHexString(), USER_2.toHexString()],
+          BigInt.fromI32(1)
+        ),
+      );
+      handleLiquidityV2Transfer(transferEvent);
+
+      // depositBalance: 10 - 3 = 7, liquidity: 3 - 1 = 2
+      assert.fieldEquals("LiquidityV2OwnerBalance", lpId.toHexString(), "depositBalance", "7");
+      assert.fieldEquals("LiquidityV2OwnerBalance", lpId.toHexString(), "liquidity", "2");
+
+      // lpBalance: 10 - 3 = 7, balance = min(10, 7) = 7
+      const vbId = CY_TOKEN_ADDR.concat(USER_1).toHexString();
+      assert.fieldEquals("VaultBalance", vbId, "lpBalance", "7");
+      assert.fieldEquals("VaultBalance", vbId, "balance", "7");
+    });
   });
 
   describe("handleLiquidityV3Transfer", () => {

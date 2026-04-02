@@ -14,6 +14,17 @@ const CYSFLR_ADDRESS = Address.fromString(
   "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567"
 );
 
+describe("getOrCreateAccount", () => {
+    test("should initialize with zero balances and shares", () => {
+        clearStore();
+        const account = getOrCreateAccount(USER_1);
+        assert.bigIntEquals(account.totalCyBalance, BigInt.fromI32(0));
+        assert.bigIntEquals(account.totalCyBalanceSnapshot, BigInt.fromI32(0));
+        assert.stringEquals(account.eligibleShare.toString(), "0");
+        assert.stringEquals(account.eligibleShareSnapshot.toString(), "0");
+    });
+});
+
 describe("Test AccountsMetadata", () => {
     test("should derive accounts list correctly", () => {
         getOrCreateAccount(USER_1);
@@ -62,6 +73,7 @@ describe("bigintToBytes", () => {
 
 describe("currentTimestamp", () => {
     test("should return zero when no TimeState exists", () => {
+        clearStore();
         assert.bigIntEquals(currentTimestamp(), BigInt.zero());
     });
 
@@ -76,6 +88,14 @@ describe("currentTimestamp", () => {
         );
         updateTimeState(mockEvent);
         assert.bigIntEquals(currentTimestamp(), ts);
+    });
+});
+
+describe("prevDay and currentDay", () => {
+    test("should return zero when no TimeState exists", () => {
+        clearStore();
+        assert.bigIntEquals(prevDay(), BigInt.zero());
+        assert.bigIntEquals(currentDay(), BigInt.zero());
     });
 });
 

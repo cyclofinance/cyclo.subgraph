@@ -8,7 +8,8 @@ import {
 } from "matchstick-as/assembly/index";
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { LiquidityV3OwnerBalance } from "../generated/schema";
-import { handleTransfer, clamp0, eligibleBalance } from "../src/cys-flr";
+import { handleTransfer, clamp0, eligibleBalance, getOrCreateVaultBalance } from "../src/cys-flr";
+import { getOrCreateAccount } from "../src/common";
 import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { dataSourceMock } from "matchstick-as";
 import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType, mockIncreaseLiquidityLog, mockSlot0, mockLiquidityV3Positions } from "./utils";
@@ -838,6 +839,9 @@ describe("Transfer handling", () => {
       "totalEligibleSum",
       "0"
     );
+
+    // Full withdrawal should remove the entity
+    assert.notInStore("LiquidityV3OwnerBalance", id.toHexString());
   });
 });
 
@@ -921,5 +925,18 @@ describe("eligibleBalance", () => {
       eligibleBalance(BigInt.fromI32(500), BigInt.fromI32(500)),
       BigInt.fromI32(500)
     );
+  });
+});
+
+describe("getOrCreateVaultBalance", () => {
+  test("initializes with zero defaults", () => {
+    clearStore();
+    dataSourceMock.setNetwork("flare");
+    const account = getOrCreateAccount(USER_1);
+    const vb = getOrCreateVaultBalance(CYSFLR_ADDRESS, account);
+    assert.bigIntEquals(vb.boughtCap, BigInt.zero());
+    assert.bigIntEquals(vb.lpBalance, BigInt.zero());
+    assert.bigIntEquals(vb.balance, BigInt.zero());
+    assert.bigIntEquals(vb.balanceAvgSnapshot, BigInt.zero());
   });
 });
