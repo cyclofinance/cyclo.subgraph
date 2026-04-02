@@ -3,7 +3,7 @@ import { TimeState } from "../generated/schema";
 import { TIME_STATE_ID } from "../src/constants";
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { assert, describe, test } from "matchstick-as/assembly/index";
-import { currentDay, DAY, getAccountsMetadata, getOrCreateAccount, prevDay, updateTimeState } from "../src/common";
+import { bigintToBytes, currentDay, DAY, getAccountsMetadata, getOrCreateAccount, prevDay, updateTimeState } from "../src/common";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -29,6 +29,35 @@ describe("Test AccountsMetadata", () => {
         list = accountsMetadata.accounts.load();
         assert.assertTrue(list.length == 2);
     })
+});
+
+describe("bigintToBytes", () => {
+    test("should convert zero to 64-char zero-padded bytes", () => {
+        const result = bigintToBytes(BigInt.fromI32(0));
+        assert.assertTrue(result.toHexString().length == 66); // 0x + 64 chars
+        assert.stringEquals(result.toHexString(), "0x" + "0".repeat(64));
+    });
+
+    test("should convert small value with correct padding", () => {
+        const result = bigintToBytes(BigInt.fromI32(1));
+        const hex = result.toHexString();
+        assert.assertTrue(hex.length == 66);
+        assert.assertTrue(hex.endsWith("01"));
+    });
+
+    test("should convert large value", () => {
+        const large = BigInt.fromString("123456789012345678901234567890");
+        const result = bigintToBytes(large);
+        assert.assertTrue(result.toHexString().length == 66);
+    });
+
+    test("should produce consistent round-trip for token IDs", () => {
+        // This is how bigintToBytes is used: converting tokenId for entity IDs
+        const tokenId = BigInt.fromI32(42);
+        const bytes1 = bigintToBytes(tokenId);
+        const bytes2 = bigintToBytes(tokenId);
+        assert.bytesEquals(bytes1, bytes2);
+    });
 });
 
 describe("Test TimeState", () => {
