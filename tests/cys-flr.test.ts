@@ -12,7 +12,7 @@ import { handleTransfer, clamp0, eligibleBalance, getOrCreateVaultBalance } from
 import { getOrCreateAccount } from "../src/common";
 import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { dataSourceMock } from "matchstick-as";
-import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType, mockIncreaseLiquidityLog, mockSlot0, mockLiquidityV3Positions } from "./utils";
+import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType, mockIncreaseLiquidityLog, mockSlot0, mockLiquidityV3Positions, mockLiquidityV2Pairs } from "./utils";
 import { SparkdexV3LiquidityManager, DecreaseLiquidityV3ABI, V3_POOL_FACTORIES } from "../src/constants";
 import { ethereum, Wrapped } from "@graphprotocol/graph-ts";
 
@@ -55,7 +55,9 @@ describe("Transfer handling", () => {
     mockFactory(APPROVED_DEX_ROUTER, Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89")); // Valid V2 factory
     mockFactory(APPROVED_DEX_POOL, V3_POOL_FACTORIES[0]); // Valid V3 factory
     mockSlot0(APPROVED_DEX_POOL, -500);
-    mockLiquidityV3Positions(SparkdexV3LiquidityManager, BigInt.fromI32(1), Address.zero(), Address.zero(), -900, -100);
+    // Pool token pair — positions must match these for pool-based LP deposit matching
+    mockLiquidityV2Pairs(APPROVED_DEX_POOL, CYSFLR_ADDRESS, CYWETH_ADDRESS);
+    mockLiquidityV3Positions(SparkdexV3LiquidityManager, BigInt.fromI32(1), CYSFLR_ADDRESS, CYWETH_ADDRESS, -900, -100);
   });
 
   afterAll(() => {
@@ -853,7 +855,8 @@ describe("boughtCap/lpBalance eligibility model", () => {
     mockFactoryRevert(USER_2);
     mockFactory(APPROVED_DEX_POOL, V3_POOL_FACTORIES[0]);
     mockSlot0(APPROVED_DEX_POOL, -500);
-    mockLiquidityV3Positions(SparkdexV3LiquidityManager, BigInt.fromI32(1), Address.zero(), Address.zero(), -900, -100);
+    mockLiquidityV2Pairs(APPROVED_DEX_POOL, CYSFLR_ADDRESS, CYWETH_ADDRESS);
+    mockLiquidityV3Positions(SparkdexV3LiquidityManager, BigInt.fromI32(1), CYSFLR_ADDRESS, CYWETH_ADDRESS, -900, -100);
   });
 
   afterAll(() => {
@@ -1083,6 +1086,49 @@ describe("boughtCap/lpBalance eligibility model", () => {
     assert.fieldEquals("VaultBalance", vbId, "lpBalance", "500");
     // balance = min(300, 500) = 300
     assert.fieldEquals("VaultBalance", vbId, "balance", "300");
+  });
+
+  test("LP deposit where transfer value mismatches IncreaseLiquidity amounts reduces boughtCap incorrectly", () => {
+    clearStore();
+
+    // Buy 500 from approved
+    let buyEvent = createTransferEvent(
+      APPROVED_DEX_POOL,
+      USER_1,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS
+    );
+    handleTransfer(buyEvent);
+
+    const vbId = CYSFLR_ADDRESS.concat(USER_1).toHexString();
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "500");
+
+    // Deposit 500 to LP — but IncreaseLiquidity log has amount0=499, amount1=600
+    // (simulating rounding or multi-step routing where amounts diverge)
+    let depositEvent = createTransferEvent(
+      USER_1,
+      APPROVED_DEX_POOL,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS,
+      mockIncreaseLiquidityLog(
+        SparkdexV3LiquidityManager,
+        BigInt.fromI32(1),
+        BigInt.fromI32(10),
+        BigInt.fromI32(499), // amount0 != 500
+        BigInt.fromI32(600), // amount1 != 500
+      ),
+      USER_1,
+      SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositEvent);
+
+    // BUG: handleLiquidityAdd returns false because neither amount matches transfer value.
+    // Transfer is treated as regular OUT, reducing boughtCap.
+    // Expected: boughtCap = 500 (LP deposit neutral), lpBalance = 500
+    // Actual: boughtCap = 0 (decreased by 500), lpBalance = 0
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "500");
+    assert.fieldEquals("VaultBalance", vbId, "lpBalance", "500");
+    assert.fieldEquals("VaultBalance", vbId, "balance", "500");
   });
 
   test("LP withdrawal is neutral to boughtCap", () => {
