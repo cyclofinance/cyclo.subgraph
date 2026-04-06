@@ -1088,6 +1088,54 @@ describe("boughtCap/lpBalance eligibility model", () => {
     assert.fieldEquals("VaultBalance", vbId, "balance", "300");
   });
 
+  test("LP deposit to cy/cy pool credits lpBalance for both tokens", () => {
+    clearStore();
+
+    // Buy both tokens from approved source
+    let buyCysFLR = createTransferEvent(
+      APPROVED_DEX_POOL, USER_1, BigInt.fromI32(500), CYSFLR_ADDRESS
+    );
+    handleTransfer(buyCysFLR);
+    let buyCyWETH = createTransferEvent(
+      APPROVED_DEX_POOL, USER_1, BigInt.fromI32(300), CYWETH_ADDRESS
+    );
+    handleTransfer(buyCyWETH);
+
+    // Both tokens deposited into cy/cy pool in same tx
+    // IncreaseLiquidity: amount0=500 (cysFLR), amount1=300 (cyWETH)
+    const ilLog = mockIncreaseLiquidityLog(
+      SparkdexV3LiquidityManager,
+      BigInt.fromI32(1),
+      BigInt.fromI32(10),
+      BigInt.fromI32(500),
+      BigInt.fromI32(300),
+    );
+
+    let depositCysFLR = createTransferEvent(
+      USER_1, APPROVED_DEX_POOL, BigInt.fromI32(500), CYSFLR_ADDRESS,
+      ilLog, USER_1, SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositCysFLR);
+
+    let depositCyWETH = createTransferEvent(
+      USER_1, APPROVED_DEX_POOL, BigInt.fromI32(300), CYWETH_ADDRESS,
+      ilLog, USER_1, SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositCyWETH);
+
+    const cysFLRVbId = CYSFLR_ADDRESS.concat(USER_1).toHexString();
+    const cyWETHVbId = CYWETH_ADDRESS.concat(USER_1).toHexString();
+
+    // Both tokens should have LP deposits credited
+    assert.fieldEquals("VaultBalance", cysFLRVbId, "boughtCap", "500");
+    assert.fieldEquals("VaultBalance", cysFLRVbId, "lpBalance", "500");
+    assert.fieldEquals("VaultBalance", cysFLRVbId, "balance", "500");
+
+    assert.fieldEquals("VaultBalance", cyWETHVbId, "boughtCap", "300");
+    assert.fieldEquals("VaultBalance", cyWETHVbId, "lpBalance", "300");
+    assert.fieldEquals("VaultBalance", cyWETHVbId, "balance", "300");
+  });
+
   test("LP deposit where transfer value mismatches IncreaseLiquidity amounts reduces boughtCap incorrectly", () => {
     clearStore();
 

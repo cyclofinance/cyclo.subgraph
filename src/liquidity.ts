@@ -23,6 +23,13 @@ import {
     BlazeswapV2LiquidityManager,
 } from "./constants";
 
+/** Decode a BigInt from a log topic without mutating the original bytes */
+function topicToBigInt(topic: Bytes): BigInt {
+    const copy = new Uint8Array(topic.length);
+    for (let i = 0; i < topic.length; i++) copy[i] = topic[i];
+    return BigInt.fromByteArray(Bytes.fromUint8Array(copy.reverse()));
+}
+
 export const DEPOSIT = "DEPOSIT";
 export const WITHDRAW = "WITHDRAW";
 export const TRANSFER = "TRANSFER";
@@ -192,7 +199,7 @@ export function handleLiquidityV3Add(
         const tuple = decoded.toTuple();
         const liquidity = tuple[0].toBigInt();
 
-        const tokenId = BigInt.fromByteArray(Bytes.fromUint8Array(log_.topics[1].reverse()));
+        const tokenId = topicToBigInt(log_.topics[1]);
 
         // Match by position's token pair matching the destination pool,
         // not by exact transfer amount (which can differ due to rounding/routing)
@@ -282,7 +289,7 @@ export function handleLiquidityV3Withdraw(
         const amount0 = tuple[1].toBigInt();
         const amount1 = tuple[2].toBigInt();
 
-        const tokenId = BigInt.fromByteArray(Bytes.fromUint8Array(log_.topics[1].reverse()));
+        const tokenId = topicToBigInt(log_.topics[1]);
         const id = getLiquidityV3OwnerBalanceId(log_.address, owner, cyToken, tokenId);
         let liquidityV3OwnerBalance = LiquidityV3OwnerBalance.load(id);
         if (liquidityV3OwnerBalance) {
