@@ -50,6 +50,32 @@ describe("ReceiptOwnerBalance handling", () => {
     });
   });
 
+  describe("accumulation", () => {
+    test("should accumulate balances across multiple transfers to same recipient", () => {
+      clearStore();
+
+      let transfer1 = createReceiptTransferSingleEvent(
+        RECEIPT_ADDRESS, FROM, TO, OPERATOR,
+        BigInt.fromI32(100), BigInt.fromI32(1)
+      );
+      handleReceiptTransferSingle(transfer1);
+
+      let transfer2 = createReceiptTransferSingleEvent(
+        RECEIPT_ADDRESS, FROM, TO, OPERATOR,
+        BigInt.fromI32(250), BigInt.fromI32(1)
+      );
+      handleReceiptTransferSingle(transfer2);
+
+      const toId = createReceiptOwnerBalanceId(RECEIPT_ADDRESS, BigInt.fromI32(1), TO).toHexString();
+      const fromId = createReceiptOwnerBalanceId(RECEIPT_ADDRESS, BigInt.fromI32(1), FROM).toHexString();
+
+      // TO should have 100 + 250 = 350
+      assert.fieldEquals("ReceiptOwnerBalance", toId, "balance", "350");
+      // FROM should have -100 + -250 = -350
+      assert.fieldEquals("ReceiptOwnerBalance", fromId, "balance", "-350");
+    });
+  });
+
   describe("batch", () => {
     test("should build, apply balance changes and store ReceiptOwnerBalance items from BatchTransfer event", () => {
       clearStore();

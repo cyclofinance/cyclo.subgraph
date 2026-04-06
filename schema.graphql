@@ -38,7 +38,9 @@ type VaultBalance @entity {
   id: Bytes! # composite of vaultAddress + owner
   vault: CycloVault!
   owner: Account!
-  balance: BigInt!
+  boughtCap: BigInt! # approved buys minus non-LP transfers out
+  lpBalance: BigInt! # LP deposited balance (positive for deposits, reduced by withdrawals/transfers)
+  balance: BigInt! # derived: min(clamp0(boughtCap), clamp0(lpBalance))
   balanceAvgSnapshot: BigInt!
 }
 

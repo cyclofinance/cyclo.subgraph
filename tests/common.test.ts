@@ -2,8 +2,8 @@ import { createTransferEvent } from "./utils";
 import { TimeState } from "../generated/schema";
 import { TIME_STATE_ID } from "../src/constants";
 import { Address, BigInt } from "@graphprotocol/graph-ts";
-import { assert, describe, test } from "matchstick-as/assembly/index";
-import { currentDay, DAY, getAccountsMetadata, getOrCreateAccount, prevDay, updateTimeState } from "../src/common";
+import { assert, clearStore, describe, test } from "matchstick-as/assembly/index";
+import { bigintToBytes, currentDay, currentTimestamp, DAY, getAccountsMetadata, getOrCreateAccount, prevDay, updateTimeState } from "../src/common";
 
 // Test addresses
 const USER_1 = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -13,6 +13,17 @@ const USER_2 = Address.fromString("0x0000000000000000000000000000000000000002");
 const CYSFLR_ADDRESS = Address.fromString(
   "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567"
 );
+
+describe("getOrCreateAccount", () => {
+    test("should initialize with zero balances and shares", () => {
+        clearStore();
+        const account = getOrCreateAccount(USER_1);
+        assert.bigIntEquals(account.totalCyBalance, BigInt.fromI32(0));
+        assert.bigIntEquals(account.totalCyBalanceSnapshot, BigInt.fromI32(0));
+        assert.stringEquals(account.eligibleShare.toString(), "0");
+        assert.stringEquals(account.eligibleShareSnapshot.toString(), "0");
+    });
+});
 
 describe("Test AccountsMetadata", () => {
     test("should derive accounts list correctly", () => {
@@ -29,6 +40,63 @@ describe("Test AccountsMetadata", () => {
         list = accountsMetadata.accounts.load();
         assert.assertTrue(list.length == 2);
     })
+});
+
+describe("bigintToBytes", () => {
+    test("should convert zero to 64-char zero-padded bytes", () => {
+        const result = bigintToBytes(BigInt.fromI32(0));
+        assert.assertTrue(result.toHexString().length == 66); // 0x + 64 chars
+        assert.stringEquals(result.toHexString(), "0x" + "0".repeat(64));
+    });
+
+    test("should convert small value with correct padding", () => {
+        const result = bigintToBytes(BigInt.fromI32(1));
+        const hex = result.toHexString();
+        assert.assertTrue(hex.length == 66);
+        assert.assertTrue(hex.endsWith("01"));
+    });
+
+    test("should convert large value", () => {
+        const large = BigInt.fromString("123456789012345678901234567890");
+        const result = bigintToBytes(large);
+        assert.assertTrue(result.toHexString().length == 66);
+    });
+
+    test("should produce consistent round-trip for token IDs", () => {
+        // This is how bigintToBytes is used: converting tokenId for entity IDs
+        const tokenId = BigInt.fromI32(42);
+        const bytes1 = bigintToBytes(tokenId);
+        const bytes2 = bigintToBytes(tokenId);
+        assert.bytesEquals(bytes1, bytes2);
+    });
+});
+
+describe("currentTimestamp", () => {
+    test("should return zero when no TimeState exists", () => {
+        clearStore();
+        assert.bigIntEquals(currentTimestamp(), BigInt.zero());
+    });
+
+    test("should return current timestamp after TimeState is initialized", () => {
+        const ts = BigInt.fromI32(1720267123);
+        const mockEvent = createTransferEvent(
+            USER_1, USER_2,
+            BigInt.fromI32(100),
+            CYSFLR_ADDRESS,
+            null, null, null,
+            ts,
+        );
+        updateTimeState(mockEvent);
+        assert.bigIntEquals(currentTimestamp(), ts);
+    });
+});
+
+describe("prevDay and currentDay", () => {
+    test("should return zero when no TimeState exists", () => {
+        clearStore();
+        assert.bigIntEquals(prevDay(), BigInt.zero());
+        assert.bigIntEquals(currentDay(), BigInt.zero());
+    });
 });
 
 describe("Test TimeState", () => {
@@ -116,6 +184,45 @@ describe("Test TimeState", () => {
         assert.bigIntEquals(timeState.prevTimestamp, dayPassedTimestamp); // prev day
         assert.bigIntEquals(prevDay(), BigInt.fromI32(1)); // last should be 1, ie 1 day was passed before the current (up to prev event)
         assert.bigIntEquals(currentDay(), BigInt.fromI32(2)); // current should be 2, ie 2 days passed since origin (up to the current event)
-        
+
+    });
+
+    test("should not update prev/current when timestamp equals current", () => {
+        clearStore();
+        const ts = BigInt.fromI32(1720270000);
+        const event1 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, ts);
+        updateTimeState(event1);
+
+        const laterTs = BigInt.fromI32(1720280000);
+        const event2 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, laterTs);
+        updateTimeState(event2);
+
+        // Send same timestamp again — guard skips the update
+        const event3 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, laterTs);
+        updateTimeState(event3);
+
+        const timeState = TimeState.load(TIME_STATE_ID)!;
+        assert.bigIntEquals(timeState.currentTimestamp, laterTs);
+        assert.bigIntEquals(timeState.prevTimestamp, ts);
+    });
+
+    test("should not update prev/current when timestamp is earlier than current", () => {
+        clearStore();
+        const ts = BigInt.fromI32(1720290000);
+        const event1 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, ts);
+        updateTimeState(event1);
+
+        const laterTs = BigInt.fromI32(1720300000);
+        const event2 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, laterTs);
+        updateTimeState(event2);
+
+        // Send earlier timestamp — guard skips the update
+        const earlierTs = BigInt.fromI32(1720295000);
+        const event3 = createTransferEvent(USER_1, USER_2, BigInt.fromI32(100), CYSFLR_ADDRESS, null, null, null, earlierTs);
+        updateTimeState(event3);
+
+        const timeState = TimeState.load(TIME_STATE_ID)!;
+        assert.bigIntEquals(timeState.currentTimestamp, laterTs);
+        assert.bigIntEquals(timeState.prevTimestamp, ts);
     });
 })

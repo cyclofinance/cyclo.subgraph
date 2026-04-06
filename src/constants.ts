@@ -25,10 +25,6 @@ export const V3_POOL_FACTORIES = [
   Address.fromString("0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652"), // Sparkdex V3.1
 ];
 
-export const FACTORIES = [
-  V2_POOL_FACTORIES,
-  V3_POOL_FACTORIES,
-].flat();
 
 export const BlazeswapV2LiquidityManager = Address.fromString("0xe3A1b355ca63abCBC9589334B5e609583C7BAa06"); // UniswapV2Router
 export const SparkdexV2LiquidityManager = Address.fromString("0x4a1E5A90e9943467FAd1acea1E7F0e5e88472a1e"); // UniswapV2Router
@@ -36,32 +32,25 @@ export const SparkdexV3LiquidityManager = Address.fromString("0xee5ff5bc5f852764
 
 export class EventABI {
   constructor(
-    public sig: string,
     public topic0: Bytes,
     public dataAbi: string
   ) {}
 }
 
+// Transfer(indexed address from, indexed address to, uint256 value)
 export const ERC20TransferEventABI = new EventABI(
-    "Transfer(indexed address from,indexed address to,uint256 value)",
     Bytes.fromHexString("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
     "(uint256)",
 )
 
-export const ERC721TransferEventABI = new EventABI(
-    "Transfer(indexed address from,indexed address to,indexed uint256 tokenId)",
-    Bytes.fromHexString("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
-    "",
-)
-
+// DecreaseLiquidity(indexed uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)
 export const DecreaseLiquidityV3ABI = new EventABI(
-    "DecreaseLiquidity(indexed uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)",
     Bytes.fromHexString("0x26f6a048ee9138f2c0ce266f322cb99228e8d619ae2bff30c67f8dcf9d2377b4"),
     "(uint128,uint256,uint256)",
 )
 
+// IncreaseLiquidity(indexed uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)
 export const IncreaseLiquidityV3ABI = new EventABI(
-    "IncreaseLiquidity(indexed uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)",
     Bytes.fromHexString("0x3067048beee31b25b2f1681f88dac838c8bba36af25bfb2b7cf7473a5847e35f"),
     "(uint128,uint256,uint256)",
 )

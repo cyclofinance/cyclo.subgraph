@@ -76,17 +76,31 @@ export function updateTotalsForAccount(
 export function getOrCreateVaultBalance(vaultAddress: Address, account: Account): VaultBalance {
   let id = vaultAddress.concat(account.address);
   let vaultBalance = VaultBalance.load(id);
-  
+
   if (!vaultBalance) {
     vaultBalance = new VaultBalance(id);
     vaultBalance.vault = vaultAddress;
     vaultBalance.owner = account.id;
+    vaultBalance.boughtCap = BigInt.fromI32(0);
+    vaultBalance.lpBalance = BigInt.fromI32(0);
     vaultBalance.balance = BigInt.fromI32(0);
     vaultBalance.balanceAvgSnapshot = BigInt.fromI32(0);
     vaultBalance.save();
   }
-  
+
   return vaultBalance;
+}
+
+/** Clamp a BigInt to a minimum of 0 */
+export function clamp0(val: BigInt): BigInt {
+  return val.gt(BigInt.zero()) ? val : BigInt.zero();
+}
+
+/** Eligible balance = min(clamp0(boughtCap), clamp0(lpBalance)) */
+export function eligibleBalance(boughtCap: BigInt, lpBalance: BigInt): BigInt {
+  const cap = clamp0(boughtCap);
+  const lp = clamp0(lpBalance);
+  return cap.lt(lp) ? cap : lp;
 }
 
 export function handleTransfer(event: TransferEvent): void {
@@ -105,27 +119,31 @@ export function handleTransfer(event: TransferEvent): void {
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
 
-  // Update balances
+  // Detect LP operations (these have side effects: creating entities, updating LP balances)
+  const isLpDeposit = handleLiquidityAdd(event, event.address);
+  let lpWithdrawDeduction = BigInt.zero();
   if (fromIsApprovedSource) {
-    toVaultBalance.balance = toVaultBalance.balance.plus(event.params.value);
-    
-    // Deduct LP position value if this transfer belongs to a LP withdraw
-    const lpDeductionValue = handleLiquidityWithdraw(event, event.address);
-    toVaultBalance.balance = toVaultBalance.balance.minus(lpDeductionValue);
+    lpWithdrawDeduction = handleLiquidityWithdraw(event, event.address);
   }
+  const isLpWithdraw = lpWithdrawDeduction.gt(BigInt.zero());
 
-  // Deduct if not a liq add
-  if (!handleLiquidityAdd(event, event.address)) {
-    fromVaultBalance.balance = fromVaultBalance.balance.minus(event.params.value);
-
-    // reverse "to" vault balance if not a liq add
-    if (fromIsApprovedSource) {
-      toVaultBalance.balance = toVaultBalance.balance.minus(event.params.value);
-    }
+  if (isLpDeposit) {
+    // LP deposit: tokens move from wallet to pool — only affects lpBalance
+    fromVaultBalance.lpBalance = fromVaultBalance.lpBalance.plus(event.params.value);
+  } else if (isLpWithdraw) {
+    // LP withdrawal: tokens move from pool to wallet — only affects lpBalance
+    toVaultBalance.lpBalance = toVaultBalance.lpBalance.minus(lpWithdrawDeduction);
   } else {
-    // eligible since its a liq add
-    fromVaultBalance.balance = fromVaultBalance.balance.plus(event.params.value);
+    // Regular transfer: affects boughtCap
+    if (fromIsApprovedSource) {
+      toVaultBalance.boughtCap = toVaultBalance.boughtCap.plus(event.params.value);
+    }
+    fromVaultBalance.boughtCap = fromVaultBalance.boughtCap.minus(event.params.value);
   }
+
+  // Derive eligible balance from boughtCap and lpBalance
+  fromVaultBalance.balance = eligibleBalance(fromVaultBalance.boughtCap, fromVaultBalance.lpBalance);
+  toVaultBalance.balance = eligibleBalance(toVaultBalance.boughtCap, toVaultBalance.lpBalance);
 
   // Update "to" account's total eligible cy balance
   if (oldToBalance.gt(BigInt.zero())) {

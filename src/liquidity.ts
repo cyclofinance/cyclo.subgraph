@@ -1,7 +1,7 @@
 import { takeSnapshot } from "./snapshot";
 import { LiquidityV2 } from "../generated/templates";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
-import { getOrCreateVaultBalance, updateTotalsForAccount } from "./cys-flr";
+import { getOrCreateVaultBalance, updateTotalsForAccount, eligibleBalance } from "./cys-flr";
 import { bigintToBytes, getOrCreateAccount, isV2Pool, isV3Pool } from "./common";
 import { Address, BigInt, Bytes, ethereum, store } from "@graphprotocol/graph-ts";
 import { Transfer as ERC721TransferEvent, LiquidityV3 } from "../generated/LiquidityV3/LiquidityV3";
@@ -22,6 +22,13 @@ import {
     SparkdexV3LiquidityManager,
     BlazeswapV2LiquidityManager,
 } from "./constants";
+
+/** Decode a BigInt from a log topic without mutating the original bytes */
+function topicToBigInt(topic: Bytes): BigInt {
+    const copy = new Uint8Array(topic.length);
+    for (let i = 0; i < topic.length; i++) copy[i] = topic[i];
+    return BigInt.fromByteArray(Bytes.fromUint8Array(copy.reverse()));
+}
 
 export const DEPOSIT = "DEPOSIT";
 export const WITHDRAW = "WITHDRAW";
@@ -174,6 +181,13 @@ export function handleLiquidityV3Add(
     // expecting sparkdex liquidity manager v3 contract address to be the transactio "to" address
     if (event.transaction.to!.notEqual(SparkdexV3LiquidityManager)) return false;
 
+    // Get the destination pool's token pair for matching against positions
+    const poolToken0Result = factory.bind(event.params.to).try_token0();
+    const poolToken1Result = factory.bind(event.params.to).try_token1();
+    if (poolToken0Result.reverted || poolToken1Result.reverted) return false;
+    const poolToken0 = poolToken0Result.value;
+    const poolToken1 = poolToken1Result.value;
+
     for (let i = 0; i < event.receipt!.logs.length; i++) {
         const log_ = event.receipt!.logs[i];
 
@@ -184,60 +198,63 @@ export function handleLiquidityV3Add(
         if (!decoded) continue;
         const tuple = decoded.toTuple();
         const liquidity = tuple[0].toBigInt();
-        const amount0 = tuple[1].toBigInt();
-        const amount1 = tuple[2].toBigInt();
-        if (amount0.notEqual(event.params.value) && amount1.notEqual(event.params.value)) continue;
 
-        const tokenId = BigInt.fromByteArray(Bytes.fromUint8Array(log_.topics[1].reverse()));
+        const tokenId = topicToBigInt(log_.topics[1]);
+
+        // Match by position's token pair matching the destination pool,
+        // not by exact transfer amount (which can differ due to rounding/routing)
+        const positionResult = LiquidityV3.bind(log_.address).try_positions(tokenId);
+        if (positionResult.reverted) continue;
+        const posToken0 = positionResult.value.getToken0();
+        const posToken1 = positionResult.value.getToken1();
+        if (posToken0.notEqual(poolToken0) || posToken1.notEqual(poolToken1)) continue;
+
+        const fee = positionResult.value.getFee();
+        const lowerTick = positionResult.value.getTickLower();
+        const upperTick = positionResult.value.getTickUpper();
+
         const id = getLiquidityV3OwnerBalanceId(log_.address, owner, cyToken, tokenId);
         let liquidityV3OwnerBalance = LiquidityV3OwnerBalance.load(id);
         if (!liquidityV3OwnerBalance) {
-            const positionResult = LiquidityV3.bind(log_.address).try_positions(tokenId);
             const slot0Result = factory.bind(event.params.to).try_slot0();
-            if (!positionResult.reverted && !slot0Result.reverted) {
-                const fee = positionResult.value.getFee();
-                const lowerTick = positionResult.value.getTickLower();
-                const upperTick = positionResult.value.getTickUpper();
-                liquidityV3OwnerBalance = new LiquidityV3OwnerBalance(id);
-                liquidityV3OwnerBalance.lpAddress = log_.address;
-                liquidityV3OwnerBalance.owner = owner;
-                liquidityV3OwnerBalance.liquidity = liquidity;
-                liquidityV3OwnerBalance.tokenId = tokenId;
-                liquidityV3OwnerBalance.depositBalance = event.params.value;
-                liquidityV3OwnerBalance.tokenAddress = cyToken;
-                liquidityV3OwnerBalance.poolAddress = event.params.to;
-                liquidityV3OwnerBalance.fee = fee;
-                liquidityV3OwnerBalance.lowerTick = lowerTick;
-                liquidityV3OwnerBalance.upperTick = upperTick;
-            }
+            if (slot0Result.reverted) continue;
+            liquidityV3OwnerBalance = new LiquidityV3OwnerBalance(id);
+            liquidityV3OwnerBalance.lpAddress = log_.address;
+            liquidityV3OwnerBalance.owner = owner;
+            liquidityV3OwnerBalance.liquidity = liquidity;
+            liquidityV3OwnerBalance.tokenId = tokenId;
+            liquidityV3OwnerBalance.depositBalance = event.params.value;
+            liquidityV3OwnerBalance.tokenAddress = cyToken;
+            liquidityV3OwnerBalance.poolAddress = event.params.to;
+            liquidityV3OwnerBalance.fee = fee;
+            liquidityV3OwnerBalance.lowerTick = lowerTick;
+            liquidityV3OwnerBalance.upperTick = upperTick;
         } else {
             liquidityV3OwnerBalance.liquidity = liquidityV3OwnerBalance.liquidity.plus(liquidity);
             liquidityV3OwnerBalance.depositBalance = liquidityV3OwnerBalance.depositBalance.plus(event.params.value);
         }
-        if (liquidityV3OwnerBalance) {
-            liquidityV3OwnerBalance.save();
+        liquidityV3OwnerBalance.save();
 
-            // create liquidity change entity for this deposit
-            createLiquidityV3Change(
-                log_.address,
-                owner,
-                cyToken,
-                liquidity,
-                event.params.value,
-                event.block.number,
-                event.block.timestamp,
-                event.transaction.hash,
-                event.logIndex,
-                DEPOSIT,
-                tokenId,
-                liquidityV3OwnerBalance.poolAddress,
-                liquidityV3OwnerBalance.fee,
-                liquidityV3OwnerBalance.lowerTick,
-                liquidityV3OwnerBalance.upperTick,
-            )
+        // create liquidity change entity for this deposit
+        createLiquidityV3Change(
+            log_.address,
+            owner,
+            cyToken,
+            liquidity,
+            event.params.value,
+            event.block.number,
+            event.block.timestamp,
+            event.transaction.hash,
+            event.logIndex,
+            DEPOSIT,
+            tokenId,
+            liquidityV3OwnerBalance.poolAddress,
+            liquidityV3OwnerBalance.fee,
+            liquidityV3OwnerBalance.lowerTick,
+            liquidityV3OwnerBalance.upperTick,
+        )
 
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -272,7 +289,7 @@ export function handleLiquidityV3Withdraw(
         const amount0 = tuple[1].toBigInt();
         const amount1 = tuple[2].toBigInt();
 
-        const tokenId = BigInt.fromByteArray(Bytes.fromUint8Array(log_.topics[1].reverse()));
+        const tokenId = topicToBigInt(log_.topics[1]);
         const id = getLiquidityV3OwnerBalanceId(log_.address, owner, cyToken, tokenId);
         let liquidityV3OwnerBalance = LiquidityV3OwnerBalance.load(id);
         if (liquidityV3OwnerBalance) {
@@ -390,8 +407,10 @@ function handleLiquidityV2TransferInner(
     const vaultBalance = getOrCreateVaultBalance(cyToken, account);
 
     const oldBalance = vaultBalance.balance;
-    
-    vaultBalance.balance = vaultBalance.balance.minus(depositDeduction);
+
+    // LP transfer reduces lpBalance, not boughtCap
+    vaultBalance.lpBalance = vaultBalance.lpBalance.minus(depositDeduction);
+    vaultBalance.balance = eligibleBalance(vaultBalance.boughtCap, vaultBalance.lpBalance);
     vaultBalance.save();
 
     // update account's total
@@ -479,7 +498,9 @@ function handleLiquidityV3TransferInner(
 
     const oldBalance = vaultBalance.balance;
 
-    vaultBalance.balance = vaultBalance.balance.minus(depositBalance);
+    // LP transfer reduces lpBalance, not boughtCap
+    vaultBalance.lpBalance = vaultBalance.lpBalance.minus(depositBalance);
+    vaultBalance.balance = eligibleBalance(vaultBalance.boughtCap, vaultBalance.lpBalance);
     vaultBalance.save();
 
     // update account's total

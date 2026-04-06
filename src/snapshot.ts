@@ -1,4 +1,4 @@
-import { getOrCreateTotals } from "./cys-flr";
+import { getOrCreateTotals, eligibleBalance, clamp0 } from "./cys-flr";
 import { CycloVault } from "../generated/schema";
 import { DAY, getAccountsMetadata, updateTimeState } from "./common";
 import { Address, BigInt, BigDecimal, TypedMap, ethereum, log } from "@graphprotocol/graph-ts";
@@ -148,8 +148,10 @@ export function takeSnapshot(event: ethereum.Event): void {
         for (let j = 0; j < vaultBalances.length; j++) {
             const vaultBalance = vaultBalances[j];
 
-            // factor in the v3 lp positions of the account for the account's vault snapshot balance
-            let vaultSnapshotBalance = vaultBalance.balance;
+            // Start from eligible balance: min(clamp0(boughtCap), clamp0(lpBalance))
+            let vaultSnapshotBalance = eligibleBalance(vaultBalance.boughtCap, vaultBalance.lpBalance);
+
+            // Deduct out-of-range V3 LP positions
             for (let k = 0; k < liquidityV3Balances.length; k++) {
                 const lpv3 = liquidityV3Balances[k];
                 if (lpv3.tokenAddress.notEqual(vaultBalance.vault)) continue; // skip if not same token as the vault
@@ -168,11 +170,14 @@ export function takeSnapshot(event: ethereum.Event): void {
                     lpv3.lowerTick <= currentTick &&
                     lpv3.upperTick >= currentTick;
 
-                // deduct the lp v3 position deposit balance from accumulated balance if not in range
+                // deduct the lp v3 position deposit balance if not in range
                 if (!isInRange) {
                     vaultSnapshotBalance = vaultSnapshotBalance.minus(lpv3.depositBalance);
                 }
             }
+
+            // Clamp to 0 after V3 deductions
+            vaultSnapshotBalance = clamp0(vaultSnapshotBalance);
 
             // calculate current avg and store for vaultBalance
             const prevSnapshotsSum = isNewEpoch
@@ -185,9 +190,7 @@ export function takeSnapshot(event: ethereum.Event): void {
             vaultBalance.save();
 
             // only positives are valid for account's and token's total snapshot
-            const normalizedSnapshot = currentAvgSnapshot.gt(BigInt.zero())
-                ? currentAvgSnapshot
-                : BigInt.zero();
+            const normalizedSnapshot = clamp0(currentAvgSnapshot);
 
             // sum up all positive token snapshots for account's total snapshot balance
             accountBalanceSnapshot = accountBalanceSnapshot.plus(normalizedSnapshot);

@@ -44,6 +44,7 @@ describe("CloneFactoryImplementation", () => {
     test("Should reject addresses from other networks", () => {
       let implementation = new CloneFactoryImplementation("flare");
       assert.assertTrue(!implementation.isCycloTokenImplementation(ARBITRUM_ONE_TOKEN_IMPLEMENTATION_ADDRESS));
+      assert.assertTrue(!implementation.isCycloTokenReceiptImplementation(ARBITRUM_ONE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS));
     });
   });
 
@@ -66,6 +67,7 @@ describe("CloneFactoryImplementation", () => {
     test("Should reject addresses from other networks", () => {
       let implementation = new CloneFactoryImplementation("arbitrum-one");
       assert.assertTrue(!implementation.isCycloTokenImplementation(FLARE_TOKEN_IMPLEMENTATION_ADDRESS));
+      assert.assertTrue(!implementation.isCycloTokenReceiptImplementation(FLARE_TOKEN_RECEIPT_IMPLEMENTATION_ADDRESS));
     });
   });
 

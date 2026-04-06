@@ -1,5 +1,5 @@
 import { takeSnapshot, EPOCHS } from "../src/snapshot";
-import { createTransferEvent, mockSlot0 } from "./utils";
+import { createTransferEvent, mockSlot0, mockSlot0Revert } from "./utils";
 import { dataSourceMock, newMockEvent } from "matchstick-as";
 import { getAccountsMetadata, updateTimeState, DAY } from "../src/common";
 import { Address, BigDecimal, BigInt, Bytes } from "@graphprotocol/graph-ts";
@@ -717,6 +717,428 @@ describe("Snapshot handling", () => {
         "1"
       );
     });
+
+    test("should not deduct V3 position when slot0 reverts", () => {
+      const REVERT_POOL = Address.fromString("0x0000000000000000000000000000000000aaaaaa");
+      mockSlot0Revert(REVERT_POOL);
+
+      createMockAccount(
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+      createMockVaultBalance(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+      );
+      createMockCycloVault(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
+      // V3 position with a pool that reverts on slot0
+      let tokenId = BigInt.fromI32(999);
+      let lp3Id = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId);
+      let lp3 = new LiquidityV3OwnerBalance(lp3Id);
+      lp3.lpAddress = changetype<Bytes>(SparkdexV3LiquidityManager);
+      lp3.owner = changetype<Bytes>(USER_1);
+      lp3.tokenAddress = changetype<Bytes>(CYSFLR_ADDRESS);
+      lp3.tokenId = tokenId;
+      lp3.liquidity = BigInt.fromI32(500);
+      lp3.depositBalance = BigInt.fromI32(500);
+      lp3.poolAddress = changetype<Bytes>(REVERT_POOL);
+      lp3.lowerTick = -3000;
+      lp3.upperTick = -1000;
+      lp3.fee = 3000;
+      lp3.save();
+
+      takeSnapshot(mockeEvent);
+
+      // slot0 reverted → position not deducted → full balance used
+      const expectedSnapshot = BigInt.fromI32(1000)
+        .times(BigInt.fromI32(2))
+        .div(BigInt.fromI32(27));
+
+      assert.fieldEquals(
+        "Account",
+        USER_1.toHexString(),
+        "totalCyBalanceSnapshot",
+        expectedSnapshot.toString()
+      );
+    });
+
+    test("should clamp to zero when V3 deductions exceed eligible balance", () => {
+      mockSlot0(V3_POOL, 5000); // Out of range for [-3000, -1000]
+
+      createMockAccount(
+        USER_1,
+        BigInt.fromI32(300),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+      createMockVaultBalance(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(300),
+        BigInt.zero(),
+      );
+      createMockCycloVault(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
+      // V3 position with depositBalance (500) > eligible balance (300)
+      let tokenId = BigInt.fromI32(777);
+      let lp3Id = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId);
+      let lp3 = new LiquidityV3OwnerBalance(lp3Id);
+      lp3.lpAddress = changetype<Bytes>(SparkdexV3LiquidityManager);
+      lp3.owner = changetype<Bytes>(USER_1);
+      lp3.tokenAddress = changetype<Bytes>(CYSFLR_ADDRESS);
+      lp3.tokenId = tokenId;
+      lp3.liquidity = BigInt.fromI32(500);
+      lp3.depositBalance = BigInt.fromI32(500);
+      lp3.poolAddress = changetype<Bytes>(V3_POOL);
+      lp3.lowerTick = -3000;
+      lp3.upperTick = -1000;
+      lp3.fee = 3000;
+      lp3.save();
+
+      takeSnapshot(mockeEvent);
+
+      // 300 - 500 = -200, clamped to 0
+      assert.fieldEquals(
+        "Account",
+        USER_1.toHexString(),
+        "totalCyBalanceSnapshot",
+        "0"
+      );
+    });
+
+    test("should deduct only out-of-range V3 position when mixed with in-range", () => {
+      mockSlot0(V3_POOL, -2000); // Current tick: in range for pos1, out of range for pos2
+
+      createMockAccount(
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+      createMockVaultBalance(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+      );
+      createMockCycloVault(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
+      // Position 1: IN RANGE (-3000 <= -2000 <= -1000), deposit = 400
+      let tokenId1 = BigInt.fromI32(101);
+      let lp3Id1 = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId1);
+      let lp3_1 = new LiquidityV3OwnerBalance(lp3Id1);
+      lp3_1.lpAddress = changetype<Bytes>(SparkdexV3LiquidityManager);
+      lp3_1.owner = changetype<Bytes>(USER_1);
+      lp3_1.tokenAddress = changetype<Bytes>(CYSFLR_ADDRESS);
+      lp3_1.tokenId = tokenId1;
+      lp3_1.liquidity = BigInt.fromI32(400);
+      lp3_1.depositBalance = BigInt.fromI32(400);
+      lp3_1.poolAddress = changetype<Bytes>(V3_POOL);
+      lp3_1.lowerTick = -3000;
+      lp3_1.upperTick = -1000;
+      lp3_1.fee = 3000;
+      lp3_1.save();
+
+      // Position 2: OUT OF RANGE (-1500 to -500, tick is -2000), deposit = 300
+      let tokenId2 = BigInt.fromI32(102);
+      let lp3Id2 = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId2);
+      let lp3_2 = new LiquidityV3OwnerBalance(lp3Id2);
+      lp3_2.lpAddress = changetype<Bytes>(SparkdexV3LiquidityManager);
+      lp3_2.owner = changetype<Bytes>(USER_1);
+      lp3_2.tokenAddress = changetype<Bytes>(CYSFLR_ADDRESS);
+      lp3_2.tokenId = tokenId2;
+      lp3_2.liquidity = BigInt.fromI32(300);
+      lp3_2.depositBalance = BigInt.fromI32(300);
+      lp3_2.poolAddress = changetype<Bytes>(V3_POOL);
+      lp3_2.lowerTick = -1500;
+      lp3_2.upperTick = -500;
+      lp3_2.fee = 3000;
+      lp3_2.save();
+
+      takeSnapshot(mockeEvent);
+
+      // Only pos2 deducted: 1000 - 300 = 700
+      const expectedSnapshot = BigInt.fromI32(700)
+        .times(BigInt.fromI32(2))
+        .div(BigInt.fromI32(27));
+
+      assert.fieldEquals(
+        "Account",
+        USER_1.toHexString(),
+        "totalCyBalanceSnapshot",
+        expectedSnapshot.toString()
+      );
+    });
+
+    test("should use min(boughtCap, lpBalance) when they differ", () => {
+      createMockAccount(
+        USER_1,
+        BigInt.fromI32(800),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+
+      // boughtCap = 300, lpBalance = 800 → eligible = 300
+      let vaultBalance = new VaultBalance(CYSFLR_ADDRESS.concat(USER_1));
+      vaultBalance.vault = changetype<Bytes>(CYSFLR_ADDRESS);
+      vaultBalance.owner = changetype<Bytes>(USER_1);
+      vaultBalance.boughtCap = BigInt.fromI32(300);
+      vaultBalance.lpBalance = BigInt.fromI32(800);
+      vaultBalance.balance = BigInt.fromI32(300);
+      vaultBalance.balanceAvgSnapshot = BigInt.zero();
+      vaultBalance.save();
+
+      createMockCycloVault(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
+      takeSnapshot(mockeEvent);
+
+      // Snapshot should use 300 (min of boughtCap, lpBalance), not 800
+      const expectedSnapshot = BigInt.fromI32(300)
+        .times(BigInt.fromI32(2))
+        .div(BigInt.fromI32(27));
+
+      assert.fieldEquals(
+        "VaultBalance",
+        CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+        "balanceAvgSnapshot",
+        expectedSnapshot.toString()
+      );
+    });
+
+    test("should skip V3 position with different token than vault", () => {
+      mockSlot0(V3_POOL, 5000); // Out of range
+
+      createMockAccount(
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+      createMockVaultBalance(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+      );
+      createMockCycloVault(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
+      // V3 position for CYWETH, not CYSFLR — should be skipped for this vault
+      let tokenId = BigInt.fromI32(555);
+      let lp3Id = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYWETH_ADDRESS, tokenId);
+      let lp3 = new LiquidityV3OwnerBalance(lp3Id);
+      lp3.lpAddress = changetype<Bytes>(SparkdexV3LiquidityManager);
+      lp3.owner = changetype<Bytes>(USER_1);
+      lp3.tokenAddress = changetype<Bytes>(CYWETH_ADDRESS);
+      lp3.tokenId = tokenId;
+      lp3.liquidity = BigInt.fromI32(500);
+      lp3.depositBalance = BigInt.fromI32(500);
+      lp3.poolAddress = changetype<Bytes>(V3_POOL);
+      lp3.lowerTick = -3000;
+      lp3.upperTick = -1000;
+      lp3.fee = 3000;
+      lp3.save();
+
+      takeSnapshot(mockeEvent);
+
+      // Position is for wrong token — should not be deducted from CYSFLR vault
+      const expectedSnapshot = BigInt.fromI32(1000)
+        .times(BigInt.fromI32(2))
+        .div(BigInt.fromI32(27));
+
+      assert.fieldEquals(
+        "Account",
+        USER_1.toHexString(),
+        "totalCyBalanceSnapshot",
+        expectedSnapshot.toString()
+      );
+    });
+
+    test("should use cached slot0 for multiple V3 positions on same pool", () => {
+      mockSlot0(V3_POOL, -2000); // In range for both positions
+
+      createMockAccount(
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+        BigInt.zero().toBigDecimal(),
+        BigInt.zero().toBigDecimal(),
+      );
+      createMockVaultBalance(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1000),
+        BigInt.zero(),
+      );
+      createMockCycloVault(
+        CYSFLR_ADDRESS,
+        USER_1,
+        BigInt.fromI32(1),
+        BigInt.fromI32(1),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+      );
+
+      // Two V3 positions on the same pool, both in range
+      let tokenId1 = BigInt.fromI32(201);
+      let lp3Id1 = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId1);
+      let lp3_1 = new LiquidityV3OwnerBalance(lp3Id1);
+      lp3_1.lpAddress = changetype<Bytes>(SparkdexV3LiquidityManager);
+      lp3_1.owner = changetype<Bytes>(USER_1);
+      lp3_1.tokenAddress = changetype<Bytes>(CYSFLR_ADDRESS);
+      lp3_1.tokenId = tokenId1;
+      lp3_1.liquidity = BigInt.fromI32(300);
+      lp3_1.depositBalance = BigInt.fromI32(300);
+      lp3_1.poolAddress = changetype<Bytes>(V3_POOL);
+      lp3_1.lowerTick = -3000;
+      lp3_1.upperTick = -1000;
+      lp3_1.fee = 3000;
+      lp3_1.save();
+
+      let tokenId2 = BigInt.fromI32(202);
+      let lp3Id2 = getLiquidityV3OwnerBalanceId(SparkdexV3LiquidityManager, USER_1, CYSFLR_ADDRESS, tokenId2);
+      let lp3_2 = new LiquidityV3OwnerBalance(lp3Id2);
+      lp3_2.lpAddress = changetype<Bytes>(SparkdexV3LiquidityManager);
+      lp3_2.owner = changetype<Bytes>(USER_1);
+      lp3_2.tokenAddress = changetype<Bytes>(CYSFLR_ADDRESS);
+      lp3_2.tokenId = tokenId2;
+      lp3_2.liquidity = BigInt.fromI32(200);
+      lp3_2.depositBalance = BigInt.fromI32(200);
+      lp3_2.poolAddress = changetype<Bytes>(V3_POOL);
+      lp3_2.lowerTick = -3000;
+      lp3_2.upperTick = -1000;
+      lp3_2.fee = 3000;
+      lp3_2.save();
+
+      takeSnapshot(mockeEvent);
+
+      // Both in range, no deductions, slot0 cached after first call
+      const expectedSnapshot = BigInt.fromI32(1000)
+        .times(BigInt.fromI32(2))
+        .div(BigInt.fromI32(27));
+
+      assert.fieldEquals(
+        "Account",
+        USER_1.toHexString(),
+        "totalCyBalanceSnapshot",
+        expectedSnapshot.toString()
+      );
+    });
+  });
+});
+
+describe("Snapshot edge cases", () => {
+  beforeAll(() => {
+    dataSourceMock.setNetwork("flare");
+  });
+
+  beforeEach(() => {
+    clearStore();
+  });
+
+  afterEach(() => {
+    clearStore();
+  });
+
+  test("should not take snapshot for past epoch", () => {
+    // Init time state at epoch 3 day 25
+    updateTimeState(createTransferEvent(
+      Address.zero(), Address.zero(), BigInt.zero(), Address.zero(),
+      null, null, null,
+      EPOCHS.list[3].timestamp.minus(DAY.times(BigInt.fromI32(5))),
+    ));
+    const timeState = TimeState.load(TIME_STATE_ID)!;
+    timeState.lastSnapshotEpoch = 3;
+    timeState.lastSnapshotDayOfEpoch = 25;
+    timeState.save();
+
+    // Fire event with timestamp in epoch 2 (earlier epoch)
+    const pastEvent = createTransferEvent(
+      Address.zero(), Address.zero(), BigInt.zero(), Address.zero(),
+      null, null, null,
+      EPOCHS.list[2].timestamp.minus(DAY.times(BigInt.fromI32(3))),
+    );
+    updateTimeState(pastEvent);
+
+    getAccountsMetadata();
+    createMockAccount(
+      USER_1,
+      BigInt.fromI32(1000),
+      BigInt.zero(),
+      BigInt.zero().toBigDecimal(),
+      BigInt.zero().toBigDecimal(),
+    );
+    createMockVaultBalance(
+      CYSFLR_ADDRESS,
+      USER_1,
+      BigInt.fromI32(1000),
+      BigInt.zero(),
+    );
+    createMockCycloVault(
+      CYSFLR_ADDRESS,
+      USER_1,
+      BigInt.fromI32(1),
+      BigInt.fromI32(1),
+      BigInt.fromI32(0),
+      BigInt.fromI32(0),
+    );
+
+    // Use a mock event with past-epoch timestamp
+    const mockPastEvent = newMockEvent();
+    mockPastEvent.block.timestamp = EPOCHS.list[2].timestamp.minus(DAY.times(BigInt.fromI32(3)));
+    takeSnapshot(mockPastEvent);
+
+    // Snapshot should not have been taken — balanceAvgSnapshot stays 0
+    assert.fieldEquals(
+      "VaultBalance",
+      CYSFLR_ADDRESS.concat(USER_1).toHexString(),
+      "balanceAvgSnapshot",
+      "0"
+    );
   });
 });
 
@@ -887,6 +1309,8 @@ function createMockVaultBalance(
   let vaultBalance = new VaultBalance(tokenAddress.concat(owner));
   vaultBalance.vault = changetype<Bytes>(tokenAddress);
   vaultBalance.owner = changetype<Bytes>(owner);
+  vaultBalance.boughtCap = balance;
+  vaultBalance.lpBalance = balance;
   vaultBalance.balance = balance;
   vaultBalance.balanceAvgSnapshot = balanceAvgSnapshot;
   vaultBalance.save();
