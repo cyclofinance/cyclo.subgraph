@@ -198,16 +198,29 @@ export function handleLiquidityV3Add(
         if (!decoded) continue;
         const tuple = decoded.toTuple();
         const liquidity = tuple[0].toBigInt();
+        const amount0 = tuple[1].toBigInt();
+        const amount1 = tuple[2].toBigInt();
 
         const tokenId = topicToBigInt(log_.topics[1]);
 
-        // Match by position's token pair matching the destination pool,
-        // not by exact transfer amount (which can differ due to rounding/routing)
+        // Match by position's token pair matching the destination pool
         const positionResult = LiquidityV3.bind(log_.address).try_positions(tokenId);
         if (positionResult.reverted) continue;
         const posToken0 = positionResult.value.getToken0();
         const posToken1 = positionResult.value.getToken1();
         if (posToken0.notEqual(poolToken0) || posToken1.notEqual(poolToken1)) continue;
+
+        // Disambiguate which side of the pool this cy token is on.
+        // For cy/cy pools (both tokens are CycloVaults), require exact amount match
+        // to distinguish which transfer belongs to which side.
+        // For single-cy pools, the pool-token match is sufficient.
+        const isCyToken0 = cyToken.equals(poolToken0);
+        const otherToken = isCyToken0 ? poolToken1 : poolToken0;
+        if (CycloVault.load(otherToken)) {
+            // cy/cy pool — need amount disambiguation
+            const expectedAmount = isCyToken0 ? amount0 : amount1;
+            if (expectedAmount.notEqual(event.params.value)) continue;
+        }
 
         const fee = positionResult.value.getFee();
         const lowerTick = positionResult.value.getTickLower();
