@@ -528,6 +528,14 @@ function handleLiquidityV3TransferInner(
     updateTotalsForAccount(account, cyToken, oldBalance, vaultBalance.balance);
 }
 
+/**
+ * Builds a unique ID for a LiquidityChange entity. Includes cyToken to avoid
+ * collisions in cy/cy pools where both tokens create a change from the same log.
+ */
+export function liquidityChangeId(transactionHash: Bytes, logIndex: BigInt, cyToken: Address): Bytes {
+    return transactionHash.concatI32(logIndex.toI32()).concat(cyToken);
+}
+
 export function createLiquidityV2Change(
     lpAddress: Address,
     owner: Address,
@@ -540,7 +548,7 @@ export function createLiquidityV2Change(
     logIndex: BigInt,
     typ: string,
 ): void {
-    const id = transactionHash.concatI32(logIndex.toI32());
+    const id = liquidityChangeId(transactionHash, logIndex, cyToken);
     const item = new LiquidityV2Change(id);
     item.liquidityChangeType = typ;
     item.blockNumber = blockNumber;
@@ -576,7 +584,7 @@ export function createLiquidityV3Change(
     lowerTick: i32,
     upperTick: i32,
 ): void {
-    const id = transactionHash.concatI32(logIndex.toI32());
+    const id = liquidityChangeId(transactionHash, logIndex, cyToken);
     const item = new LiquidityV3Change(id);
     item.liquidityChangeType = typ;
     item.blockNumber = blockNumber;
