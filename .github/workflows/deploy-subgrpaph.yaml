@@ -1,25 +1,6 @@
 name: Deploy subgraph
 on:
   workflow_dispatch:
-    inputs:
-      network:
-        description: "Network to deploy to"
-        required: true
-        type: choice
-        options:
-          - arbitrum-one
-          - arbitrum_sepolia
-          - avalanche
-          - base
-          - bsc
-          - mainnet
-          - flare
-          - mumbai
-          - oasis_sapphire
-          - matic
-          - sepolia
-          - songbird
-          - linea
 
 jobs:
   deploy:
@@ -27,6 +8,11 @@ jobs:
       id-token: write
       contents: read
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        network:
+          - flare
+          - arbitrum-one
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -56,7 +42,7 @@ jobs:
         working-directory: .
 
       - name: Build subgraph
-        run: nix develop -c graph build --network ${{ inputs.network }}
+        run: nix develop -c graph build --network ${{ matrix.network }}
         working-directory: .
 
       - name: Login to Goldsky
@@ -66,5 +52,5 @@ jobs:
       # Exclude subgraph.yaml (updated by build) and address files (updated by script)
       - run: git diff --exit-code -- . ':!subgraph.yaml'
       - run: >
-          nix develop -c goldsky subgraph deploy "cyclo-${{ inputs.network }}/$(date -Idate)-$(openssl rand -hex 2)"
+          nix develop -c goldsky subgraph deploy "cyclo-${{ matrix.network }}/$(date -Idate)-$(openssl rand -hex 2)"
         working-directory: .
