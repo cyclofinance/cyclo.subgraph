@@ -1,30 +1,10 @@
 import { TOTALS_ID } from "./constants";
 import { takeSnapshot } from "./snapshot";
 import { getOrCreateAccount, isApprovedSource } from "./common";
-import { BigInt, BigDecimal, Address } from "@graphprotocol/graph-ts";
+import { BigInt, Address } from "@graphprotocol/graph-ts";
 import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
 import { Transfer as TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import { Account, Transfer, EligibleTotals, CycloVault, VaultBalance } from "../generated/schema";
-
-function calculateEligibleShare(
-  account: Account,
-  totals: EligibleTotals
-): BigDecimal {
-  // If account has no positive balance, their share is 0
-  if (account.totalCyBalance.le(BigInt.fromI32(0))) {
-    return BigDecimal.fromString("0");
-  }
-
-  // If there's no eligible total, but account has positive balance, they have 100%
-  if (totals.totalEligibleSum.equals(BigInt.fromI32(0))) {
-    return BigDecimal.fromString("1");
-  }
-
-  // Calculate share as decimal percentage
-  return account.totalCyBalance
-    .toBigDecimal()
-    .div(totals.totalEligibleSum.toBigDecimal());
-}
 
 export function getOrCreateTotals(): EligibleTotals {
   let totals = EligibleTotals.load(TOTALS_ID);
@@ -67,10 +47,6 @@ export function updateTotalsForAccount(
     totals.totalEligibleSum = totals.totalEligibleSum.plus(newBalance);
   }
   totals.save();
-
-  // Update account's share
-  account.eligibleShare = calculateEligibleShare(account, totals);
-  account.save();
 }
 
 export function getOrCreateVaultBalance(vaultAddress: Address, account: Account): VaultBalance {

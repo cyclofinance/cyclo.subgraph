@@ -1,6 +1,6 @@
 import { Account, AccountsMetadata, TimeState } from "../generated/schema";
 import { factory } from "../generated/templates/CycloVaultTemplate/factory";
-import { Address, BigInt, BigDecimal, Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { ACCOUNTS_METADATA_ID, REWARDS_SOURCES, TIME_STATE_ID, V2_POOL_FACTORIES, V3_POOL_FACTORIES } from "./constants";
 
 // day in timestamp in seconds
@@ -13,9 +13,7 @@ export function getOrCreateAccount(address: Address): Account {
     account = new Account(address);
     account.address = address;
     account.totalCyBalance = BigInt.fromI32(0);
-    account.eligibleShare = BigDecimal.fromString("0");
     account.totalCyBalanceSnapshot = BigInt.fromI32(0);
-    account.eligibleShareSnapshot = BigDecimal.fromString("0");
     account.accountsMetadata = ACCOUNTS_METADATA_ID;
     account.save();
   }

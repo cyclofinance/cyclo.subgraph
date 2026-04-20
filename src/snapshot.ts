@@ -1,7 +1,7 @@
 import { getOrCreateTotals, eligibleBalance, clamp0 } from "./cys-flr";
 import { CycloVault } from "../generated/schema";
 import { DAY, getAccountsMetadata, updateTimeState } from "./common";
-import { Address, BigInt, BigDecimal, TypedMap, ethereum, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, TypedMap, ethereum, log } from "@graphprotocol/graph-ts";
 import { factory, factory__slot0Result } from "../generated/templates/CycloVaultTemplate/factory";
 
 export class Epoch {
@@ -230,31 +230,6 @@ export function takeSnapshot(event: ethereum.Event): void {
     const totals = getOrCreateTotals();
     totals.totalEligibleSumSnapshot = totalEligibleSumSnapshot;
     totals.save();
-
-    // update eligible share for each account after calculating the total eligible snapshot
-    for (let i = 0; i < accountsList.length; i++) {
-        const account = accountsList[i];
-
-        // If account has no positive balance, their share is 0
-        if (account.totalCyBalanceSnapshot.le(BigInt.zero())) {
-            account.eligibleShareSnapshot = BigDecimal.zero();
-            account.save();
-            continue;
-        }
-
-        // If there's no eligible total, but account has positive balance, they have 100%
-        if (totalEligibleSumSnapshot.equals(BigInt.zero())) {
-            account.eligibleShareSnapshot = BigDecimal.fromString("1");
-            account.save();
-            continue;
-        }
-
-        // Calculate share as decimal percentage
-        account.eligibleShareSnapshot = account.totalCyBalanceSnapshot
-            .toBigDecimal()
-            .div(totalEligibleSumSnapshot.toBigDecimal());
-        account.save();
-    }
 
     log.info(
         "Daily snapshot taking process ended for day {} of epoch {}",

@@ -2,7 +2,7 @@ import { takeSnapshot, EPOCHS } from "../src/snapshot";
 import { createTransferEvent, mockSlot0, mockSlot0Revert } from "./utils";
 import { dataSourceMock, newMockEvent } from "matchstick-as";
 import { getAccountsMetadata, updateTimeState, DAY } from "../src/common";
-import { Address, BigDecimal, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { getLiquidityV2OwnerBalanceId, getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { assert, describe, test, clearStore, beforeAll, beforeEach, afterEach } from "matchstick-as/assembly/index";
 import { Account, VaultBalance, LiquidityV3OwnerBalance, CycloVault, LiquidityV2OwnerBalance, TimeState } from "../generated/schema";
@@ -86,8 +86,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -135,14 +133,6 @@ describe("Snapshot handling", () => {
         expectedSnapshot.toString()
       );
 
-      // Check account eligible share (should be 1.0 for single account)
-      assert.fieldEquals(
-        "Account",
-        USER_1.toHexString(),
-        "eligibleShareSnapshot",
-        "1"
-      );
-
       // check total sum
       assert.fieldEquals(
         "EligibleTotals",
@@ -158,8 +148,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       const user1Balance = BigInt.fromI32(5000);
       const user1PrevAvg = BigInt.fromI32(700);
@@ -183,8 +171,6 @@ describe("Snapshot handling", () => {
         USER_2,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       const user2Balance = BigInt.fromI32(5000);
       const user2PrevAvg = BigInt.fromI32(1650);
@@ -208,8 +194,6 @@ describe("Snapshot handling", () => {
         USER_3,
         BigInt.fromI32(5000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       const user3Balance = BigInt.fromI32(5000);
       const user3PrevAvg = BigInt.fromI32(4800);
@@ -309,27 +293,8 @@ describe("Snapshot handling", () => {
 
       // Check account eligible share
       // user 1
-      assert.fieldEquals(
-        "Account",
-        USER_1.toHexString(),
-        "eligibleShareSnapshot",
-        expectedAvgSnapshotUser1.toBigDecimal().div(totalSnapshot.toBigDecimal()).toString()
-      );
       // user 2
-      assert.fieldEquals(
-        "Account",
-        USER_2.toHexString(),
-        "eligibleShareSnapshot",
-        expectedAvgSnapshotUser2.toBigDecimal().div(totalSnapshot.toBigDecimal()).toString()
-      );
       // user 3
-      assert.fieldEquals(
-        "Account",
-        USER_3.toHexString(),
-        "eligibleShareSnapshot",
-        expectedAvgSnapshotUser3.toBigDecimal().div(totalSnapshot.toBigDecimal()).toString()
-      );
-
       // Check vault total eligible
       // cysflr
       assert.fieldEquals(
@@ -361,8 +326,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(2000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -384,8 +347,6 @@ describe("Snapshot handling", () => {
         USER_2,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYWETH_ADDRESS,
@@ -414,20 +375,6 @@ describe("Snapshot handling", () => {
         .div(BigInt.fromI32(27)); // /27 as we are at day 27
 
       const sum = expectedSnapshot1.plus(expectedSnapshot2)
-
-      // Check account shares
-      assert.fieldEquals(
-        "Account",
-        USER_1.toHexString(),
-        "eligibleShareSnapshot",
-        expectedSnapshot1.toBigDecimal().div(sum.toBigDecimal()).toString()
-      );
-      assert.fieldEquals(
-        "Account",
-        USER_2.toHexString(),
-        "eligibleShareSnapshot",
-        expectedSnapshot2.toBigDecimal().div(sum.toBigDecimal()).toString()
-      );
 
       // Check accounts total snapshot
       assert.fieldEquals(
@@ -486,8 +433,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(-500),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -515,13 +460,6 @@ describe("Snapshot handling", () => {
         "0"
       );
       
-      assert.fieldEquals(
-        "Account",
-        USER_1.toHexString(),
-        "eligibleShareSnapshot",
-        "0"
-      );
-
       // Check vault total eligible
       assert.fieldEquals(
         "CycloVault",
@@ -546,8 +484,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -615,8 +551,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -672,16 +606,12 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(0),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
 
       createMockAccount(
         USER_2,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -702,20 +632,7 @@ describe("Snapshot handling", () => {
       takeSnapshot(mockeEvent);
 
       // Account with zero balance should have 0 share
-      assert.fieldEquals(
-        "Account",
-        USER_1.toHexString(),
-        "eligibleShareSnapshot",
-        "0"
-      );
-
       // Account with positive balance should have 100% share
-      assert.fieldEquals(
-        "Account",
-        USER_2.toHexString(),
-        "eligibleShareSnapshot",
-        "1"
-      );
     });
 
     test("should not deduct V3 position when slot0 reverts", () => {
@@ -726,8 +643,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -782,8 +697,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(300),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -834,8 +747,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -904,8 +815,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(800),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
 
       // boughtCap = 300, lpBalance = 800 → eligible = 300
@@ -949,8 +858,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -1005,8 +912,6 @@ describe("Snapshot handling", () => {
         USER_1,
         BigInt.fromI32(1000),
         BigInt.zero(),
-        BigInt.zero().toBigDecimal(),
-        BigInt.zero().toBigDecimal(),
       );
       createMockVaultBalance(
         CYSFLR_ADDRESS,
@@ -1109,8 +1014,6 @@ describe("Snapshot edge cases", () => {
       USER_1,
       BigInt.fromI32(1000),
       BigInt.zero(),
-      BigInt.zero().toBigDecimal(),
-      BigInt.zero().toBigDecimal(),
     );
     createMockVaultBalance(
       CYSFLR_ADDRESS,
@@ -1285,15 +1188,11 @@ function createMockAccount(
   address: Address,
   totalCyBalance: BigInt,
   totalCyBalanceSnapshot: BigInt,
-  eligibleShare: BigDecimal,
-  eligibleShareSnapshot: BigDecimal,
 ): Account {
   let account = new Account(changetype<Bytes>(address));
   account.address = changetype<Bytes>(address);
   account.totalCyBalance = totalCyBalance;
   account.totalCyBalanceSnapshot = totalCyBalanceSnapshot;
-  account.eligibleShare = eligibleShare;
-  account.eligibleShareSnapshot = eligibleShareSnapshot;
   account.accountsMetadata = ACCOUNTS_METADATA_ID;
   account.save();
 
