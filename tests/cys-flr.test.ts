@@ -122,8 +122,8 @@ describe("Transfer handling", () => {
         SparkdexV3LiquidityManager,
         BigInt.fromI32(1),
         BigInt.fromI32(10),
-        BigInt.fromI32(150),
         BigInt.fromI32(500),
+        BigInt.fromI32(150),
       ),
       USER_2,
       SparkdexV3LiquidityManager,
@@ -278,8 +278,8 @@ describe("Transfer handling", () => {
         SparkdexV3LiquidityManager,
         BigInt.fromI32(1),
         BigInt.fromI32(10),
-        largeValue,
         BigInt.fromI32(500),
+        largeValue,
       ),
       USER_2,
       SparkdexV3LiquidityManager
@@ -362,8 +362,8 @@ describe("Transfer handling", () => {
         SparkdexV3LiquidityManager,
         BigInt.fromI32(1),
         BigInt.fromI32(10),
-        BigInt.fromI32(50),
         BigInt.fromI32(500),
+        BigInt.fromI32(50),
       ),
       USER_1,
       SparkdexV3LiquidityManager
@@ -424,8 +424,8 @@ describe("Transfer handling", () => {
         SparkdexV3LiquidityManager,
         BigInt.fromI32(1),
         BigInt.fromI32(10),
-        BigInt.fromI32(100),
         BigInt.fromI32(500),
+        BigInt.fromI32(100),
       ),
       USER_2,
       SparkdexV3LiquidityManager
@@ -571,8 +571,8 @@ describe("Transfer handling", () => {
         SparkdexV3LiquidityManager,
         BigInt.fromI32(1),
         BigInt.fromI32(10),
-        BigInt.fromI32(100),
         BigInt.fromI32(500),
+        BigInt.fromI32(100),
       ),
       USER_2,
       SparkdexV3LiquidityManager
@@ -650,8 +650,8 @@ describe("Transfer handling", () => {
         SparkdexV3LiquidityManager,
         BigInt.fromI32(1),
         BigInt.fromI32(10),
-        halfValue,
         BigInt.fromI32(500),
+        halfValue,
       ),
       USER_2,
       SparkdexV3LiquidityManager
@@ -703,8 +703,8 @@ describe("Transfer handling", () => {
         SparkdexV3LiquidityManager,
         BigInt.fromI32(1),
         BigInt.fromI32(10),
-        BigInt.fromI32(100),
         BigInt.fromI32(500),
+        BigInt.fromI32(100),
       ),
       USER_1,
       SparkdexV3LiquidityManager
@@ -1134,6 +1134,50 @@ describe("boughtCap/lpBalance eligibility model", () => {
     assert.fieldEquals("VaultBalance", cyWETHVbId, "boughtCap", "300");
     assert.fieldEquals("VaultBalance", cyWETHVbId, "lpBalance", "300");
     assert.fieldEquals("VaultBalance", cyWETHVbId, "balance", "300");
+  });
+
+  test("LP deposit to cy/cy pool with equal amounts credits correct token", () => {
+    clearStore();
+
+    let buyCysFLR = createTransferEvent(
+      APPROVED_DEX_POOL, USER_1, BigInt.fromI32(500), CYSFLR_ADDRESS
+    );
+    handleTransfer(buyCysFLR);
+    let buyCyWETH = createTransferEvent(
+      APPROVED_DEX_POOL, USER_1, BigInt.fromI32(500), CYWETH_ADDRESS
+    );
+    handleTransfer(buyCyWETH);
+
+    const ilLog = mockIncreaseLiquidityLog(
+      SparkdexV3LiquidityManager,
+      BigInt.fromI32(1),
+      BigInt.fromI32(10),
+      BigInt.fromI32(500),
+      BigInt.fromI32(500),
+    );
+
+    let depositCysFLR = createTransferEvent(
+      USER_1, APPROVED_DEX_POOL, BigInt.fromI32(500), CYSFLR_ADDRESS,
+      ilLog, USER_1, SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositCysFLR);
+
+    let depositCyWETH = createTransferEvent(
+      USER_1, APPROVED_DEX_POOL, BigInt.fromI32(500), CYWETH_ADDRESS,
+      ilLog, USER_1, SparkdexV3LiquidityManager
+    );
+    handleTransfer(depositCyWETH);
+
+    const cysFLRVbId = CYSFLR_ADDRESS.concat(USER_1).toHexString();
+    const cyWETHVbId = CYWETH_ADDRESS.concat(USER_1).toHexString();
+
+    assert.fieldEquals("VaultBalance", cysFLRVbId, "boughtCap", "500");
+    assert.fieldEquals("VaultBalance", cysFLRVbId, "lpBalance", "500");
+    assert.fieldEquals("VaultBalance", cysFLRVbId, "balance", "500");
+
+    assert.fieldEquals("VaultBalance", cyWETHVbId, "boughtCap", "500");
+    assert.fieldEquals("VaultBalance", cyWETHVbId, "lpBalance", "500");
+    assert.fieldEquals("VaultBalance", cyWETHVbId, "balance", "500");
   });
 
   test("LP deposit where transfer value mismatches IncreaseLiquidity amounts reduces boughtCap incorrectly", () => {

@@ -198,16 +198,29 @@ export function handleLiquidityV3Add(
         if (!decoded) continue;
         const tuple = decoded.toTuple();
         const liquidity = tuple[0].toBigInt();
+        const amount0 = tuple[1].toBigInt();
+        const amount1 = tuple[2].toBigInt();
 
         const tokenId = topicToBigInt(log_.topics[1]);
 
-        // Match by position's token pair matching the destination pool,
-        // not by exact transfer amount (which can differ due to rounding/routing)
+        // Match by position's token pair matching the destination pool
         const positionResult = LiquidityV3.bind(log_.address).try_positions(tokenId);
         if (positionResult.reverted) continue;
         const posToken0 = positionResult.value.getToken0();
         const posToken1 = positionResult.value.getToken1();
         if (posToken0.notEqual(poolToken0) || posToken1.notEqual(poolToken1)) continue;
+
+        // Disambiguate which side of the pool this cy token is on.
+        // For cy/cy pools (both tokens are CycloVaults), require exact amount match
+        // to distinguish which transfer belongs to which side.
+        // For single-cy pools, the pool-token match is sufficient.
+        const isCyToken0 = cyToken.equals(poolToken0);
+        const otherToken = isCyToken0 ? poolToken1 : poolToken0;
+        if (CycloVault.load(otherToken)) {
+            // cy/cy pool — need amount disambiguation
+            const expectedAmount = isCyToken0 ? amount0 : amount1;
+            if (expectedAmount.notEqual(event.params.value)) continue;
+        }
 
         const fee = positionResult.value.getFee();
         const lowerTick = positionResult.value.getTickLower();
@@ -515,6 +528,14 @@ function handleLiquidityV3TransferInner(
     updateTotalsForAccount(account, cyToken, oldBalance, vaultBalance.balance);
 }
 
+/**
+ * Builds a unique ID for a LiquidityChange entity. Includes cyToken to avoid
+ * collisions in cy/cy pools where both tokens create a change from the same log.
+ */
+export function liquidityChangeId(transactionHash: Bytes, logIndex: BigInt, cyToken: Address): Bytes {
+    return transactionHash.concatI32(logIndex.toI32()).concat(cyToken);
+}
+
 export function createLiquidityV2Change(
     lpAddress: Address,
     owner: Address,
@@ -527,7 +548,7 @@ export function createLiquidityV2Change(
     logIndex: BigInt,
     typ: string,
 ): void {
-    const id = transactionHash.concatI32(logIndex.toI32());
+    const id = liquidityChangeId(transactionHash, logIndex, cyToken);
     const item = new LiquidityV2Change(id);
     item.liquidityChangeType = typ;
     item.blockNumber = blockNumber;
@@ -563,7 +584,7 @@ export function createLiquidityV3Change(
     lowerTick: i32,
     upperTick: i32,
 ): void {
-    const id = transactionHash.concatI32(logIndex.toI32());
+    const id = liquidityChangeId(transactionHash, logIndex, cyToken);
     const item = new LiquidityV3Change(id);
     item.liquidityChangeType = typ;
     item.blockNumber = blockNumber;
