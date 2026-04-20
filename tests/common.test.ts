@@ -15,13 +15,11 @@ const CYSFLR_ADDRESS = Address.fromString(
 );
 
 describe("getOrCreateAccount", () => {
-    test("should initialize with zero balances and shares", () => {
+    test("should initialize with zero balances", () => {
         clearStore();
         const account = getOrCreateAccount(USER_1);
         assert.bigIntEquals(account.totalCyBalance, BigInt.fromI32(0));
         assert.bigIntEquals(account.totalCyBalanceSnapshot, BigInt.fromI32(0));
-        assert.stringEquals(account.eligibleShare.toString(), "0");
-        assert.stringEquals(account.eligibleShareSnapshot.toString(), "0");
     });
 });
 

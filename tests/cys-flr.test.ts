@@ -306,7 +306,6 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     assert.fieldEquals("Account", USER_1.toHexString(), "totalCyBalance", "0");
-    assert.fieldEquals("Account", USER_1.toHexString(), "eligibleShare", "0");
   });
 
   test("Calculates total balance and share for single account", () => {
@@ -343,7 +342,6 @@ describe("Transfer handling", () => {
       "totalCyBalance",
       "100"
     );
-    assert.fieldEquals("Account", USER_1.toHexString(), "eligibleShare", "1"); // Should be 100%
 
     // User gets 50 cyWETH
     transferEvent = createTransferEvent(
@@ -376,7 +374,6 @@ describe("Transfer handling", () => {
       "totalCyBalance",
       "150"
     ); // 100 + 50
-    assert.fieldEquals("Account", USER_1.toHexString(), "eligibleShare", "1"); // Still 100%
   });
 
   test("Calculates shares across multiple accounts", () => {
@@ -442,18 +439,6 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // Total eligible = 400, User 1 has 300/400 = 0.75, User 2 has 100/400 = 0.25
-    assert.fieldEquals(
-      "Account",
-      USER_1.toHexString(),
-      "eligibleShare",
-      "0.75"
-    );
-    assert.fieldEquals(
-      "Account",
-      USER_2.toHexString(),
-      "eligibleShare",
-      "0.25"
-    );
   });
 
   test("Handles negative balances in share calculation", () => {
@@ -483,14 +468,12 @@ describe("Transfer handling", () => {
       "totalCyBalance",
       "0"
     );
-    assert.fieldEquals("Account", USER_1.toHexString(), "eligibleShare", "0"); // No share with negative balance
     assert.fieldEquals(
       "Account",
       USER_2.toHexString(),
       "totalCyBalance",
       "0"
     );
-    assert.fieldEquals("Account", USER_2.toHexString(), "eligibleShare", "0"); // No share with negative balance
   });
 
   test("Handles complex share calculations", () => {
@@ -552,7 +535,6 @@ describe("Transfer handling", () => {
       "totalCyBalance",
       "1500"
     );
-    assert.fieldEquals("Account", USER_1.toHexString(), "eligibleShare", "1");
 
     // 2. User 2 gets tokens from DEX
     transferEvent = createTransferEvent(
@@ -589,18 +571,6 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // Total is now 2000, User 1 has 1500/2000 = 0.75, User 2 has 500/2000 = 0.25
-    assert.fieldEquals(
-      "Account",
-      USER_1.toHexString(),
-      "eligibleShare",
-      "0.75"
-    );
-    assert.fieldEquals(
-      "Account",
-      USER_2.toHexString(),
-      "eligibleShare",
-      "0.25"
-    );
   });
 
   test("Handles large numbers in share calculations", () => {
@@ -668,19 +638,7 @@ describe("Transfer handling", () => {
     handleTransfer(transferEvent);
 
     // User 1 should have 0.666... share (1M/1.5M)
-    assert.fieldEquals(
-      "Account",
-      USER_1.toHexString(),
-      "eligibleShare",
-      "0.6666666666666666666666666666666667"
-    );
     // User 2 should have 0.333... share (500K/1.5M)
-    assert.fieldEquals(
-      "Account",
-      USER_2.toHexString(),
-      "eligibleShare",
-      "0.3333333333333333333333333333333333"
-    );
   });
 
   test("Calculates total balance using only positive balances", () => {

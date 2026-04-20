@@ -6,13 +6,11 @@ type Account @entity {
   vaultBalances: [VaultBalance!]! @derivedFrom(field: "owner")
   receiptBalances: [ReceiptOwnerBalance!]! @derivedFrom(field: "owner")
   totalCyBalance: BigInt! # Sum of all token balances
-  eligibleShare: BigDecimal! # Percentage of total eligible supply (if positive balance)
   liquidityBalances: [LiquidityOwnerBalance!]! @derivedFrom(field: "owner")
   liquidityV3Balances: [LiquidityV3OwnerBalance!]! @derivedFrom(field: "owner")
   liquidityV2Balances: [LiquidityV2OwnerBalance!]! @derivedFrom(field: "owner")
   liquidityChanges: [LiquidityChange!]! @derivedFrom(field: "owner")
   totalCyBalanceSnapshot: BigInt!
-  eligibleShareSnapshot: BigDecimal!
   accountsMetadata: AccountsMetadata! # reference AccountsMetadata singleton record to derive the accounts list from
 }
 
