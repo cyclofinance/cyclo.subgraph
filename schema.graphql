@@ -19,6 +19,8 @@ type Transfer @entity(immutable: true) {
   tokenAddress: Bytes!
   from: Account!
   fromIsApprovedSource: Boolean!
+  txTo: Bytes # tx-level recipient (msg.sender's target) — used to detect aggregator-routed buys where Transfer.from is an intermediate
+  txToIsApprovedSource: Boolean!
   to: Account!
   value: BigInt!
   blockNumber: BigInt!

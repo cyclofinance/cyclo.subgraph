@@ -12,7 +12,7 @@ import { handleTransfer, clamp0, eligibleBalance, getOrCreateVaultBalance } from
 import { getOrCreateAccount } from "../src/common";
 import { getLiquidityV3OwnerBalanceId } from "../src/liquidity";
 import { dataSourceMock } from "matchstick-as";
-import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType, mockIncreaseLiquidityLog, mockSlot0, mockLiquidityV3Positions, mockLiquidityV2Pairs } from "./utils";
+import { createTransferEvent, mockLog, mockFactory, mockFactoryRevert, defaultAddress, defaultAddressBytes, defaultIntBytes, defaultBigInt, defaultEventDataLogType, mockIncreaseLiquidityLog, mockSlot0, mockLiquidityV3Positions, mockLiquidityV2Pairs } from "./utils";
 import { SparkdexV3LiquidityManager, DecreaseLiquidityV3ABI, V3_POOL_FACTORIES } from "../src/constants";
 import { ethereum, Wrapped } from "@graphprotocol/graph-ts";
 
@@ -52,6 +52,12 @@ describe("Transfer handling", () => {
     mockFactoryRevert(USER_1);
     mockFactoryRevert(USER_2);
     mockFactoryRevert(ZERO_ADDRESS);
+    // newMockEvent defaults transaction.to to this address — handleTransfer
+    // now calls isApprovedSource on tx.to, which calls factory(). Mock it
+    // to revert so isApprovedSource returns false.
+    mockFactoryRevert(defaultAddress);
+    mockFactoryRevert(SparkdexV3LiquidityManager);
+    mockFactoryRevert(UNAPPROVED_DEX);
     mockFactory(APPROVED_DEX_ROUTER, Address.fromString("0x16b619B04c961E8f4F06C10B42FDAbb328980A89")); // Valid V2 factory
     mockFactory(APPROVED_DEX_POOL, V3_POOL_FACTORIES[0]); // Valid V3 factory
     mockSlot0(APPROVED_DEX_POOL, -500);
@@ -811,6 +817,9 @@ describe("boughtCap/lpBalance eligibility model", () => {
     dataSourceMock.setNetwork("flare");
     mockFactoryRevert(USER_1);
     mockFactoryRevert(USER_2);
+    mockFactoryRevert(defaultAddress);
+    mockFactoryRevert(SparkdexV3LiquidityManager);
+    mockFactoryRevert(UNAPPROVED_DEX);
     mockFactory(APPROVED_DEX_POOL, V3_POOL_FACTORIES[0]);
     mockSlot0(APPROVED_DEX_POOL, -500);
     mockLiquidityV2Pairs(APPROVED_DEX_POOL, CYSFLR_ADDRESS, CYWETH_ADDRESS);
@@ -1092,6 +1101,67 @@ describe("boughtCap/lpBalance eligibility model", () => {
     assert.fieldEquals("VaultBalance", cyWETHVbId, "boughtCap", "300");
     assert.fieldEquals("VaultBalance", cyWETHVbId, "lpBalance", "300");
     assert.fieldEquals("VaultBalance", cyWETHVbId, "balance", "300");
+  });
+
+  test("Receive from unapproved intermediate with approved tx.to credits boughtCap (aggregator routing)", () => {
+    // Aggregators like OpenOcean may route cy-token trades through an
+    // intermediate contract. The Transfer.from is the intermediate (not
+    // approved), but tx.to is the aggregator (approved). The recipient should
+    // still be credited.
+    clearStore();
+
+    let aggregatorTrade = createTransferEvent(
+      UNAPPROVED_DEX, // Transfer.from — unknown intermediate contract
+      USER_1,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS,
+      null,
+      USER_1, // tx.from
+      APPROVED_DEX_ROUTER, // tx.to — approved aggregator
+    );
+    handleTransfer(aggregatorTrade);
+
+    const vbId = CYSFLR_ADDRESS.concat(USER_1).toHexString();
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "500");
+    assert.fieldEquals(
+      "Transfer",
+      aggregatorTrade.transaction.hash.concatI32(aggregatorTrade.logIndex.toI32()).toHexString(),
+      "txToIsApprovedSource",
+      "true",
+    );
+    assert.fieldEquals(
+      "Transfer",
+      aggregatorTrade.transaction.hash.concatI32(aggregatorTrade.logIndex.toI32()).toHexString(),
+      "fromIsApprovedSource",
+      "false",
+    );
+  });
+
+  test("Receive from unapproved intermediate with unapproved tx.to does NOT credit boughtCap", () => {
+    // Control: unapproved Transfer.from AND unapproved tx.to = wallet-to-wallet
+    // transfer. Recipient's boughtCap should NOT be credited; sender's
+    // boughtCap goes negative.
+    clearStore();
+
+    let peerTransfer = createTransferEvent(
+      USER_2,
+      USER_1,
+      BigInt.fromI32(500),
+      CYSFLR_ADDRESS,
+      null,
+      USER_2,
+      USER_2, // tx.to not approved
+    );
+    handleTransfer(peerTransfer);
+
+    const vbId = CYSFLR_ADDRESS.concat(USER_1).toHexString();
+    assert.fieldEquals("VaultBalance", vbId, "boughtCap", "0");
+    assert.fieldEquals(
+      "Transfer",
+      peerTransfer.transaction.hash.concatI32(peerTransfer.logIndex.toI32()).toHexString(),
+      "txToIsApprovedSource",
+      "false",
+    );
   });
 
   test("LP deposit to cy/cy pool with equal amounts credits correct token", () => {
