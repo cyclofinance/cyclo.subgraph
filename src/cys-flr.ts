@@ -1,7 +1,7 @@
 import { TOTALS_ID } from "./constants";
 import { takeSnapshot } from "./snapshot";
 import { getOrCreateAccount, isApprovedSource } from "./common";
-import { BigInt, Address } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { handleLiquidityAdd, handleLiquidityWithdraw } from "./liquidity";
 import { Transfer as TransferEvent } from "../generated/templates/CycloVaultTemplate/CycloVault";
 import { Account, Transfer, EligibleTotals, CycloVault, VaultBalance } from "../generated/schema";
@@ -95,6 +95,27 @@ export function handleTransfer(event: TransferEvent): void {
   // Check if transfer is from approved source
   const fromIsApprovedSource = isApprovedSource(event.params.from);
 
+  // Also check the tx-level target — DEX aggregators (OpenOcean etc) may route
+  // through an intermediate contract so Transfer.from is an adapter rather than
+  // the aggregator itself. If the tx was sent TO an approved source, treat
+  // the recipient as buying from an approved source.
+  // Skip when fromIsApprovedSource already true (short-circuit), when txTo is
+  // null (contract creation), or when txTo is the cy token itself (direct
+  // token-contract call, never approved).
+  const txTo = event.transaction.to;
+  let txToIsApprovedSource = false;
+  if (
+    !fromIsApprovedSource &&
+    txTo !== null &&
+    (txTo as Bytes).notEqual(event.address)
+  ) {
+    txToIsApprovedSource = isApprovedSource(
+      changetype<Address>(txTo as Bytes),
+    );
+  }
+
+  const isApprovedBuy = fromIsApprovedSource || txToIsApprovedSource;
+
   // Detect LP operations (these have side effects: creating entities, updating LP balances)
   const isLpDeposit = handleLiquidityAdd(event, event.address);
   let lpWithdrawDeduction = BigInt.zero();
@@ -111,7 +132,7 @@ export function handleTransfer(event: TransferEvent): void {
     toVaultBalance.lpBalance = toVaultBalance.lpBalance.minus(lpWithdrawDeduction);
   } else {
     // Regular transfer: affects boughtCap
-    if (fromIsApprovedSource) {
+    if (isApprovedBuy) {
       toVaultBalance.boughtCap = toVaultBalance.boughtCap.plus(event.params.value);
     }
     fromVaultBalance.boughtCap = fromVaultBalance.boughtCap.minus(event.params.value);
@@ -151,6 +172,8 @@ export function handleTransfer(event: TransferEvent): void {
   );
   transfer.tokenAddress = event.address;
   transfer.fromIsApprovedSource = fromIsApprovedSource;
+  transfer.txTo = txTo;
+  transfer.txToIsApprovedSource = txToIsApprovedSource;
   transfer.from = fromAccount.id;
   transfer.to = toAccount.id;
   transfer.value = event.params.value;
