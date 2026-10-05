@@ -45,12 +45,20 @@ jobs:
         run: nix develop -c graph build --network ${{ matrix.network }}
         working-directory: .
 
-      - name: Login to Goldsky
-        run: nix develop -c goldsky login --token ${{ secrets.GOLDSKY_CI }}
-
       # Check if the repo is clean before deploying.
       # Exclude subgraph.yaml (updated by build) and address files (updated by script)
       - run: git diff --exit-code -- . ':!subgraph.yaml'
-      - run: >
-          nix develop -c goldsky subgraph deploy "cyclo-${{ matrix.network }}/$(date -Idate)-$(openssl rand -hex 2)"
+
+      # Name: cyclo-<network>
+      # Version label: <yyyy>-<mm>-<dd>-<commit sha>
+      - name: Deploy to Ormi
+        env:
+          ORMI_DEPLOY_KEY: ${{ secrets.ORMI_DEPLOY_KEY }}
+        run: >
+          nix develop -c graph deploy "cyclo-${{ matrix.network }}"
+          --network "${{ matrix.network }}"
+          --version-label "$(date -u +%Y-%m-%d)-${GITHUB_SHA}"
+          --node https://subgraph.api.ormilabs.com/deploy
+          --ipfs https://subgraph.api.ormilabs.com/ipfs
+          --deploy-key "$ORMI_DEPLOY_KEY"
         working-directory: .
